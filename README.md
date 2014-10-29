@@ -11,5 +11,10 @@ nearest foreign neighbors. This is made possible by a recursive space partitioni
 lookups in sublinear time. The core MST algorithm is largely influenced by Boruvka Meets Nearest Neighbors [1].
 
 
+Spatial Index
+--
+Nodal coordinates are stored in a KDTree for efficient k-nearest neighbor lookups. Due to the periodicity in geodetic coordinate systems, the points are first projected into 3D cartesian space to preserve adjacency.
+
+
 
 [1] Mariano Tepper, Marta Mejail, Pablo Muse, Andres Almansa. Boruvka Meets Nearest Neighbors. 2011. <hal-00583120>
