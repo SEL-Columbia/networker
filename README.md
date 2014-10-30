@@ -15,6 +15,6 @@ Spatial Index
 --
 Nodal coordinates are stored in a KDTree for efficient k-nearest neighbor lookups. Due to the periodicity in geodetic coordinate systems, the points are first projected into 3D cartesian space to preserve adjacency.
 
-
+![Projected Coordinates](http://giant.gfycat.com/RingedSarcasticFireant.gif)
 
 [1] Mariano Tepper, Marta Mejail, Pablo Muse, Andres Almansa. Boruvka Meets Nearest Neighbors. 2011. <hal-00583120>
