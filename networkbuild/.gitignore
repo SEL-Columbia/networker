@@ -1,0 +1,6 @@
+.DS_Store
+*.ipynb
+KDTree.pyc
+ModBoruvka.pyc
+__init__.pyc
+utils.pyc
