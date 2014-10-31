@@ -8,35 +8,37 @@ class Dict(dict):
     pass
 
 class UnionFind:
-    """Union-find data structure.
 
-    Each unionFind instance X maintains a family of disjoint sets of
-    hashable objects, supporting the following two methods:
+    def __init__(self, G): 
+        """
+        Creates and Empty UnionFind Structure:
 
-    - X[item] returns a name for the set containing the given item.
-      Each set is named by an arbitrarily-chosen one of its members; as
-      long as the set remains unchanged it will keep the same name. If
-      the item is not yet part of a set in X, a new singleton set is
-      created for it.
+        Args:
+            G (NetworkX Graph)
 
-    - X.union(item1, item2, ...) merges the sets containing each item
-      into a single larger set.  If any item is not yet part of a set
-      in X, it is added to X as one of the members of the merged set.
+        Notes:
+            Union-find data structure also known as a Disjoint-set data structure
 
-      Union-find data structure. Based on Josiah Carlson's code,
-      http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/215912
-      with significant additional changes by D. Eppstein.
-      http://www.ics.uci.edu/~eppstein/PADS/UnionFind.py
+            Each unionFind instance X maintains a family of disjoint sets of
+            hashable objects.
 
-    """
+            This is a modified version of the data structure presented in Networkx
+            nx.utils, with additonal properites to support the modified Boruvkas 
+            algorithm. The original citations are listed below.
 
-    def __init__(self, G):
-        """Create a new empty union-find structure."""
+        NetworkX Citations
+        ==================
+        Union-find data structure. Based on Josiah Carlson's code,
+        http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/215912
+        with significant additional changes by D. Eppstein.
+        http://www.ics.uci.edu/~eppstein/PADS/UnionFind.py
+
+        """
         self.graph = G 
         self.weights = {}
         self.mv = {}
         self.parents = {}
-        self.children = Dict()
+        self.children = Dict() #This was previously used such that modifying it changed all refs pointing here
         self.queues = {}
     
     def __getitem__(self, object):
@@ -68,7 +70,16 @@ class UnionFind:
         return iter(self.parents)
 
     def union(self, g1, g2, d):
-        """Find the sets containing the objects and merge them all."""
+        """
+        Find the sets containing the objects and merge them all.
+        During merge; children, mv and queues are all aggregated
+        into the dominate or 'heaviest' set.
+        
+        Args:
+            g1 (obj): Key of a member in the disjoint sets
+            g2 (obj): Key of a member in the disjoint sets
+             d (Num): distance between g1 and g2 
+        """
         roots = [self[x] for x in [g1, g2]]
         heaviest = max([(self.weights[r],r) for r in roots])[1]
         r = [r for r in roots if r != heaviest][0]
@@ -89,10 +100,17 @@ class UnionFind:
         """Return the roots for all disjoint sets"""
         return set([self[r] for r in self.parents.keys()])
     
-    def component_set(self, r):
-        """return the component set of the objects"""
+    def component_set(self, n):
+        """Return the component set of the objects
         
-        return self.children[self[r]]
+        Args:
+            n (obj): member node in one of the disjoint sets
+        
+        Returns:
+            List of nodes in the same set as n
+        """
+        
+        return self.children[self[n]]
 
 class PriorityQueue:
     
