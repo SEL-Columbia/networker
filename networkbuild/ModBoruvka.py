@@ -10,21 +10,10 @@ from numba import jit
 from rtree import index
 from scipy.spatial import cKDTree
 
-def memoize(f):
-    """ Memoization decorator for a function taking one or more arguments. """
-    class memodict(dict):
-        def __getitem__(self, *key):
-            return dict.__getitem__(self, key)
+from networkbuild.utils import UnionFind, PriorityQueue
 
-        def __missing__(self, key):
-            ret = self[key] = f(*key)
-            return ret
-
-@jit
 def sq_dist(a,b):
-    """
-    calculates square distance to reduce performance overhead of sqrt
-    """
+    """Calculates square distance to reduce performance overhead of square root"""
     return np.sum((a-b)**2)
 
 def hav_dist(point1, point2):
@@ -32,12 +21,11 @@ def hav_dist(point1, point2):
     x2, y2 = point2
     return get_hav_distance(y1, x1, y2, x2)
 
-@memoize
 def get_hav_distance(lat, lon, pcode_lat, pcode_lon):
     """
     Find the distance between a vector of (lat,lon) and the reference point (pcode_lat,pcode_lon).
     """
-    rad_factor = pi / 180.0  # degrees to radians for trig functions
+    rad_factor = np.pi / 180.0  # degrees to radians for trig functions
     lat_in_rad = lat * rad_factor
     lon_in_rad = lon * rad_factor
     pcode_lat_in_rad = pcode_lat * rad_factor
@@ -57,12 +45,11 @@ def FNNd(kdtree, A, b):
     returns nearest foreign neighbor a∈A of b
     """
     a = None
-    b = cartesian_projection(b)
     k = k_cache[str(b)] if str(b) in k_cache else 2
     
     while a not in A:
         _, nn = kdtree.query(b, k=k)
-        a = nn[-1][k-1]
+        a = nn[-1]
         k += 1
     
     k_cache[str(b)] = k-1
@@ -84,9 +71,6 @@ def cartesian_projection(coords):
     y = rad * cosLat * sinLon
     z = rad * sinLat
     return np.column_stack((x,y,z))
-
-def projected_KDTree(coords):
-    return cKDTree(cartesian_projection(coords))
 
 @jit
 def make_bounding_box(u, v):
@@ -158,9 +142,12 @@ def line_intersection(rtree, um, vm, coords):
     return False
 
 def modBoruvka(T):
+    global k_cache
+    k_cache = {}
     V = T.nodes(data=False)
     coords = np.row_stack(nx.get_node_attributes(T, 'coords').values())
-    kdtree = projected_KDTree(coords)
+    projcoords = cartesian_projection(coords)
+    kdtree = cKDTree(projcoords)
     rtree = index.Index()
     subgraphs = UnionFind(T)# modified to handle queues, children, mv
     
@@ -169,7 +156,7 @@ def modBoruvka(T):
     # initialize a singleton subgraph and populate
     # its a queue with the nn edge where dist is priority
     for v in V:
-        vm = FNNd(kdtree, V, coords[v]) 
+        vm = FNNd(kdtree, V, projcoords[v]) 
         dm = sq_dist(coords[v], coords[vm])
         
         root = subgraphs[v]
@@ -202,7 +189,7 @@ def modBoruvka(T):
             # preventing edges between nodes in the same subgraph
             while vm in component_set:
                 subgraphs.queues[C].pop()
-                um = FNNd(kdtree, djointVC, coords[v])
+                um = FNNd(kdtree, djointVC, projcoords[v])
                 dm = sq_dist(coords[v], coords[um])
                 subgraphs.queues[C].push((v,um), dm)
                 (v,vm) = subgraphs.queues[C].top()
