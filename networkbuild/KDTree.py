@@ -1,11 +1,14 @@
 __author__ = 'Brandon Ogle'
 
 import numpy as np
+from numba import jit 
 
+@jit
 def distance(u, v): 
     return np.sum((u - v)**2)
 
-class KDTree(object):    
+class KDTree(object):
+
     def __init__(self, data, depth=0, make_idx=True):
         self.n, self.k = data.shape
         
@@ -17,7 +20,7 @@ class KDTree(object):
             self.k -= 1
         
         self.build(data, depth)
-        
+    
     def build(self, data, depth):
         
         if data.size > 0:
@@ -82,23 +85,23 @@ class KDTree(object):
         
         # what nodes are in the near branch
         if near.children.size > 1:
-            near_set = {near.idx}.union(near.children[:, -1])   
+            near_set = set(np.append(near.children[:, -1], near.idx))
         else: near_set = {near.idx}
             
         # check the near branch, if its nodes intersect with the queried subset
         # otherwise move to the away branch
-        if set(subset).intersection(near_set):
+        if any(x in near_set for x in subset):
             best = near.query_subset(point, subset, best)
         else:
             best = far.query_subset(point, subset, best)
         
         # validate best, by ensuring closer point doesn't exist just beyond partition
-        if best is not None:
-            if self.orthongonal_dist(point) < distance(best[1], point):
-                best = far.query_subset(point, subset, best)    
+        # if best still has yet to be found also look into this further branch
+        if (best is not None and self.orthongonal_dist(point) < distance(best[1], point)) or best is None:
+            best = far.query_subset(point, subset, best)    
         
         return best 
-             
+     
     def orthongonal_dist(self, point):
         orth_point = np.copy(point)
         orth_point[self.axis] = self.point[self.axis]
@@ -108,8 +111,10 @@ class KDTree(object):
         if point[self.axis] < self.point[self.axis]:
             return self.left
         return self.right
-        
+    
     def away_tree(self, point):
         if self.near_tree(point) == self.left:
             return self.right
         return self.left
+
+
