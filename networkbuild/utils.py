@@ -106,7 +106,7 @@ class UnionFind:
         Args:
             n (obj): member node in one of the disjoint sets
         
-        Returns:
+        Returns: 
             List of nodes in the same set as n
         """
         

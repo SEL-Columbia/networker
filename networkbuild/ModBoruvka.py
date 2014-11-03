@@ -205,9 +205,9 @@ def modBoruvka(T):
             (um, vm, dm) = Ep.pop()
 
             # if doesn't create cycle and subgraph has enough MV
-            if subgraphs[um] != subgraphs[vm] and subgraphs.mv[um] >= dm: 
+            if subgraphs[um] != subgraphs[vm] and subgraphs.mv[subgraphs[um]] >= dm: 
                 # test that the connecting subgraph can receive the MV
-                if subgraphs.mv[vm] >= dm:
+                if subgraphs.mv[subgraphs[vm]] >= dm:
                     # both two way tests passed
                     subgraphs.union(um, vm, dm)
                     # doesn't create line segment intersection
@@ -215,7 +215,10 @@ def modBoruvka(T):
                         rtree.insert(hash((um, vm)), 
                                      make_bounding_box(coords[um], coords[vm]), 
                                      obj=(um, vm))
-                        Et += [(um, vm)] 
+                        Et += [(um, vm)]
+                    else:
+                        # This edge creates an intersection no need to test it again 
+                        subgraphs.queues[um].pop()
                         
             else:
                 # This edge subgraph will never be able to connect
