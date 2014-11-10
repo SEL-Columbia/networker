@@ -6,38 +6,15 @@ import numpy as np
 import networkx as nx 
 
 from copy import copy
-from numba import jit
-from rtree import index
+from rtree import Rtree
 from scipy.spatial import cKDTree
 
-from networkbuild.utils import UnionFind, PriorityQueue
+from networkbuild.utils import UnionFind, PriorityQueue, hav_dist, cartesian_projection, make_bounding_box, line_subgraph_intersection
 
 def sq_dist(a,b):
     """Calculates square distance to reduce performance overhead of square root"""
     return np.sum((a-b)**2)
 
-def hav_dist(point1, point2):
-    x1, y1 = point1
-    x2, y2 = point2
-    return get_hav_distance(y1, x1, y2, x2)
-
-def get_hav_distance(lat, lon, pcode_lat, pcode_lon):
-    """
-    Find the distance between a vector of (lat,lon) and the reference point (pcode_lat,pcode_lon).
-    """
-    rad_factor = np.pi / 180.0  # degrees to radians for trig functions
-    lat_in_rad = lat * rad_factor
-    lon_in_rad = lon * rad_factor
-    pcode_lat_in_rad = pcode_lat * rad_factor
-    pcode_lon_in_rad = pcode_lon * rad_factor
-    delta_lon = lon_in_rad - pcode_lon_in_rad
-    delta_lat = lat_in_rad - pcode_lat_in_rad
-    # Next two lines is the Haversine formula
-    inverse_angle = (np.sin(delta_lat / 2) ** 2 + np.cos(pcode_lat_in_rad) *
-                     np.cos(lat_in_rad) * np.sin(delta_lon / 2) ** 2)
-    haversine_angle = 2 * np.arcsin(np.sqrt(inverse_angle))
-    earth_radius =  6371010 # meters
-    return haversine_angle * earth_radius
 
 def FNNd(kdtree, A, b):
     """
@@ -56,101 +33,28 @@ def FNNd(kdtree, A, b):
     #return NN a ∈ A of b 
     return a
 
-@jit
-def cartesian_projection(coords):
-    """projects x, y (lon, lat) coordinate pairs to 3D cartesian space"""
-    R = 6378137
-    
-    lon, lat = np.transpose(coords)
-    cosLat = np.cos(lat * np.pi / 180.0)
-    sinLat = np.sin(lat * np.pi / 180.0)
-    cosLon = np.cos(lon * np.pi / 180.0)
-    sinLon = np.sin(lon * np.pi / 180.0)
-    rad = R
-    x = rad * cosLat * cosLon
-    y = rad * cosLat * sinLon
-    z = rad * sinLat
-    return np.column_stack((x,y,z))
 
-@jit
-def make_bounding_box(u, v):
-    stack = np.row_stack((u, v))
-    xmin, xmax = np.argsort(stack[:, 0])
-    ymin, ymax = np.argsort(stack[:, 1])
-    return stack[xmin][0], stack[ymin][1], stack[xmax][0], stack[ymax][1]
+def modBoruvka(T, subgraphs=None, rtree=None):
 
-@jit
-def line_intersection(rtree, um, vm, coords):
-    p1, p2 = coords[um], coords[vm]
-    box = make_bounding_box(p1, p2)
-    
-    # query for overlapping rectangles
-    intersecting_bounds = rtree.intersection(box, objects=True)
-    
-    # go through the possible intersections for to validate
-    for possible in intersecting_bounds:
-        
-        #convert edge from (n , n) -> (coord, coord)
-        up, vp = possible.object
-        p3, p4 = coords[up], coords[vp]
-        
-        """
-        test for line segment intersection
-        http://stackoverflow.com/questions/563198/how-do-you-detect-where-two-line-segments-intersect
-        """ 
-        r = p2 - p1
-        s = p4 - p3
-        numerator = np.cross((p3 - p1), r)
-        denominator = np.cross(r, s)
-        
-        if numerator == 0 and denominator == 0:
-            # lines are colinear, test if overlapping 
-            overlapping = (((p3[0]-p1[0]) < 0) != ((p3[0]-p2[0]) < 0)  != (
-                            (p4[0]-p1[0]) < 0) != ((p4[0]-p2[0]) < 0)) or ((
-                            (p3[1]-p1[1]) < 0) != ((p3[1]-p2[1]) < 0)  != (
-                            (p4[1]-p1[1]) < 0) != ((p4[1] - p2[1]) < 0))
-            if overlapping:
-                # allow intersection if lines share an endpoint
-                if (np.array_equal(p1, p3) and not np.array_equal(p2, p4)) or (
-                    np.array_equal(p1, p4) and not np.array_equal(p2, p3)) or (
-                    np.array_equal(p2, p3) and not np.array_equal(p1, p4)) or (
-                    np.array_equal(p2, p4) and not np.array_equal(p1, p3)):
-                    continue
-                return True
-            else: continue
-            
-        if denominator == 0:
-            # lines are parallel
-            continue
-            
-        u = numerator / denominator
-        t = np.cross((p3 - p1), s) / denominator
-        
-        intersecting = (0 <= t <= 1) and (0 <= u <= 1)
-        if intersecting:
-            # allow intersection if lines share an endpoint
-            if (np.array_equal(p1, p3) and not np.array_equal(p2, p4)) or (
-                np.array_equal(p1, p4) and not np.array_equal(p2, p3)) or (
-                np.array_equal(p2, p3) and not np.array_equal(p1, p4)) or (
-                np.array_equal(p2, p4) and not np.array_equal(p1, p3)):
-                continue
-                
-            #print p1, p2, 'intersects', p3, p4
-            return True
-            
-        
-    return False
-
-def modBoruvka(T):
     global k_cache
     k_cache = {}
+
     V = T.nodes(data=False)
     coords = np.row_stack(nx.get_node_attributes(T, 'coords').values())
     projcoords = cartesian_projection(coords)
-    kdtree = cKDTree(projcoords)
-    rtree = index.Index()
-    subgraphs = UnionFind(T)# modified to handle queues, children, mv
     
+    kdtree = cKDTree(projcoords)
+
+    if subgraphs is None:
+        if rtree != None: raise ValueError('RTree passed without UnionFind')
+        
+        rtree = Rtree()
+        # modified to handle queues, children, mv
+        subgraphs = UnionFind(T)
+
+    # Tests whether the node is a projection on the existing grid, using its MV
+    is_fake = lambda n: subgraphs.mv[n] == np.inf
+
     #                ∀ v∈V 
     # find the nearest neighbor for all nodes, 
     # initialize a singleton subgraph and populate
@@ -205,21 +109,31 @@ def modBoruvka(T):
             (um, vm, dm) = Ep.pop()
 
             # if doesn't create cycle and subgraph has enough MV
-            if subgraphs[um] != subgraphs[vm] and subgraphs.mv[subgraphs[um]] >= dm: 
+            if subgraphs[um] != subgraphs[vm] and (subgraphs.mv[subgraphs[um]] >= dm or is_fake(um)): 
                 # test that the connecting subgraph can receive the MV
-                if subgraphs.mv[subgraphs[vm]] >= dm:
+                if subgraphs.mv[subgraphs[vm]] >= dm or is_fake(vm):
                     # both two way tests passed
                     subgraphs.union(um, vm, dm)
-                    # doesn't create line segment intersection
-                    if not line_intersection(rtree, um, vm, coords):
-                        rtree.insert(hash((um, vm)), 
-                                     make_bounding_box(coords[um], coords[vm]), 
-                                     obj=(um, vm))
-                        Et += [(um, vm)]
-                    else:
-                        # This edge creates an intersection no need to test it again 
-                        subgraphs.queues[um].pop()
+                    
+                    # doesn't create cycles from line segment intersection
+                    invalid_edge, intersections = line_subgraph_intersection(subgraphs, rtree, coords[um], coords[vm])
+
+                    if not invalid_edge:
+                        # valid edges should not intersect any subgraph more than once
+                        assert(filter(lambda n: n > 1, intersections.values()) == [])
                         
+                        # For all intersected subgraphs update the mv to that created by the edge intersecting them,
+                        # TODO: This should be updated in not such a naive method
+                        map(lambda (n, _): subgraphs.union(um, n, 0), 
+                                filter(lambda (n, i): i == 1 and subgraphs[n] != subgraphs[um], intersections.iteritems()))
+
+                        # index the newly added edge
+                        box = make_bounding_box(coords[um], coords[vm])
+
+                        # Object is in form of (u.label, v.label), (u.coord, v.coord)
+                        rtree.insert(hash((um, vm)), box, obj=((um, vm), (coords[um], coords[vm])))
+                        Et += [(um, vm)]
+
             else:
                 # This edge subgraph will never be able to connect
                 # No reason to test this edge further
