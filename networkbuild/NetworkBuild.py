@@ -6,8 +6,7 @@ import networkx as nx
 import pandas as pd
 
 from rtree import Rtree
-from shapely.geometry import LineString, Point
-from networkbuild.utils import UnionFind, make_bounding_box
+from networkbuild.utils import UnionFind, make_bounding_box, project_point
 
 class NetworkBuild(object):
 
@@ -77,9 +76,8 @@ class NetworkBuild(object):
             nearest_segment = rtree.nearest(np.ravel((coord, coord)), objects=True).next()
             uv, line = nearest_segment.object
             # project the coord onto the edge and append to the list of fake nodes
-            edge = LineString(line)
-            fake = edge.interpolate(edge.project(Point(coord)))
-            fake_nodes.append((uv, np.asarray(fake.coords.xy).reshape(2)))
+            fake = project_point(line, coord)
+            fake_nodes.append((uv, fake))
         
         # Get the grid components to init mv grid centers
         subgrids = nx.connected_components(grid)

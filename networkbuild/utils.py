@@ -322,4 +322,18 @@ def line_subgraph_intersection(subgraphs, rtree, p1, p2):
     # Todo: If this edge is valid, we need to update the mv for all intersecting subnets
     return False, intersecting_subnets
 
+def project_point(L, q):
+    """
+    Linear system of equations to find projected point p of q on L
+    http://cs.nyu.edu/~yap/classes/visual/03s/hw/h2/math.pdf
+    """
+    p0, p1 = L
+    A = np.array([[p1[0] - p0[0], p1[1] - p0[1]],
+                  [p0[1] - p1[1], p1[0] - p0[0]]])
 
+    b = np.array([[-q[0]*(p1[0] - p0[0]) - q[1]*(p1[1] - p0[1])],
+                  [-p0[1]*(p1[0] - p0[0]) + p0[0]*(p1[1]-p0[1])]])
+    
+    # A * [X,Y] = b
+    # A^-1 * b = [X,Y]
+    return np.ravel(np.linalg.solve(A, -b))
