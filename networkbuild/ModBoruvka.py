@@ -7,43 +7,21 @@ import networkx as nx
 
 from copy import copy
 from rtree import Rtree
-from scipy.spatial import cKDTree
 
+from networkbuild.KDTree import KDTree
 from networkbuild.utils import UnionFind, PriorityQueue, hav_dist, cartesian_projection, make_bounding_box, line_subgraph_intersection
 
 def sq_dist(a,b):
     """Calculates square distance to reduce performance overhead of square root"""
     return np.sum((a-b)**2)
 
-
-def FNNd(kdtree, A, b):
-    """
-    kdtree -> nodes in subnet -> coord of b -> index of a
-    returns nearest foreign neighbor a∈A of b
-    """
-    a = None
-    k = k_cache[str(b)] if str(b) in k_cache else 2
-    
-    while a not in A:
-        _, nn = kdtree.query(b, k=k)
-        a = nn[-1]
-        k += 1
-    
-    k_cache[str(b)] = k-1
-    #return NN a ∈ A of b 
-    return a
-
-
 def modBoruvka(T, subgraphs=None, rtree=None):
-
-    global k_cache
-    k_cache = {}
 
     V = T.nodes(data=False)
     coords = np.row_stack(nx.get_node_attributes(T, 'coords').values())
     projcoords = cartesian_projection(coords)
     
-    kdtree = cKDTree(projcoords)
+    kdtree = KDTree(projcoords)
 
     if subgraphs is None:
         if rtree != None: raise ValueError('RTree passed without UnionFind')
@@ -60,7 +38,7 @@ def modBoruvka(T, subgraphs=None, rtree=None):
     # initialize a singleton subgraph and populate
     # its a queue with the nn edge where dist is priority
     for v in V:
-        vm = FNNd(kdtree, V, projcoords[v]) 
+        vm, _ = kdtree.query_subset(projcoords[v], V) 
         dm = sq_dist(coords[v], coords[vm])
         
         root = subgraphs[v]
@@ -93,7 +71,7 @@ def modBoruvka(T, subgraphs=None, rtree=None):
             # preventing edges between nodes in the same subgraph
             while vm in component_set:
                 subgraphs.queues[C].pop()
-                um = FNNd(kdtree, djointVC, projcoords[v])
+                um, _ = kdtree.query_subset(projcoords[v], djointVC)
                 dm = sq_dist(coords[v], coords[um])
                 subgraphs.queues[C].push((v,um), dm)
                 (v,vm) = subgraphs.queues[C].top()
