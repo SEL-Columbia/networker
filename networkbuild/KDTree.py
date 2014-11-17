@@ -134,9 +134,10 @@ class KDTree(object):
 
         # if point in subset, try to update best
         if np.dot(idx_vec, subset) != 0:
-            # if closer than current best, or best is none updateh
-            is_closer = distance(self.node, point) < distance(best[1], point)
-            if np.all(best == None) or is_closer:
+            # if closer than current best, or best is none update
+            # is_closer is a thunk to prevent '__getitem__' error 
+            is_closer = lambda: distance(self.node, point) < distance(best[1], point)
+            if np.all(best == None) or is_closer():
                 best = (self.idx, self.node)
 
         near = self.near_branch(point)
