@@ -62,4 +62,4 @@ def TestUnionMV():
         d = hav_dist(d1['coords'], d2['coords'])
         subgraphs.union(n1, n2, d)
 
-    eq_(subgraphs.mv[subgraphs[1]], mv)
+    eq_(np.allclose(subgraphs.mv[subgraphs[1]], mv), True)
