@@ -54,21 +54,12 @@ class NetworkBuild(object):
         return net
 
     @staticmethod
-    def grid_settlement_merge(grid, net):
-
-        # Coordinates of grid vertices, lookup strips the 'grid-' prior to indexing
-        g_coords = nx.get_node_attributes(grid, 'coords')
-        edges_bounds = map(lambda tup: (tup, make_bounding_box(*map(lambda n: g_coords[n], tup))), grid.edges())
-
-        # init rtree and store grid edges
-        rtree = Rtree()
-        for edge, box in edges_bounds:
-            # Object is in form of (u.label, v.label), (u.coord, v.coord)
-            rtree.insert(hash(edge), box, obj=(edge, map(g_coords.get, edge)))
-
-        # project fake nodes
+    def project_to_grid(rtree, coords):
+        """
+        Naively projects all nodes in the graph
+        onto the existing grid.
+        """
         fake_nodes = []
-        coords = np.row_stack(nx.get_node_attributes(net, 'coords').values())
 
         for coord in coords:
             # Find nearest bounding box
@@ -76,7 +67,31 @@ class NetworkBuild(object):
             uv, line = nearest_segment.object
             # project the coord onto the edge and append to the list of fake nodes
             fake = project_point(line, coord)
-            fake_nodes.append((uv, fake))
+            # only add unique fake nodes, this operation is probably unreasonably expensive
+            if map(tuple, (uv, fake)) not in (map(tuple, f) for f in fake_nodes):
+                fake_nodes.append((uv, fake))
+
+        return fake_nodes
+
+    @staticmethod
+    def grid_settlement_merge(grid, net):
+        # Coordinates of grid vertices, lookup strips the 'grid-' prior to indexing
+        g_coords = nx.get_node_attributes(grid, 'coords')
+
+        def edge_generator():
+            edges_bounds = map(lambda tup: (tup, make_bounding_box(*map(lambda n: g_coords[n], tup))), grid.edges())
+
+            for edge, box in edges_bounds:
+                # Object is in form of (u.label, v.label), (u.coord, u.coord)
+                yield (hash(edge), box, (edge, map(g_coords.get, edge)))
+
+
+        # Init rtree and store grid edges
+        rtree = Rtree(edge_generator())
+
+        # Project Fake Nodes
+        coords = np.row_stack(nx.get_node_attributes(net, 'coords').values())
+        fake_nodes = NetworkBuild.project_to_grid(rtree, coords)
 
         # Get the grid components to init mv grid centers
         subgrids = nx.connected_components(grid)
@@ -111,11 +126,6 @@ class NetworkBuild(object):
             # Merge the fake node with the grid subgraph
             subgraphs.union(fake_id, u, 0)
 
-        # Validate output
-
-        # assert the number of disjoint sets == subcomponents with more than one node
-        assert(len(subgraphs.connected_components()) == len(filter(lambda x: len(x) > 1, nx.connected_components(big))))
-
         # Now that the needed grid data has been captured
         # Pull the existing grid out of the network
         big.remove_edges_from(grid.edges())
@@ -133,4 +143,3 @@ class NetworkBuild(object):
 
         return nx.union_all(filter(lambda sub: len(sub.node) >= min_node_component,
             nx.connected_component_subgraphs(opt_net)))
-
