@@ -3,11 +3,11 @@
 
 # <codecell>
 
+#%pylab inline
 import numpy as np
 import networkx as nx
 from networkbuild import NetworkBuild
 
-from networkbuild.utils import hav_dist, project_point
 from networkbuild import modBoruvka
 from nose.tools import eq_
 
@@ -82,8 +82,8 @@ def TestMSTBehavior():
     %pylab inline 
     magic enabled
     """
-    # figsize(22, 6)
-    # c = ['b' if x['mv'] == np.inf else 'r' for _, x in G.nodes(data=True)]
-    # nx.draw_networkx(mst, nx.get_node_attributes(mst, 'coords'), node_color=c)
-    # nx.draw_networkx(grid, nx.get_node_attributes(grid, 'coords'), node_color='m', edge_color='r')
+#     figsize(22, 6)
+#     c = ['b' if x['mv'] == np.inf else 'r' for _, x in G.nodes(data=True)]
+#     nx.draw_networkx(mst, nx.get_node_attributes(mst, 'coords'), node_color=c)
+#     nx.draw_networkx(grid, nx.get_node_attributes(grid, 'coords'), node_color='m', edge_color='r')
 
