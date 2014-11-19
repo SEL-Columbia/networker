@@ -223,6 +223,7 @@ def get_hav_distance(lat, lon, pcode_lat, pcode_lon):
 @jit
 def cartesian_projection(coords):
     """projects x, y (lon, lat) coordinate pairs to 3D cartesian space"""
+    
     rad = 6378137
 
     lon, lat = np.transpose(coords)
@@ -330,21 +331,31 @@ def line_subgraph_intersection(subgraphs, rtree, p1, p2):
     # the mv for all intersecting subnets
     return False, intersecting_subnets
 
-def project_point(L, q):
-    """
-    Linear system of equations to find projected point p of q on L
-    http://cs.nyu.edu/~yap/classes/visual/03s/hw/h2/math.pdf
-    """
-    p0, p1 = L
-    A = np.array([[p1[0] - p0[0], p1[1] - p0[1]],
-                  [p0[1] - p1[1], p1[0] - p0[0]]])
+def project_point_to_segment(p, v1, v2):
 
-    b = np.array([[-q[0]*(p1[0] - p0[0]) - q[1]*(p1[1] - p0[1])],
-                  [-p0[1]*(p1[0] - p0[0]) + p0[0]*(p1[1]-p0[1])]])
+    # Read line segment left to right
+    if v1[0] > v2[0]:
+        v1, v2 = v2, v1
 
-    # A * [X,Y] = b
-    # A^-1 * b = [X,Y]
-    return np.ravel(np.linalg.solve(A, -b))
+    # Line segment vector (x, y)
+    e1 = np.array([v2[0] - v1[0], v2[1] - v1[1]])
+    # v1 -> p vector (x, y)
+    e2 = np.array([p[0] - v1[0], p[1] - v1[1]])
+
+    # Dot product and magnitude^2
+    dp = np.dot(e1, e2)
+    e_mag = np.sum(e1 ** 2)
+
+    #P' of P on Line(v1, v2)
+    proj = np.array([v1[0] + (dp * e1[0]) / e_mag,
+                     v1[1] + (dp * e1[1]) / e_mag])
+
+    # Constrain point at end points
+    if proj[0] < v1[0]:
+        return v1
+    if proj[0] > v2[0]:
+        return v2
+    return proj
 
 def csv_projection(path):
     """

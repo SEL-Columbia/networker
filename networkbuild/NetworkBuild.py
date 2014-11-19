@@ -7,7 +7,7 @@ import networkx as nx
 import pandas as pd
 
 from rtree import Rtree
-from networkbuild.utils import UnionFind, make_bounding_box, project_point,\
+from networkbuild.utils import UnionFind, make_bounding_box, project_point_to_segment,\
                                csv_projection, string_to_proj4, utm_to_wgs84
 
 class NetworkBuild(object):
