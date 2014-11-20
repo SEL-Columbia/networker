@@ -2,6 +2,7 @@
 __author__ = 'Brandon Ogle'
 
 import heapq
+import osr
 import numpy as np
 
 from collections import defaultdict
@@ -87,14 +88,14 @@ class UnionFind:
         graphs = [g1, g2]; map(self.__getitem__, graphs)
         point_mv = np.array(map(self.mv.get, graphs))
         fake = point_mv == np.inf
-        
+
         if all(fake):
             raise Exception('Path between fakes nodes')
 
         if any(fake):
             real = graphs[np.array([0, 1])[~fake]]
             grid = graphs[np.array([0, 1])[fake]]
-            
+
             heaviest = self[real]
             smallest = self[grid]
         else:
@@ -110,15 +111,15 @@ class UnionFind:
 
         self.queues[heaviest].merge(self.queues[smallest])
         self.queues[smallest] = self.queues[heaviest]
-        
+
         if any(fake):
             if grid == smallest:
                 self.mv[heaviest] -= d
-                return 
+                return
 
         self.mv[heaviest] += self.mv[smallest] - d
         self.mv[smallest] = self.mv[heaviest]
-    
+
     def connected_components(self):
         """Return the roots for all disjoint sets"""
         return [r for r in self.parents.keys() if not
@@ -243,6 +244,13 @@ def make_bounding_box(u, v):
 
 @jit
 def line_subgraph_intersection(subgraphs, rtree, p1, p2):
+    """
+    test for line segment intersection
+    http://stackoverflow.com/questions/563198/how-do-you-detect-where-two-line-segments-intersect
+
+    TODO: Should compare this methodology to the dot product
+    method to see which is more performant
+    """
 
     box = make_bounding_box(p1, p2)
 
@@ -256,13 +264,6 @@ def line_subgraph_intersection(subgraphs, rtree, p1, p2):
         # Query object is in form of (u.label, v.label), (u.coord, v.coord)
         (up, vp), (p3, p4) = possible.object
 
-        """
-        test for line segment intersection
-        http://stackoverflow.com/questions/563198/how-do-you-detect-where-two-line-segments-intersect
-
-        TODO: Should compare this methodology to the dot product
-        method to see which is more performant
-        """
         r = p2 - p1
         s = p4 - p3
         numerator = np.cross((p3 - p1), r)
@@ -325,7 +326,8 @@ def line_subgraph_intersection(subgraphs, rtree, p1, p2):
                 return True, intersecting_subnets
 
 
-    # Todo: If this edge is valid, we need to update the mv for all intersecting subnets
+    # Todo: If this edge is valid, we need to update
+    # the mv for all intersecting subnets
     return False, intersecting_subnets
 
 def project_point(L, q):
@@ -343,3 +345,79 @@ def project_point(L, q):
     # A * [X,Y] = b
     # A^-1 * b = [X,Y]
     return np.ravel(np.linalg.solve(A, -b))
+
+def csv_projection(path):
+    """
+    Args:
+        path (str): path to the csv
+
+    Returns:
+        Projection (dict) of the csv coordinates if included in header
+        else None
+    """
+
+    with open(path) as raw_text:
+        header = raw_text.readline()
+
+    if 'PROJ.4' in header:
+        projection = string_to_proj4(header)
+
+
+        return projection
+
+def string_to_proj4(string):
+    """
+    Converts PROJ4 string to dict representation
+
+    Args:
+        string (str): PROJ4 string to convert
+
+    Returns:
+        proj4 (dict)
+
+    """
+
+    projection = {'proj': None,
+                  'zone': None,
+                  'ellps': None,
+                  'datum': None,
+                  'units': None}
+
+    for key in projection.keys():
+        start = string.find(key)
+        if start != -1:
+            start += len(key) + 1
+            end = start + string[start:].find(' +')
+            projection[key] = string[start:end]
+
+    return projection
+
+
+
+def utm_to_wgs84(coords, zone):
+    """
+    Converts an array of utm coords to latlon
+
+    Args:
+        coords (np.array): [[easting, northing]] coords to be converted
+        zone   (int): utm zone associated with utm coords
+    Returns:
+        coords (np.array): [[Lon, Lat]]
+    """
+    utm_coordinate_system = osr.SpatialReference()
+
+    # Set geographic coordinate system to handle lat/lon
+    utm_coordinate_system.SetWellKnownGeogCS("WGS84")
+
+    northing = coords[0, 1]
+    is_northern = int(northing > 0)
+    utm_coordinate_system.SetUTM(zone, is_northern)
+
+    # Clone ONLY the geographic coordinate system
+    lonlat_coordinate_system = utm_coordinate_system.CloneGeogCS()
+
+    # create transformation helper
+    converter = osr.CoordinateTransformation(utm_coordinate_system,
+                                             lonlat_coordinate_system)
+
+    return np.asarray(converter.TransformPoints(coords))[:, :-1]

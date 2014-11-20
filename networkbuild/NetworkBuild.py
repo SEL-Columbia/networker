@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
 __author__ = 'Brandon Ogle'
 
+import ogr
 import numpy as np
 import networkx as nx
 import pandas as pd
 
 from rtree import Rtree
-from networkbuild.utils import UnionFind, make_bounding_box, project_point
+from networkbuild.utils import UnionFind, make_bounding_box, project_point,\
+                               csv_projection, string_to_proj4, utm_to_wgs84
 
 class NetworkBuild(object):
 
@@ -22,10 +24,25 @@ class NetworkBuild(object):
     @staticmethod
     def setup_grid(path):
 
+        #Open the shapefile and get the projection
+        driver = ogr.GetDriverByName('ESRI Shapefile')
+        shp = driver.Open(path)
+        layer = shp.GetLayer()
+        spatialRef = layer.GetSpatialRef()
+        proj4 = string_to_proj4(spatialRef.ExportToProj4())
+
         # Load in the grid
         grid = nx.read_shp(path)
         # Convert coord labels to ints
         grid = nx.convert_node_labels_to_integers(grid, label_attribute='coords')
+
+        # if coords in utm convert to latlong
+        if proj4['proj'] == 'utm':
+            utmcoords = np.row_stack(nx.get_node_attributes(grid, 'coords').values())
+            coords = utm_to_wgs84(utmcoords, int(proj4['zone']))
+            nx.set_node_attributes(grid, 'coords', {i : coord for i, coord
+                                                    in enumerate(coords)})
+
         # Append 'grid-' to grid node labels
         grid = nx.relabel_nodes(grid, {n: 'grid-' + str(n) for n in grid.nodes()})
         # Set mv to 0
@@ -36,12 +53,29 @@ class NetworkBuild(object):
     @staticmethod
     def setup_input_nodes(path):
 
-        # Load in the metrics file
-        metrics = pd.read_csv(path)
+        proj4 = csv_projection(path)
+        header_row = 1 if proj4 else 0
+
+        # read in the csv
+        metrics = pd.read_csv(path, header=header_row)
+
+        # Find the xy pattern used
+        coord_pattern = [['x', 'y'], ['X', 'Y'], ['Lon', 'Lat'], ['Longitude', 'Latitude']]
+        coord_cols = [[xp, yp] for [xp, yp] in coord_pattern
+                if hasattr(metrics, xp) and hasattr(metrics, yp)][0]
+
         # Stack the coords
-        coords = np.column_stack((metrics.x, metrics.y))
+        coords = np.column_stack(map(metrics.get, coord_cols))
+
+        #if coords are in utm, need to convert to longlat
+        if proj4['proj'] == 'utm':
+            coords = utm_to_wgs84(coords, int(proj4['zone']))
+
         # Store the MV array
-        mv = metrics['Demand...Projected.nodal.demand.per.year'].values
+        if hasattr(metrics, 'Demand > Projected nodal demand per year'):
+            mv = metrics['Demand > Projected nodal demand per year'].values
+        else:
+            mv = metrics['Demand...Projected.nodal.demand.per.year'].values
 
         # Setup the network
         net = nx.Graph()
@@ -67,9 +101,8 @@ class NetworkBuild(object):
             uv, line = nearest_segment.object
             # project the coord onto the edge and append to the list of fake nodes
             fake = project_point(line, coord)
-            # only add unique fake nodes, this operation is probably unreasonably expensive
-            if map(tuple, (uv, fake)) not in (map(tuple, f) for f in fake_nodes):
-                fake_nodes.append((uv, fake))
+            #Todo: only add unique fake nodes
+            fake_nodes.append((uv, fake))
 
         return fake_nodes
 
@@ -83,7 +116,7 @@ class NetworkBuild(object):
 
             for edge, box in edges_bounds:
                 # Object is in form of (u.label, v.label), (u.coord, u.coord)
-                yield (hash(edge), box, (edge, map(g_coords.get, edge)))
+                yield (hash(edge), box, (edge, map(lambda ep: np.array(g_coords[ep]), edge)))
 
 
         # Init rtree and store grid edges
