@@ -7,6 +7,7 @@ import networkx as nx
 import pandas as pd
 
 from rtree import Rtree
+from scipy.cluster.vq import kmeans
 from networkbuild.utils import UnionFind, make_bounding_box, project_point_to_segment,\
                                csv_projection, string_to_proj4, utm_to_wgs84
 
@@ -68,7 +69,7 @@ class NetworkBuild(object):
         coords = np.column_stack(map(metrics.get, coord_cols))
 
         #if coords are in utm, need to convert to longlat
-        if proj4['proj'] == 'utm':
+        if proj4 and proj4['proj'] == 'utm':
             coords = utm_to_wgs84(coords, int(proj4['zone']))
 
         # Store the MV array
@@ -90,12 +91,12 @@ class NetworkBuild(object):
     @staticmethod
     def project_to_grid(rtree, coords):
         """
-        Naively projects all nodes in the graph
-        onto the existing grid.
+        Reduces the point set to sqrt(n) via kmeans, 
+        then projects those representative points onto the grid
         """
         fake_nodes = []
-
-        for coord in coords:
+        neighborhoods = kmeans(coords, np.sqrt(coords.shape[0]))[0]
+        for coord in neighborhoods:
             # Find nearest bounding box
             nearest_segment = rtree.nearest(np.ravel((coord, coord)), objects=True).next()
             uv, line = nearest_segment.object
