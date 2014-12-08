@@ -117,7 +117,7 @@ def modBoruvka(T, subgraphs=None, rtree=None):
 
                         # Object is in form of (u.label, v.label), (u.coord, v.coord)
                         rtree.insert(hash((um, vm)), box, obj=((um, vm), (coords[um], coords[vm])))
-                        Et += [(um, vm)]  
+                        Et += [(um, vm, {'weight': dm})]  
     
     T.remove_edges_from(T.edges())
     T.add_edges_from(Et)

@@ -9,7 +9,7 @@ import pandas as pd
 from rtree import Rtree
 from scipy.cluster.vq import kmeans
 from networkbuild.utils import UnionFind, make_bounding_box, project_point_to_segment,\
-                               csv_projection, string_to_proj4, utm_to_wgs84
+                               csv_projection, string_to_proj4, utm_to_wgs84, hav_dist
 
 class NetworkBuild(object):
 
@@ -48,6 +48,10 @@ class NetworkBuild(object):
         grid = nx.relabel_nodes(grid, {n: 'grid-' + str(n) for n in grid.nodes()})
         # Set mv to 0
         nx.set_node_attributes(grid, 'mv', {n:0 for n in grid.nodes()})
+        # Set edge weights
+        get_coord = lambda x: grid.node[x]['coords']
+        nx.set_edge_attributes(grid, 'weight', {(u, v): hav_dist(*map(get_coord, [u,v])) 
+                                                        for u,v in grid.edges()}) 
 
         return grid.to_undirected()
 

@@ -7,6 +7,7 @@ import numpy as np
 
 from np.lib import dataset_store, metric, network, variable_store as VS
 from networkbuild import NetworkBuild, modBoruvka
+np.warnings.filterwarnings('ignore')
 
 class NP_Boruvka_Interface(object):
 
@@ -47,9 +48,14 @@ class NP_Boruvka_Interface(object):
                                   nx.connected_component_subgraphs(modBoruvka(G, DS, R))))
         nx.relabel_nodes(mst, {i: i+1 for i in mst.nodes()}, copy=False)
 
-        # The exiting grid should be added to the dstore here
-        # existing_subnet = dataset_store.Subnet()
-
+        # Add the existing grid to the dataset_store
+        dataset_subnet = dataset_store.Subnet()
+        for u, v in grid.edges():
+            segment = dataset_store.Segment(u, v)
+            segment.subnet_id = dataset_subnet.id
+            segment.is_existing = True
+            segment.weight = grid[u][v]['weight']
+            self.dstore.session.add(segment)
 
         # Translate the NetworkX Graph to Dstore objects
         for subgraph in nx.connected_component_subgraphs(mst):
