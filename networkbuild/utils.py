@@ -45,7 +45,8 @@ class UnionFind:
         self.parents = {}
         self.children = Dict() #This was previously used such that modifying it changed all refs pointing here
         self.queues = {}
-
+        self.neigborhood = {}
+    
     def __getitem__(self, object):
         """Find and return the name of the set containing the object."""
         # check for previously unknown object
@@ -55,6 +56,7 @@ class UnionFind:
             self.mv[object] = self.graph.node[object]['mv']
             self.children[object] = [object]
             self.queues[object] = PriorityQueue()
+            self.neighborhood[object] = set()
 
             return object
 
@@ -73,6 +75,14 @@ class UnionFind:
     def __iter__(self):
         """Iterate through all items ever found or unioned by this structure."""
         return iter(self.parents)
+    
+
+    def push(self, queue, item, priority):
+        """Pushes an item into component queue, and updates the neigborhood"""
+        u, v, d = item
+        self.neighborhood[self[u]] |= {self[v]}
+        self.neighborhood[self[v]] |= {self[u]}
+        queue.push(item, priority)
 
     def union(self, g1, g2, d):
         """
