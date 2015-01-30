@@ -15,11 +15,12 @@ def sq_dist(a,b):
     """Calculates square distance to reduce performance overhead of square root"""
     return np.sum((a-b)**2)
 
-def modBoruvka(T, subgraphs=None, rtree=None):
+def modBoruvka(T, subgraphs=None, rtree=None, spherical_coords=True):
 
     V = set(T.nodes(data=False))
     coords = np.row_stack(nx.get_node_attributes(T, 'coords').values())
-    projcoords = cartesian_projection(coords)
+
+    projcoords = cartesian_projection(coords) if spherical_coords else coords
 
     kdtree = KDTree(projcoords)
 
@@ -43,7 +44,7 @@ def modBoruvka(T, subgraphs=None, rtree=None):
 
         root = subgraphs[v]
 
-        subgraphs.push(subgraphs.queues[root], (v, vm), dm))
+        subgraphs.push(subgraphs.queues[root], (v, vm), dm)
 
     Et = [] # Initialize MST edges to empty list
     last_state = None
@@ -62,7 +63,8 @@ def modBoruvka(T, subgraphs=None, rtree=None):
             except:
                 continue
 
-            component_set = subgraphs.component_set(v) | 
+            component_set = subgraphs.component_set(v)
+            # TODO:  union component_set with dead_ends?
             djointVC = list(V - set(component_set))
 
             # if V ∈ C then minimum spanning tree, solved in last
@@ -81,8 +83,14 @@ def modBoruvka(T, subgraphs=None, rtree=None):
                 subgraphs.push(subgraphs.queues[C], (v,um), dm)
                 (v,vm) = subgraphs.queues[C].top()
 
+            # if coords are spherical
             # use haversine distance when moving into E', as needed for mv criteria
-            dm = hav_dist(coords[v], coords[vm])
+            dm = 0
+            if spherical_coords:
+                dm = hav_dist(coords[v], coords[vm])
+            else:
+                dm = np.sqrt(sq_dist(coords[v], coords[vm]))
+
             # Append the top priority edge from the subgraph to the intermediary edgelist
             Ep.push((v, vm, dm), dm)
 

@@ -45,7 +45,7 @@ class UnionFind:
         self.parents = {}
         self.children = Dict() #This was previously used such that modifying it changed all refs pointing here
         self.queues = {}
-        self.neigborhood = {}
+        self.neighborhood = {}
     
     def __getitem__(self, object):
         """Find and return the name of the set containing the object."""
@@ -78,8 +78,8 @@ class UnionFind:
     
 
     def push(self, queue, item, priority):
-        """Pushes an item into component queue, and updates the neigborhood"""
-        u, v, d = item
+        """Pushes an item into component queue, and updates the neighborhood"""
+        u, v = item
         self.neighborhood[self[u]] |= {self[v]}
         self.neighborhood[self[v]] |= {self[u]}
         queue.push(item, priority)
@@ -132,7 +132,7 @@ class UnionFind:
 
     def connected_components(self):
         """Return the roots for all disjoint sets"""
-        return [r for r in self.parents.keys() if not
+        return [r for r in set(self.parents.values()) if not
                 all('grid' in str(c) for c in self.children[self[r]])]
 
     def component_set(self, component):
