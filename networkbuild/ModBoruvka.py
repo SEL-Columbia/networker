@@ -19,10 +19,11 @@ def modBoruvka(T, subgraphs=None, rtree=None, spherical_coords=True):
 
     V = set(T.nodes(data=False))
     coords = np.row_stack(nx.get_node_attributes(T, 'coords').values())
-
     projcoords = cartesian_projection(coords) if spherical_coords else coords
-
     kdtree = KDTree(projcoords)
+
+    # Handle "dead" components
+    D = set()
 
     if subgraphs is None:
         if rtree != None: raise ValueError('RTree passed without UnionFind')
@@ -33,6 +34,11 @@ def modBoruvka(T, subgraphs=None, rtree=None, spherical_coords=True):
 
     # Tests whether the node is a projection on the existing grid, using its MV
     is_fake = lambda n: subgraphs.mv[n] == np.inf
+    
+    # Test whether the component is dead 
+    # i.e. can never connect to another node
+    def is_dead(c, nn_dist):
+        subgraphs.mv[c] < nn_dist
 
     #                ∀ v∈V
     # find the nearest neighbor for all nodes,
@@ -41,10 +47,19 @@ def modBoruvka(T, subgraphs=None, rtree=None, spherical_coords=True):
     for v in V:
         vm, _ = kdtree.query_subset(projcoords[v], list(V - {v}))
         dm = sq_dist(coords[v], coords[vm])
-
         root = subgraphs[v]
-
         subgraphs.push(subgraphs.queues[root], (v, vm), dm)
+
+        # Add to dead set if warranted
+        nn_dist = 0
+        if spherical_coords:
+            nn_dist = hav_dist(coords[v], coords[vm])
+        else:
+            nn_dist = np.sqrt(sq_dist(coords[v], coords[vm]))
+        
+        if is_dead(root, nn_dist):
+            D[root] |= {root} 
+
 
     Et = [] # Initialize MST edges to empty list
     last_state = None
@@ -83,18 +98,48 @@ def modBoruvka(T, subgraphs=None, rtree=None, spherical_coords=True):
                 subgraphs.push(subgraphs.queues[C], (v,um), dm)
                 (v,vm) = subgraphs.queues[C].top()
 
-            # if coords are spherical
-            # use haversine distance when moving into E', as needed for mv criteria
-            dm = 0
+            # Add to dead set if warranted
+            nn_dist = 0
             if spherical_coords:
-                dm = hav_dist(coords[v], coords[vm])
+                nn_dist = hav_dist(coords[v], coords[vm])
             else:
-                dm = np.sqrt(sq_dist(coords[v], coords[vm]))
+                nn_dist = np.sqrt(sq_dist(coords[v], coords[vm]))
+            
+            if is_dead(root, nn_dist):
+                D[root] |= {root} 
 
+        # One more round to root out connections to dead components
+        for C in subgraphs.connected_components():
+
+            q_top = subgraphs.queues[C].top()
+            try:
+                (v, vm) = q_top
+            except:
+                continue
+
+            component_set = subgraphs.component_set(v)
+
+            # vm ∈ D {not a Dead neighbor}
+            # Look past Dead neighbors 
+            while vm in D:
+                subgraphs.queues[C].pop()
+                um, _ = kdtree.query_subset(projcoords[v], djointVC)
+                dm = sq_dist(coords[v], coords[um])
+                subgraphs.push(subgraphs.queues[C], (v,um), dm)
+                (v,vm) = subgraphs.queues[C].top()
+
+            # Calculate nn_dist for comparison to mv later 
+            nn_dist = 0
+            if spherical_coords:
+                nn_dist = hav_dist(coords[v], coords[vm])
+            else:
+                nn_dist = np.sqrt(sq_dist(coords[v], coords[vm]))
+ 
             # Append the top priority edge from the subgraph to the intermediary edgelist
-            Ep.push((v, vm, dm), dm)
+            Ep.push((v, vm, nn_dist), nn_dist)
 
         last_state = deepcopy(Et)
+
         # add all the edges in E' to Et so long as no cycles are created
         while Ep._queue:
             (um, vm, dm) = Ep.pop()
