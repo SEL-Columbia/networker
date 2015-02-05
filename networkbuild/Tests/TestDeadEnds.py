@@ -10,10 +10,10 @@ import itertools
 def graph_with_dead_node():
 
     # a 'dead' node is one with insufficient mvMax to connect
-    # to it's nearest neighbor (b in graph below)
+    # to it's nearest neighbor (c in graph below)
     
-    # a(10) ---- b(2) ----- c(10)
-    #        4          4
+    # a(2) - b(10) ---- c(2) ----- c(10)
+    #      1         4          4
     
     mv_max_values = [2, 10, 2, 10]
     coords = np.array([[-1, 0], [0, 0], [4, 0], [8, 0]])
