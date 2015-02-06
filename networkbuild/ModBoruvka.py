@@ -17,6 +17,10 @@ def sq_dist(a,b):
 
 def modBoruvka(T, subgraphs=None, rtree=None, spherical_coords=True):
 
+    # special case (already MST)
+    if T.number_of_nodes() < 2:
+        return T
+
     V = set(T.nodes(data=False))
     coords = np.row_stack(nx.get_node_attributes(T, 'coords').values())
     projcoords = cartesian_projection(coords) if spherical_coords else coords
@@ -38,7 +42,7 @@ def modBoruvka(T, subgraphs=None, rtree=None, spherical_coords=True):
     # Test whether the component is dead 
     # i.e. can never connect to another node
     def is_dead(c, nn_dist):
-        subgraphs.mv[c] < nn_dist
+        return subgraphs.mv[c] < nn_dist
 
     #                ∀ v∈V
     # find the nearest neighbor for all nodes,
@@ -47,8 +51,8 @@ def modBoruvka(T, subgraphs=None, rtree=None, spherical_coords=True):
     for v in V:
         vm, _ = kdtree.query_subset(projcoords[v], list(V - {v}))
         dm = sq_dist(coords[v], coords[vm])
-        root = subgraphs[v]
-        subgraphs.push(subgraphs.queues[root], (v, vm), dm)
+        C = subgraphs[v]
+        subgraphs.push(subgraphs.queues[C], (v, vm), dm)
 
         # Add to dead set if warranted
         nn_dist = 0
@@ -57,8 +61,8 @@ def modBoruvka(T, subgraphs=None, rtree=None, spherical_coords=True):
         else:
             nn_dist = np.sqrt(sq_dist(coords[v], coords[vm]))
         
-        if is_dead(root, nn_dist):
-            D[root] |= {root} 
+        if is_dead(C, nn_dist):
+            if C not in D: D.add(C)
 
 
     Et = [] # Initialize MST edges to empty list
@@ -72,14 +76,9 @@ def modBoruvka(T, subgraphs=None, rtree=None, spherical_coords=True):
         #∀ C of T; where C <- connected component
         for C in subgraphs.connected_components():
 
-            q_top = subgraphs.queues[C].top()
-            try:
-                (v, vm) = q_top
-            except:
-                continue
+            (v, vm) = subgraphs.queues[C].top()
 
             component_set = subgraphs.component_set(v)
-            # TODO:  union component_set with dead_ends?
             djointVC = list(V - set(component_set))
 
             # if V ∈ C then minimum spanning tree, solved in last
@@ -105,19 +104,25 @@ def modBoruvka(T, subgraphs=None, rtree=None, spherical_coords=True):
             else:
                 nn_dist = np.sqrt(sq_dist(coords[v], coords[vm]))
             
-            if is_dead(root, nn_dist):
-                D[root] |= {root} 
+            if is_dead(C, nn_dist):
+                if C not in D:  D.add(C)
 
         # One more round to root out connections to dead components
         for C in subgraphs.connected_components():
 
-            q_top = subgraphs.queues[C].top()
-            try:
-                (v, vm) = q_top
-            except:
-                continue
+            (v, vm) = subgraphs.queues[C].top()
 
             component_set = subgraphs.component_set(v)
+
+            # Find nearest excluding Dead nodes too
+            djointVC = list((V - set(component_set)) - D)
+            
+
+            # if V ∈ C then minimum spanning tree, solved in last
+            # iteration, continue to save state and terminate loop
+            if not djointVC:
+                continue
+
 
             # vm ∈ D {not a Dead neighbor}
             # Look past Dead neighbors 
