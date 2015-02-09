@@ -70,6 +70,7 @@ class UnionFind:
         # compress the path and return
         for ancestor in path:
             self.parents[ancestor] = root
+
         return root
 
     def __iter__(self):
@@ -132,8 +133,8 @@ class UnionFind:
 
     def connected_components(self):
         """Return the roots for all disjoint sets"""
-        return [r for r in set(self.parents.values()) if not
-                all('grid' in str(c) for c in self.children[self[r]])]
+        return set([self.parents[r] for r in self.parents.keys() if not
+                all('grid' in str(c) for c in self.children[self[r]])])
 
     def component_set(self, component):
         """Return the component set of the objects

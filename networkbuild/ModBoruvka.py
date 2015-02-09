@@ -71,8 +71,9 @@ def modBoruvka(T, subgraphs=None, rtree=None, spherical_coords=True):
     # MST is complete when no progress was made in the prior iteration
     while Et != last_state:
 
-        # This is an itermediary list of edges that might be added to the MST
+        # This is an intermediary list of edges that might be added to the MST
         Ep = PriorityQueue()
+
         #∀ C of T; where C <- connected component
         for C in subgraphs.connected_components():
 
