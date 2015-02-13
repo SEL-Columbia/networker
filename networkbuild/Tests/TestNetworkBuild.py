@@ -11,6 +11,10 @@ from networkbuild import NetworkBuild
 from networkbuild import modBoruvka
 from nose.tools import eq_
 
+from networkbuild import utils
+import itertools
+
+
 # <codecell>
 
 def TestGrid():
@@ -55,6 +59,94 @@ def TestNet():
     
     return net.to_undirected()
 
+
+def random_settlements(n):
+
+    coords = np.random.uniform(size=(n, 2))
+    
+    # get all perm's of points (repetitions are ok here)
+    points_left = np.tile(coords, (len(coords), 1))
+    points_right = np.repeat(coords, len(coords), axis=0)
+    all_dists = utils.get_hav_distance(points_left[:, 0], points_left[:, 1], 
+                                       points_right[:, 0], points_right[:, 1])
+
+    
+    full_dist_matrix = all_dists.reshape(len(coords), len(coords))
+    zero_indices = (np.array(range(len(coords))) * (len(coords) + 1))
+    non_zero_dists = np.delete(all_dists, zero_indices).reshape((len(coords), len(coords) - 1)) 
+
+    # find all minimum distances
+    # apply min over ranges of the dist array
+    min_dists = np.min(non_zero_dists, axis=1)
+
+    # assign same median mv_max to all nodes
+    # outside a really degenerate case (all edges in line in shortest distance order...)
+    # this should ensure some "dead" nodes
+    mv_max_vals = np.repeat(np.median(min_dists), len(coords))
+
+    # build graph
+    graph = nx.Graph()
+    graph.add_nodes_from(range(len(coords)))
+    nx.set_node_attributes(graph, 'coords', dict(enumerate(coords)))
+    nx.set_node_attributes(graph, 'mv', dict(enumerate(mv_max_vals)))
+
+    return graph, full_dist_matrix
+
+
+def TestComponentsMST():
+
+    grid, dist_matrix = random_settlements(500)
+
+    msf = modBoruvka(grid)
+
+    msf_subgraph = lambda components: nx.subgraph(msf, components) 
+    component_graphs = map(msf_subgraph, nx.connected_components(msf))
+
+    def full_graph(g):
+        new_graph = nx.Graph()
+        new_graph.add_nodes_from(g.nodes(data=True))
+        if len(g.nodes()) < 2:
+            return new_graph
+
+        new_graph.add_weighted_edges_from([(u, v, dist_matrix[u][v]) \
+                           for u, v in itertools.product(g.nodes(), g.nodes()) \
+                           if u != v ])
+        return new_graph
+
+    full_graphs = map(full_graph, component_graphs)
+    mst_graphs = map(nx.mst.minimum_spanning_tree, full_graphs)
+
+    diff_component_mst = []
+    for i in range(len(component_graphs)):
+        c_sets = set([frozenset(e) for e in component_graphs[i].edges()])
+        mst_sets = set([frozenset(e) for e in mst_graphs[i].edges()])
+        if not c_sets == mst_sets:
+            diff_component_mst.append(i)
+
+    assert len(diff_component_mst) == 0, len(diff_component_mst) + " components are not MSTs"
+
+
+# plot maps
+def draw_np_graph(g, node_color='r', edge_color='b'):
+
+    from mpl_toolkits.basemap import Basemap
+    m = Basemap(
+            projection='merc',
+            ellps = 'WGS84',
+            llcrnrlon=0,
+            llcrnrlat=0,
+            urcrnrlon=1,
+            urcrnrlat=1,
+            lat_ts=0,
+            resolution='i',
+            suppress_ticks=True)
+
+    node_pos = {nd: m(g.node[nd]['coords'][0], g.node[nd]['coords'][1]) for nd in g.nodes()}
+        
+    node_labels = nx.get_node_attributes(g, 'mv')
+    edge_labels = nx.get_edge_attributes(g, 'weight')
+    nx.draw_networkx(g, pos=node_pos, labels=node_labels, node_color=node_color, edge_color=edge_color)
+    nx.draw_networkx_edge_labels(g, pos=node_pos, edge_labels=edge_labels)
 
 def TestMSTBehavior():
     grid, net = TestGrid(), TestNet()
