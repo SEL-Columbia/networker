@@ -92,19 +92,25 @@ def random_settlements(n):
 
     return graph, full_dist_matrix
 
+
 def TestComponentsMST():
 
-    grid, dist_matrix = random_settlements(100)
+    grid, dist_matrix = random_settlements(500)
 
     msf = modBoruvka(grid)
 
-    component_graphs = map(nx.subgraph, nx.connected_components(msf))
+    msf_subgraph = lambda components: nx.subgraph(msf, components) 
+    component_graphs = map(msf_subgraph, nx.connected_components(msf))
 
     def full_graph(g):
         new_graph = nx.Graph()
-        nx.set_edge_attributes(new_graph, 'weight', {(u, v): \
-                             dist_matrix[pair[0], pair[1]] \
-                             for pair in itertools.product(g.nodes(), g.nodes())})
+        new_graph.add_nodes_from(g.nodes(data=True))
+        if len(g.nodes()) < 2:
+            return new_graph
+
+        new_graph.add_weighted_edges_from([(u, v, dist_matrix[u][v]) \
+                           for u, v in itertools.product(g.nodes(), g.nodes()) \
+                           if u != v ])
         return new_graph
 
     full_graphs = map(full_graph, component_graphs)
@@ -112,12 +118,35 @@ def TestComponentsMST():
 
     diff_component_mst = []
     for i in range(len(component_graphs)):
-        compare = set(component_graphs[i].edges()) == set(mst_graphs[i].edges())
-        if not compare:
-            diff_component_mst.add(i)
+        c_sets = set([frozenset(e) for e in component_graphs[i].edges()])
+        mst_sets = set([frozenset(e) for e in mst_graphs[i].edges()])
+        if not c_sets == mst_sets:
+            diff_component_mst.append(i)
 
     assert len(diff_component_mst) == 0, len(diff_component_mst) + " components are not MSTs"
 
+
+# plot maps
+def draw_np_graph(g, node_color='r', edge_color='b'):
+
+    from mpl_toolkits.basemap import Basemap
+    m = Basemap(
+            projection='merc',
+            ellps = 'WGS84',
+            llcrnrlon=0,
+            llcrnrlat=0,
+            urcrnrlon=1,
+            urcrnrlat=1,
+            lat_ts=0,
+            resolution='i',
+            suppress_ticks=True)
+
+    node_pos = {nd: m(g.node[nd]['coords'][0], g.node[nd]['coords'][1]) for nd in g.nodes()}
+        
+    node_labels = nx.get_node_attributes(g, 'mv')
+    edge_labels = nx.get_edge_attributes(g, 'weight')
+    nx.draw_networkx(g, pos=node_pos, labels=node_labels, node_color=node_color, edge_color=edge_color)
+    nx.draw_networkx_edge_labels(g, pos=node_pos, edge_labels=edge_labels)
 
 def TestMSTBehavior():
     grid, net = TestGrid(), TestNet()

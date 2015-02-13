@@ -86,8 +86,9 @@ class KDTree(object):
     def orthogonal_dist(self, point):
         """computes the distance from a point to the partition"""
         orth_point = np.copy(point)
-        orth_point[self.axis] = self.node[self.axis]
-        return distance(point, self.node)
+        alt_axes = np.arange(self.k) != self.axis
+        orth_point[alt_axes] = self.node[alt_axes]
+        return distance(orth_point, self.node)
 
     def query(self, point, best=None):
         """Find the nearest neighbor of point in KDTree"""

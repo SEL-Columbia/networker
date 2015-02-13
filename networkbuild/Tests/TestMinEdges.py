@@ -51,5 +51,7 @@ def TestMinEdges():
     complete_g = nx.Graph(all_dists)
     mst_g = nx.minimum_spanning_tree(complete_g)
     
-    assert msf_g.edges() == mst_g.edges() 
+    mst_edge_set = set([frozenset(e) for e in mst_g.edges()])
+    msf_edge_set = set([frozenset(e) for e in msf_g.edges()])
+    assert msf_edge_set == mst_edge_set 
 

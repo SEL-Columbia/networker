@@ -415,6 +415,42 @@ def string_to_proj4(string):
     return projection
 
 
+def sq_dist(a, b):
+
+    return np.sum((a - b)**2, axis=1)
+
+
+def all_dists(coords, spherical=True):
+    """
+    returns dist to nn and nn index as arrays indexed by coords index
+    mainly used for testing
+    """
+
+    # get all perm's of coords
+    a = np.tile(coords, (len(coords), 1))
+    b = np.repeat(coords, len(coords), axis=0)
+    all_dists = np.sqrt(sq_dist(a, b))
+    if spherical:
+        all_dists = get_hav_distance(a[:, 0], a[:, 1], b[:, 0], b[:, 1])
+
+    zero_indices = np.array(range(len(coords))) * (len(coords) + 1)
+
+    # so that mins are not the zero [i, i] vals
+    all_dists[zero_indices] = np.inf
+    full_dist_matrix = all_dists.reshape(len(coords), len(coords))
+    return full_dist_matrix
+
+def nn_dists(coords, spherical=True):
+
+    full_dist_matrix = all_dists(coords, spherical)
+
+    # find all minimum distances
+    # apply min over ranges of the dist array
+    min_dists = np.min(full_dist_matrix, axis=1)
+    min_ind = np.argmin(full_dist_matrix, axis=1)
+
+    return min_dists, min_ind
+
 
 def utm_to_wgs84(coords, zone):
     """

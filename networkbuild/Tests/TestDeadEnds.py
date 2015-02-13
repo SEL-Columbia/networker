@@ -76,10 +76,3 @@ def TestDeadBypass():
 
     assert len(missed_connections) == 0, "missed connections: " + str(missed_connections)
 
-
-
-
-
-
-
-
