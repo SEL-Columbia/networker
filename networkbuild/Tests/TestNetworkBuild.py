@@ -126,28 +126,6 @@ def TestComponentsMST():
     assert len(diff_component_mst) == 0, len(diff_component_mst) + " components are not MSTs"
 
 
-# plot maps
-def draw_np_graph(g, node_color='r', edge_color='b'):
-
-    from mpl_toolkits.basemap import Basemap
-    m = Basemap(
-            projection='merc',
-            ellps = 'WGS84',
-            llcrnrlon=0,
-            llcrnrlat=0,
-            urcrnrlon=1,
-            urcrnrlat=1,
-            lat_ts=0,
-            resolution='i',
-            suppress_ticks=True)
-
-    node_pos = {nd: m(g.node[nd]['coords'][0], g.node[nd]['coords'][1]) for nd in g.nodes()}
-        
-    node_labels = nx.get_node_attributes(g, 'mv')
-    edge_labels = nx.get_edge_attributes(g, 'weight')
-    nx.draw_networkx(g, pos=node_pos, labels=node_labels, node_color=node_color, edge_color=edge_color)
-    nx.draw_networkx_edge_labels(g, pos=node_pos, edge_labels=edge_labels)
-
 def TestMSTBehavior():
     grid, net = TestGrid(), TestNet()
 
