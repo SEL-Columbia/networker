@@ -103,6 +103,21 @@ class NP_Boruvka_Interface(object):
         self.dstore.saveMetricsCSV(os.path.join(self.output, 'metrics-local'), self.metricModel, VS.HEADER_TYPE_ALIAS)
         self.dstore.saveSegmentsSHP(os.path.join(self.output, 'networks-proposed'), is_existing=False)
 
+def dataset_store_to_nx_graph(dataset_store):
+    
+    data = [(i, {'mv': node.metric, 'coords': node.getCommonCoordinates()})
+             for i, node in enumerate(dataset_store.cycleNodes())]
+    G = nx.Graph()
+    G.add_nodes_from(data)
+
+    edges = [(s.node1_id, s.node2_id) for s in dataset_store.cycleSegments()] 
+    edge_weights = [s.weight for s in dataset_store.cycleSegments()] 
+    edge_is_existing = [s.is_existing for s in dataset_store.cycleSegments()] 
+    edge_subnet_id = [s.subnet_id for s in dataset_store.cycleSegments()] 
+    G.add_edges_from(edges, weight=edge_weights, is_existing=edge_is_existing, subnet_id=edge_subnet_id)
+
+    return G
+
 if __name__ == '__main__':
     metrics = '/Users/blogle/Desktop/networkplanner/test_data/demographics_dataset2.csv'
     json_met = '/Users/blogle/Desktop/networkplanner/utilities/sample_metric_params.json'
