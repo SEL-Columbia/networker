@@ -11,7 +11,7 @@ np.warnings.filterwarnings('ignore')
 
 class NP_Boruvka_Interface(object):
 
-    def __init__(self, metrics, metric_conf, grid, output):
+    def __init__(self, metrics, metric_conf, output, grid=None):
 
         self.output = output
         # make output dir if not exists
@@ -39,9 +39,14 @@ class NP_Boruvka_Interface(object):
 
     def build_network(self):
         # load in the grid
-        grid = NetworkBuild.setup_grid(self.existing_grid)
-        # merge the grid and nodes, returing the Net, Disjoint sets and RTree
-        G, DS, R = NetworkBuild.grid_settlement_merge(grid, self._metric_graph())
+       
+        grid = nx.Graph() # empty existing grid by default
+        G = self._metric_graph()
+        DS = R = None
+        if(self.existing_grid):
+            grid = NetworkBuild.setup_grid(self.existing_grid)
+            # merge the grid and nodes, returing the Net, Disjoint sets and RTree
+            G, DS, R = NetworkBuild.grid_settlement_merge(grid, self._metric_graph())
 
         # Run the network optimization, filtering min_networks
         mst = nx.union_all(filter(lambda sub: len(sub.node) > 2,
@@ -89,7 +94,7 @@ class NP_Boruvka_Interface(object):
         self.mst = mst
 
     def _metric_graph(self):
-        """Converts the datastore metrics to a nx graph"""
+        """Converts the dataset_store metrics to a nx graph"""
 
         data = [(i, {'mv': node.metric, 'coords': node.getCommonCoordinates()})
                  for i, node in enumerate(self.dstore.cycleNodes())]
@@ -103,25 +108,30 @@ class NP_Boruvka_Interface(object):
         self.dstore.saveMetricsCSV(os.path.join(self.output, 'metrics-local'), self.metricModel, VS.HEADER_TYPE_ALIAS)
         self.dstore.saveSegmentsSHP(os.path.join(self.output, 'networks-proposed'), is_existing=False)
 
+
 def dataset_store_to_nx_graph(dataset_store):
     
-    data = [(i, {'mv': node.metric, 'coords': node.getCommonCoordinates()})
+    np_to_nx_id = {node.id: i for i, node in enumerate(dataset_store.cycleNodes())}
+    data = [(i, {'mv': node.metric, 'coords': node.getCommonCoordinates(), 'np_id': node.id})
              for i, node in enumerate(dataset_store.cycleNodes())]
     G = nx.Graph()
     G.add_nodes_from(data)
 
-    edges = [(s.node1_id, s.node2_id) for s in dataset_store.cycleSegments()] 
-    edge_weights = [s.weight for s in dataset_store.cycleSegments()] 
-    edge_is_existing = [s.is_existing for s in dataset_store.cycleSegments()] 
-    edge_subnet_id = [s.subnet_id for s in dataset_store.cycleSegments()] 
-    G.add_edges_from(edges, weight=edge_weights, is_existing=edge_is_existing, subnet_id=edge_subnet_id)
+    seg_to_nx_ids = lambda seg:  (np_to_nx_id[seg.node1_id], np_to_nx_id[seg.node2_id])
+    edges = [seg_to_nx_ids(s) for s in dataset_store.cycleSegments()] 
+    edge_weights = {seg_to_nx_ids(s): s.weight for s in dataset_store.cycleSegments()} 
+    edge_is_existing = {seg_to_nx_ids(s): s.is_existing for s in dataset_store.cycleSegments()} 
+    edge_subnet_id = {seg_to_nx_ids(s): s.subnet_id for s in dataset_store.cycleSegments()} 
+    G.add_edges_from(edges)
+    nx.set_edge_attributes(G, 'weight', edge_weights)
+    nx.set_edge_attributes(G, 'is_existing', edge_is_existing)
+    nx.set_edge_attributes(G, 'subnet_id', edge_subnet_id)
 
     return G
 
 if __name__ == '__main__':
-    metrics = '/Users/blogle/Desktop/networkplanner/test_data/demographics_dataset2.csv'
-    json_met = '/Users/blogle/Desktop/networkplanner/utilities/sample_metric_params.json'
-    grid = "/Users/blogle/Desktop/networkplanner/LeonaNetworks/LeonaNetworks.shp"
-    output_path = '/Users/blogle/Desktop/test'
+    metrics = '/home/cjn/src/networkplanner/np/public/files/demographicsLL.csv'
+    json_met = '/home/cjn/src/networkplanner/sample_metric_params.json'
+    output_path = '/home/cjn/np_data/potou_500kwh_dmd_ModBo'
 
-    netplan = NP_Boruvka_Interface(metrics, json_met, grid, output_path)
+    netplan = NP_Boruvka_Interface(metrics, json_met, output_path)
