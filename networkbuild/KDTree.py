@@ -146,10 +146,22 @@ class KDTree(object):
 
         # check the near branch, if its nodes intersect with the queried subset
         # otherwise move to the away branch
-        if np.dot(child_vec, subset) > 0:
+
+        # Below logic doesn't make sense.  Why traverse the "far"
+        # branch if we know the "best" cannot be in any of the children
+        # if np.dot(child_vec, subset) > 0:
+        #    best = near._query_subset(point, subset, best)
+        # else:
+        #    best = far._query_subset(point, subset, best)
+
+        # This logic makes more sense
+        children_in_subset = (np.dot(child_vec, subset) > 0)
+        if children_in_subset:
             best = near._query_subset(point, subset, best)
         else:
-            best = far._query_subset(point, subset, best)
+            # otherwise, the best is not anywhwere below this
+            # so the current best is best
+            return best
 
         # validate best, by ensuring closer point doesn't exist just beyond
         # partition if best still has yet to be found also look
