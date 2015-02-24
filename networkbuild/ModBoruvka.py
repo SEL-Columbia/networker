@@ -50,7 +50,7 @@ def modBoruvka(T, subgraphs=None, rtree=None, spherical_coords=True):
     # its a queue with the nn edge where dist is priority
     for v in V:
         vm, _ = kdtree.query_subset(projcoords[v], list(V - {v}))
-        dm = sq_dist(coords[v], coords[vm])
+        dm = sq_dist(projcoords[v], projcoords[vm])
         C = subgraphs[v]
         subgraphs.push(subgraphs.queues[C], (v, vm), dm)
 
@@ -78,7 +78,6 @@ def modBoruvka(T, subgraphs=None, rtree=None, spherical_coords=True):
         for C in subgraphs.connected_components():
 
             (v, vm) = subgraphs.queues[C].top()
-
             component_set = subgraphs.component_set(v)
             djointVC = list(V - set(component_set))
 
@@ -94,8 +93,10 @@ def modBoruvka(T, subgraphs=None, rtree=None, spherical_coords=True):
             while vm in component_set:
                 subgraphs.queues[C].pop()
                 um, _ = kdtree.query_subset(projcoords[v], djointVC)
-                dm = sq_dist(coords[v], coords[um])
+                dm = sq_dist(projcoords[v], projcoords[um])
                 subgraphs.push(subgraphs.queues[C], (v,um), dm)
+                # Note:  v will always be a vertex in this connected component
+                #        vm *may* be external
                 (v,vm) = subgraphs.queues[C].top()
 
             # Add to dead set if warranted
@@ -112,26 +113,29 @@ def modBoruvka(T, subgraphs=None, rtree=None, spherical_coords=True):
         for C in subgraphs.connected_components():
 
             (v, vm) = subgraphs.queues[C].top()
-
             component_set = subgraphs.component_set(v)
 
-            # Find nearest excluding Dead nodes too
-            djointVC = list((V - set(component_set)) - D)
-            
+            # Find nearest excluding Dead components too
+            # Dead component sets
+            dead_set = set()
+            for c in D:
+                dead_set = dead_set.union(set(subgraphs.component_set(c)))
+
+            djointVC = list((V - set(component_set)) - dead_set)
 
             # if V ∈ C then minimum spanning tree, solved in last
             # iteration, continue to save state and terminate loop
             if not djointVC:
                 continue
 
-
-            # vm ∈ D {not a Dead neighbor}
-            # Look past Dead neighbors 
-            while vm in D:
+            # Look past both components of the sub-graph AND dead neighbors 
+            while vm not in djointVC:
                 subgraphs.queues[C].pop()
                 um, _ = kdtree.query_subset(projcoords[v], djointVC)
-                dm = sq_dist(coords[v], coords[um])
+                dm = sq_dist(projcoords[v], projcoords[um])
                 subgraphs.push(subgraphs.queues[C], (v,um), dm)
+                # v will always be one of the connected components
+                # vm *may* be a a component external to these connected components
                 (v,vm) = subgraphs.queues[C].top()
 
             # Calculate nn_dist for comparison to mv later 
