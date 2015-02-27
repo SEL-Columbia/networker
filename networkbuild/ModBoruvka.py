@@ -42,7 +42,7 @@ def modBoruvka(T, subgraphs=None, rtree=None, spherical_coords=True):
     # Test whether the component is dead 
     # i.e. can never connect to another node
     def is_dead(c, nn_dist):
-        return subgraphs.mv[c] < nn_dist
+        return not is_fake(c) and subgraphs.mv[c] < nn_dist
 
     #                ∀ v∈V
     # find the nearest neighbor for all nodes,
@@ -62,6 +62,8 @@ def modBoruvka(T, subgraphs=None, rtree=None, spherical_coords=True):
             nn_dist = np.sqrt(sq_dist(coords[v], coords[vm]))
         
         if is_dead(C, nn_dist):
+            # here components are single nodes
+            # so no need to worry about adding children to dead set
             if C not in D: D.add(C)
 
 
@@ -107,21 +109,22 @@ def modBoruvka(T, subgraphs=None, rtree=None, spherical_coords=True):
                 nn_dist = np.sqrt(sq_dist(coords[v], coords[vm]))
             
             if is_dead(C, nn_dist):
-                if C not in D:  D.add(C)
+                # add all dead components to the dead set D
+                # (note that fake nodes can never be dead)
+                for c in subgraphs.component_set(C):
+                    if c not in D and not is_fake(c):  D.add(c)
 
         # One more round to root out connections to dead components
         for C in subgraphs.connected_components():
+
 
             (v, vm) = subgraphs.queues[C].top()
             component_set = subgraphs.component_set(v)
 
             # Find nearest excluding Dead components too
             # Dead component sets
-            dead_set = set()
-            for c in D:
-                dead_set = dead_set.union(set(subgraphs.component_set(c)))
 
-            djointVC = list((V - set(component_set)) - dead_set)
+            djointVC = list((V - set(component_set)) - D)
 
             # if V ∈ C then minimum spanning tree, solved in last
             # iteration, continue to save state and terminate loop
@@ -153,10 +156,14 @@ def modBoruvka(T, subgraphs=None, rtree=None, spherical_coords=True):
         # add all the edges in E' to Et so long as no cycles are created
         while Ep._queue:
             (um, vm, dm) = Ep.pop()
+
             # if doesn't create cycle and subgraph has enough MV
             if subgraphs[um] != subgraphs[vm] and (subgraphs.mv[subgraphs[um]] >= dm or is_fake(um)):
-                # test that the connecting subgraph can receive the MV
-                if subgraphs.mv[subgraphs[vm]] >= dm or is_fake(vm):
+                # test that the connecting subgraph can receive the MV AND
+                # that both nodes are not fake
+                # TODO:  Clean up this logic
+                if (subgraphs.mv[subgraphs[vm]] >= dm or is_fake(vm)) and \
+                   not (is_fake(um) and is_fake(vm)):
 
                     # doesn't create cycles from line segment intersection
                     invalid_edge, intersections = line_subgraph_intersection(subgraphs, rtree, coords[um], coords[vm])

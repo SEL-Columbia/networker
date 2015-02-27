@@ -4,6 +4,7 @@ __author__ = 'Brandon Ogle'
 import heapq
 import osr
 import numpy as np
+import networkx as nx
 
 from collections import defaultdict
 from numba import jit
@@ -124,7 +125,10 @@ class UnionFind:
         self.queues[smallest] = self.queues[heaviest]
 
         if any(fake):
+            # if the fake node is also a parent component
             if grid == smallest:
+                # only set the parent mv, leave fake node mv alone so that
+                # it continues to have 'infinite' mv
                 self.mv[heaviest] -= d
                 return
 
@@ -481,7 +485,7 @@ def utm_to_wgs84(coords, zone):
     return np.asarray(converter.TransformPoints(coords))[:, :-1]
 
 # plot maps
-def draw_np_graph(g, node_color='r', edge_color='b'):
+def draw_np_graph(g, node_color='r', edge_color='b', labels=True, node_size=300):
 
     from mpl_toolkits.basemap import Basemap
     m = Basemap(
@@ -499,8 +503,11 @@ def draw_np_graph(g, node_color='r', edge_color='b'):
         
     node_labels = nx.get_node_attributes(g, 'mv')
     edge_labels = nx.get_edge_attributes(g, 'weight')
-    nx.draw_networkx(g, pos=node_pos, labels=node_labels, node_color=node_color, edge_color=edge_color)
-    nx.draw_networkx_edge_labels(g, pos=node_pos, edge_labels=edge_labels)
+    if(labels):
+        nx.draw_networkx(g, pos=node_pos, labels=node_labels, node_color=node_color, edge_color=edge_color, node_size=node_size)
+        nx.draw_networkx_edge_labels(g, pos=node_pos, edge_labels=edge_labels)
+    else:
+        nx.draw_networkx(g, pos=node_pos, with_labels=False, node_color=node_color, edge_color=edge_color, node_size=node_size)
 
 # to js
 def network_to_json(g):
