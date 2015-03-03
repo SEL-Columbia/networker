@@ -99,8 +99,9 @@ class NetworkBuild(object):
         then projects those representative points onto the grid
         """
         fake_nodes = []
-        neighborhoods = kmeans(coords, np.sqrt(coords.shape[0]))[0]
-        for coord in neighborhoods:
+        # neighborhoods = kmeans(coords, np.sqrt(coords.shape[0]))[0]
+        # for coord in neighborhoods:
+        for coord in coords:
             # Find nearest bounding box
             nearest_segment = rtree.nearest(np.ravel((coord, coord)), objects=True).next()
             uv, line = nearest_segment.object
@@ -120,7 +121,7 @@ class NetworkBuild(object):
             edges_bounds = map(lambda tup: (tup, make_bounding_box(*map(lambda n: g_coords[n], tup))), grid.edges())
 
             for edge, box in edges_bounds:
-                # Object is in form of (u.label, v.label), (u.coord, u.coord)
+                # Object is in form of (u.label, v.label), (u.coord, v.coord)
                 yield (hash(edge), box, (edge, map(lambda ep: np.array(g_coords[ep]), edge)))
 
 
