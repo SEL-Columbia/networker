@@ -137,7 +137,7 @@ def dataset_store_to_nx_graph(dataset_store):
 if __name__ == '__main__':
     metrics = '/home/cjn/src/networkplanner/np/public/files/demographicsLL.csv'
     json_met = '/home/cjn/src/networkplanner/sample_metric_params.json'
-    output_path = '/home/cjn/np_data/potou_500kwh_dmd_ex_ModBo'
-    grid = '/home/cjn/src/networkplanner/LeonaNetworksLL.shp' 
+    output_path = '/home/cjn/np_data/potou_500kwh_dmd_ModBo'
+    grid = None # '/home/cjn/src/networkplanner/LeonaNetworksLL.shp' 
 
     netplan = NP_Boruvka_Interface(metrics, json_met, output_path, grid)
