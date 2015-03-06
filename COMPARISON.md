@@ -3,9 +3,7 @@
 These are the results of an exhaustive comparitive analysis of the modKruskal 
 based NetworkPlanner algorithm vs the modBoruvka based NetworkBuild algorithm.
 
-The latter is being developed in effort to:
-- address performance issues
-- decompose the monolothic networkplanner into more digestible modules 
+The latter is being developed in effort to address performance issues and modularize the former.  
 
 ## Methodology
 
@@ -40,8 +38,8 @@ The results are broken down into correctness and performance metrics.
 The following tables compare the results of running identical inputs
 through NetworkPlanner (np) and NetworkBuild (nb).  
 
-The results are *almost* identical  Note that rows are missing where NetworkPlanner
-scenarios failed due to out of memory conditions.  
+The results are *almost* identical.  Note that rows are missing where 
+NetworkPlanner scenarios failed due to out of memory conditions.  
 
 #### Medium Demand
 
@@ -73,18 +71,18 @@ scenarios failed due to out of memory conditions.
 The following graphs compare the performance of NetworkPlanner (np) and 
 NetworkBuild (nb) in terms of run time and memory usage.  
 
-The results contrast: 
+The results contrast and show: 
 
-The quadratic memory usage of NetworkPlanner vs the linear memory usage of 
+- The quadratic memory usage of NetworkPlanner vs the linear memory usage of 
 NetworkBuild.  
 
-The cubic(?) run time of NetworkPlanner vs the O(NlogN) run time of 
+- The cubic(?) run time of NetworkPlanner vs the O(NlogN) run time of 
 NetworkBuild.
 
-The fact that runs beyond 6400 nodes were not possible via NetworkPlanner due
+- The fact that runs beyond 6400 nodes were not possible via NetworkPlanner due
 to the high memory usage.  
 
-Run times are in seconds, memory is in GB.  
+Run times are in seconds, memory is in GB.  Blue represents the existing NetworkPlanner modKruskal based algorith.  Green represents the new NetworkBuild modBoruvka based algorithm.  
 
 #### Medium Demand Run Time
 
