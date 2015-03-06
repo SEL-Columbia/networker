@@ -1,6 +1,6 @@
 # Comparitive Analysis
 
-These are the results of an exhaustive comparitive analysis of the modKruskal 
+These are the results of a fairly exhaustive comparitive analysis of the modKruskal 
 based NetworkPlanner algorithm vs the modBoruvka based NetworkBuild algorithm.
 
 The latter is being developed in effort to address performance issues and modularize the former.  
