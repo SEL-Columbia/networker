@@ -7,7 +7,6 @@ import networkx as nx
 import pandas as pd
 
 from rtree import Rtree
-from scipy.cluster.vq import kmeans
 from networkbuild.utils import UnionFind, make_bounding_box, project_point_to_segment,\
                                csv_projection, string_to_proj4, utm_to_wgs84, hav_dist
 

@@ -46,7 +46,6 @@ class UnionFind:
         self.parents = {}
         self.children = Dict() #This was previously used such that modifying it changed all refs pointing here
         self.queues = {}
-        self.neighborhood = {}
     
     def __getitem__(self, object):
         """Find and return the name of the set containing the object."""
@@ -57,7 +56,6 @@ class UnionFind:
             self.mv[object] = self.graph.node[object]['mv']
             self.children[object] = [object]
             self.queues[object] = PriorityQueue()
-            self.neighborhood[object] = set()
 
             return object
 
@@ -80,17 +78,15 @@ class UnionFind:
     
 
     def push(self, queue, item, priority):
-        """Pushes an item into component queue, and updates the neighborhood"""
+        """Pushes an item into component queue"""
         u, v = item
-        self.neighborhood[self[u]] |= {self[v]}
-        self.neighborhood[self[v]] |= {self[u]}
         queue.push(item, priority)
 
     def union(self, g1, g2, d):
         """
         Find the sets containing the objects and merge them all.
         During merge; children, mv and queues are all aggregated
-        into the dominate or 'heaviest' set.
+        into the dominant or 'heaviest' set.
 
         Args:
             g1 (obj): Key of a member in the disjoint sets
@@ -137,6 +133,8 @@ class UnionFind:
 
     def connected_components(self):
         """Return the roots for all disjoint sets"""
+        # TODO:  Get rid of the 'grid' coupling to whatever creates the 
+        #        component ids
         return set([self.parents[r] for r in self.parents.keys() if not
                 all('grid' in str(c) for c in self.children[self[r]])])
 
@@ -342,7 +340,7 @@ def line_subgraph_intersection(subgraphs, rtree, p1, p2):
                 return True, intersecting_subnets
 
 
-    # Todo: If this edge is valid, we need to update
+    # TODO: If this edge is valid, we need to update
     # the mv for all intersecting subnets
     return False, intersecting_subnets
 
