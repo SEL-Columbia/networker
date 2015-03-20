@@ -8,14 +8,18 @@ from copy import deepcopy
 from rtree import Rtree
 
 from networkbuild.KDTree import KDTree
-from networkbuild.utils import UnionFind, PriorityQueue, hav_dist, \
-cartesian_projection, make_bounding_box, line_subgraph_intersection
+from networkbuild.utils import UnionFind, PriorityQueue, \
+                               make_bounding_box, \
+                               line_subgraph_intersection
+
+from networkbuild.geo_math import spherical_distance_scalar, 
+                                  spherical_projection
 
 def PmodBoruvka(G, subgraphs=None, rtree=None):
     
     V = set(T.nodes(data=False))
     coords = np.row_stack(nx.get_node_attributes(T, 'coords').values())
-    projcoords = cartesian_projection(coords)
+    projcoords = spherical_projection(coords)
 
     kdtree = KDTree(projcoords)
 
@@ -32,7 +36,7 @@ def PmodBoruvka(G, subgraphs=None, rtree=None):
     def find_nn(node_tuple):
         u, up = node_tuple
         v, _ = kdtree.query_subset(up, list(V - {u}))
-        return u, v, hav_dist(coords[u], coords[v])
+        return u, v, spherical_distance_scalar([coords[u], coords[v]])
 
     # find the nearest neigbor of all nodes
     p = mp.Pool(processes=6)
@@ -70,11 +74,11 @@ def PmodBoruvka(G, subgraphs=None, rtree=None):
             while v in component_set:
                 subgraphs.queues[component].pop()
                 vprime, _ = kdtree.query_subset(projcoords[u], disjointVC)
-                dm = hav_dist(coords[u], coords[vprime])
+                dm = spherical_distance_scalar([coords[u], coords[vprime]])
                 subgraphs.queues[component].push((u, vprime), dm)
                 (u, v) = subgraphs.queues[component].top()
             else:
-                dm = hav_dist(coords[u], coords[v])
+                dm = spherical_distance_scalar([coords[u], coords[v]])
 
             return (u, v, dm), dm
 

@@ -4,6 +4,7 @@ from copy import deepcopy
 from nose.tools import eq_
 
 from networkbuild.utils import UnionFind
+from networkbuild.geo_math import spherical_distance_scalar
 
 def init_network(n):
 
@@ -20,30 +21,6 @@ def init_network(n):
     nx.set_node_attributes(graph, 'coords', dict(enumerate(coords)))
     nx.set_node_attributes(graph,   'mv',   dict(enumerate(mv)))
     return graph
-
-def hav_dist(point1, point2):
-    x1, y1 = point1
-    x2, y2 = point2
-    return get_hav_distance(y1, x1, y2, x2)
-
-def get_hav_distance(lat, lon, pcode_lat, pcode_lon):
-    """
-    Find the distance between a vector of (lat,lon) and the reference point (pcode_lat,pcode_lon).
-    """
-    rad_factor = np.pi / 180.0  # degrees to radians for trig functions
-    lat_in_rad = lat * rad_factor
-    lon_in_rad = lon * rad_factor
-    pcode_lat_in_rad = pcode_lat * rad_factor
-    pcode_lon_in_rad = pcode_lon * rad_factor
-    delta_lon = lon_in_rad - pcode_lon_in_rad
-    delta_lat = lat_in_rad - pcode_lat_in_rad
-    # Next two lines is the Haversine formula
-    inverse_angle = (np.sin(delta_lat / 2) ** 2 + np.cos(pcode_lat_in_rad) *
-                     np.cos(lat_in_rad) * np.sin(delta_lon / 2) ** 2)
-    haversine_angle = 2 * np.arcsin(np.sqrt(inverse_angle))
-    earth_radius =  6371010 # meters
-    return haversine_angle * earth_radius
-
     
 def TestUnionMV():
 
@@ -56,10 +33,11 @@ def TestUnionMV():
     for ((n1, d1), (n2, d2)) in pairs:
         if mv is None:
             mv = d1['mv'] 
-        mv = (mv + d2['mv']) - hav_dist(d1['coords'], d2['coords'])
+        mv = (mv + d2['mv']) - \
+             spherical_distance_scalar([d1['coords'], d2['coords']])
 
         subgraphs[n1]; subgraphs[n2]
-        d = hav_dist(d1['coords'], d2['coords'])
+        d = spherical_distance_scalar([d1['coords'], d2['coords']])
         subgraphs.union(n1, n2, d)
 
     eq_(np.allclose(subgraphs.mv[subgraphs[1]], mv), True)

@@ -2,7 +2,8 @@ import argparse
 import numpy as np
 import sys
 from networkbuild.KDTree import KDTree
-from networkbuild import utils
+from networkbuild.geo_math import spherical_projection, 
+                                  spherical_distance
 
 selectors = {
     "min": np.min, 
@@ -15,7 +16,7 @@ def generate_nodes(n, min_max, demand_selector="median"):
 
     coords = np.random.uniform(low=min_max[0], high=min_max[1], size=(n, 2))
     # proj coords into 3-space (center at center of earth)
-    proj_coords = utils.cartesian_projection(coords)
+    proj_coords = utils.spherical_projection(coords)
 
     kdt = KDTree(proj_coords)
 
@@ -25,8 +26,9 @@ def generate_nodes(n, min_max, demand_selector="median"):
                                     list(index_set - set([i])))[0] \
                    for i in range(len(coords))]
     nneigh_coords = coords[nneigh_inds]
-    nn_dists = utils.get_hav_distance(coords[:, 0], coords[:, 1], 
-                        nneigh_coords[:, 0], nneigh_coords[:, 1])
+    coord_pairs = np.concatenate((coords[:, np.newaxis], \
+                                  nneigh_coords[:, np.newaxis], axis=1)
+    nn_dists = spherical_distance(coord_pairs)
 
     # assign same demand value to all nodes based on nearest neighbor dists
     demand_vals = np.repeat(selectors[demand_selector](nn_dists), len(coords))

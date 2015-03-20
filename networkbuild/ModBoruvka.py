@@ -9,9 +9,12 @@ from copy import deepcopy
 from rtree import Rtree
 
 from networkbuild.KDTree import KDTree
-from networkbuild.utils import UnionFind, PriorityQueue, hav_dist,\
-                               cartesian_projection, make_bounding_box,\
+from networkbuild.utils import UnionFind, PriorityQueue, \
+                               make_bounding_box,\
                                line_subgraph_intersection
+
+from networkbuild.geo_math import spherical_projection, \
+                                  spherical_distance_scalar
 
 def sq_dist(a,b):
     """
@@ -28,7 +31,7 @@ def modBoruvka(T, subgraphs=None, rtree=None, spherical_coords=True):
 
     V = set(T.nodes(data=False))
     coords = np.row_stack(nx.get_node_attributes(T, 'coords').values())
-    projcoords = cartesian_projection(coords) if spherical_coords else coords
+    projcoords = spherical_projection(coords) if spherical_coords else coords
     kdtree = KDTree(projcoords)
 
     # Handle "dead" components
@@ -88,7 +91,7 @@ def modBoruvka(T, subgraphs=None, rtree=None, spherical_coords=True):
     def component_dist(c1, c2):
         dist = 0
         if spherical_coords:
-            dist = hav_dist(coords[c1], coords[c2])
+            dist = spherical_distance_scalar([coords[c1], coords[c2]])
         else:
             dist = np.sqrt(sq_dist(coords[c1], coords[c2]))
         return dist

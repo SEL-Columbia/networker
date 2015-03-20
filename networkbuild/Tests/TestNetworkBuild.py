@@ -11,7 +11,7 @@ from networkbuild import NetworkBuild
 from networkbuild import modBoruvka
 from nose.tools import eq_
 
-from networkbuild import utils
+from networkbuild import geo_math as gm 
 import itertools
 
 
@@ -67,9 +67,9 @@ def random_settlements(n):
     # get all perm's of points (repetitions are ok here)
     points_left = np.tile(coords, (len(coords), 1))
     points_right = np.repeat(coords, len(coords), axis=0)
-    all_dists = utils.get_hav_distance(points_left[:, 0], points_left[:, 1], 
-                                       points_right[:, 0], points_right[:, 1])
-
+    point_pairs = np.concatenate((points_left[:,np.newaxis], 
+                                  points_right[:,np.newaxis]), axis=1)
+    all_dists = gm.spherical_distance(point_pairs)
     
     full_dist_matrix = all_dists.reshape(len(coords), len(coords))
     zero_indices = (np.array(range(len(coords))) * (len(coords) + 1))
