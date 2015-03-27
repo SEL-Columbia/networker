@@ -66,7 +66,7 @@ class UnionFind:
 
         return root
 
-    def add_component(self, object, budget=0):
+    def add_component(self, object, budget=0, weight=1):
         """ 
         Add standalone component to the UnionFind structure by 
         initializing it's dict values.
@@ -76,11 +76,12 @@ class UnionFind:
         Args:
             object:  identifier for the component
             budget:  The budget allocated to this node for connection costs
+            weight:  The weight associated with this node for agglomeration 
         """
         # only add if not already here
         if object not in self.parents:
             self.parents[object] = object
-            self.weights[object] = 1
+            self.weights[object] = weight 
             self.budget[object] = budget
             self.children[object] = [object]
             self.queues[object] = PriorityQueue()
@@ -95,6 +96,7 @@ class UnionFind:
         """Pushes an item into component queue"""
         u, v = item
         queue.push(item, priority)
+
 
     def union(self, g1, g2, d):
         """
@@ -145,12 +147,23 @@ class UnionFind:
         self.budget[heaviest] += self.budget[smallest] - d
         self.budget[smallest] = self.budget[heaviest]
 
-    def connected_components(self):
-        """Return the roots for all disjoint sets"""
-        # TODO:  Get rid of the 'grid' coupling to whatever creates the 
-        #        component ids
-        return set([self.parents[r] for r in self.parents.keys() if not
-                all('grid' in str(c) for c in self.children[self[r]])])
+
+    def connected_components(self, component_subset=None):
+        """Return the roots for all disjoint sets
+        
+        Args:
+            component_subset:  a set of nodes for which all connected_component
+              children must be within (if None, then return all)
+
+        Returns:
+            connected_components
+        """
+        if component_subset:
+            return set([self[r] for r in self if \
+                any(c in component_subset for c in self.children[self[r]])])
+        else:
+            return set([self[r] for r in self])
+
 
     def component_set(self, component):
         """Return the component set of the objects
@@ -162,8 +175,8 @@ class UnionFind:
             List of nodes in the same set as n
         """
 
-        return [c for c in self.children[self[component]]
-                if 'grid-' not in str(c)]
+        return [c for c in self.children[self[component]]]
+
 
 class PriorityQueue(object):
 

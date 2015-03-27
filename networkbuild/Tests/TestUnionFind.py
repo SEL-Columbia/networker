@@ -48,10 +48,45 @@ def TestComponentFunctions():
     """
     Tests whether UnionFind component/connected_component methods
     work as expected
+
     """
 
-    components = range(5)
-    external_components = range(5, 10)
+    # demand nodes are 0-3 plus a 'fake node' at 4
+    demand_components = set(range(5))
+    # existing grid nodes
+    external_components = set(['grid-0', 'grid-1', 'grid-2'])
 
+    subgraphs = UnionFind()
+    for i in demand_components:  subgraphs.add_component(i)
+    for g in external_components:  subgraphs.add_component(g)
+
+    # assign weights to eventual connected component roots
+    subgraphs.weights[4] = np.inf
+    subgraphs.weights[2] = np.inf
+    subgraphs.weights['grid-1'] = np.inf
+
+    # first connect the grid nodes and the fake node
+    grid_union_pairs = [(4, 'grid-0'), ('grid-1', 'grid-2')]
+    for g1, g2 in grid_union_pairs:
+        subgraphs.union(g1, g2, 1)
+
+    # should be 3 components at this point (2 within demand set)
+    eq_(subgraphs.connected_components(component_subset=demand_components), set(range(5)))
+    eq_(subgraphs.connected_components(), set(range(5) + ['grid-1']))
+
+    # connect others (including a connection to the grid via fake node 4)
+    union_pairs = [(0, 1), (2, 3), (0, 4)]
+    for u1, u2 in union_pairs:
+        subgraphs.union(u1, u2, 1)
+
+    # test component sets
+    eq_(set(subgraphs.component_set(0)), set([0, 1, 4, 'grid-0']))
+    eq_(set(subgraphs.component_set(2)), set([2, 3]))
+
+    # test connected components
+    eq_(subgraphs.connected_components(), set([4, 2, 'grid-1']))
+    # connected component with ('grid-1', 'grid-2') should be filtered out 
+    eq_(subgraphs.connected_components(component_subset=demand_components), set([4, 2]))
+     
 
 

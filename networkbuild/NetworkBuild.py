@@ -47,7 +47,7 @@ class NetworkBuild(object):
         # if coords in utm convert to latlong
         if input_proj != PROJ4_LATLONG:
             input_coords = np.row_stack(nx.get_node_attributes(grid, 'coords').values())
-            coords = coordinate_transform_proj(input_proj, PROJ4_LATLONG, input_coords)
+            coords = coordinate_transform_proj4(input_proj, PROJ4_LATLONG, input_coords)
             nx.set_node_attributes(grid, 'coords', {i : coord for i, coord
                                                     in enumerate(coords)})
 
@@ -61,7 +61,7 @@ class NetworkBuild(object):
         # Set edge weights
         get_coord = lambda x: grid.node[x]['coords']
         nx.set_edge_attributes(grid, 'weight', {(u, v): \
-                       spherical_distance_scalar([map(get_coord, [u,v])])  \
+                       spherical_distance_scalar(map(get_coord, [u,v]))  \
                        for u,v in grid.edges()}) 
 
         return grid.to_undirected()
@@ -85,7 +85,7 @@ class NetworkBuild(object):
 
         #if coords are not in latlong need to convert
         if input_proj and input_proj != PROJ4_LATLONG:
-            coords = coordinate_transform_proj(input_proj, PROJ4_LATLONG, coords)
+            coords = coordinate_transform_proj4(input_proj, PROJ4_LATLONG, coords)
 
         # Store the MV array
         if hasattr(metrics, 'Demand > Projected nodal demand per year'):
