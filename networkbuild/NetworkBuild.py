@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
+
 __author__ = 'Brandon Ogle'
+
+from copy import deepcopy
 
 import ogr
 import numpy as np
@@ -7,10 +10,13 @@ import networkx as nx
 import pandas as pd
 
 from rtree import Rtree
-from networkbuild.utils import UnionFind, make_bounding_box, project_point_to_segment,\
-                               csv_projection, string_to_proj4, utm_to_wgs84 
+from networkbuild.utils import UnionFind
 
-from networkbuild.geo_math import spherical_distance_scalar
+from networkbuild.geo_math import spherical_distance_scalar, \
+                                  coordinate_transform_proj4, \
+                                  make_bounding_box, \
+                                  project_point_to_segment, \
+                                  PROJ4_LATLONG
 
 class NetworkBuild(object):
 
@@ -30,8 +36,8 @@ class NetworkBuild(object):
         driver = ogr.GetDriverByName('ESRI Shapefile')
         shp = driver.Open(path)
         layer = shp.GetLayer()
-        spatialRef = layer.GetSpatialRef()
-        proj4 = string_to_proj4(spatialRef.ExportToProj4())
+        spatial_ref = layer.GetSpatialRef()
+        input_proj = spatial_ref.ExportToProj4()
 
         # Load in the grid
         grid = nx.read_shp(path)
@@ -39,17 +45,19 @@ class NetworkBuild(object):
         grid = nx.convert_node_labels_to_integers(grid, label_attribute='coords')
 
         # if coords in utm convert to latlong
-        if proj4['proj'] == 'utm':
-            utmcoords = np.row_stack(nx.get_node_attributes(grid, 'coords').values())
-            coords = utm_to_wgs84(utmcoords, int(proj4['zone']))
+        if input_proj != PROJ4_LATLONG:
+            input_coords = np.row_stack(nx.get_node_attributes(grid, 'coords').values())
+            coords = coordinate_transform_proj(input_proj, PROJ4_LATLONG, input_coords)
             nx.set_node_attributes(grid, 'coords', {i : coord for i, coord
                                                     in enumerate(coords)})
 
         # Append 'grid-' to grid node labels
         # TODO:  add 'grid' boolean attribute rather than this
-        grid = nx.relabel_nodes(grid, {n: 'grid-' + str(n) for n in grid.nodes()})
-        # Set mv to 0
-        nx.set_node_attributes(grid, 'mv', {n:0 for n in grid.nodes()})
+
+        # grid = nx.relabel_nodes(grid, {n: 'grid-' + str(n) for n in grid.nodes()})
+        # Set set grid to True, mv to 0
+        nx.set_node_attributes(grid, 'grid', {n:True for n in grid.nodes()})
+        nx.set_node_attributes(grid, 'budget', {n:0 for n in grid.nodes()})
         # Set edge weights
         get_coord = lambda x: grid.node[x]['coords']
         nx.set_edge_attributes(grid, 'weight', {(u, v): \
@@ -61,8 +69,8 @@ class NetworkBuild(object):
     @staticmethod
     def setup_input_nodes(path):
 
-        proj4 = csv_projection(path)
-        header_row = 1 if proj4 else 0
+        input_proj = csv_projection(path)
+        header_row = 1 if input_proj else 0
 
         # read in the csv
         metrics = pd.read_csv(path, header=header_row)
@@ -75,9 +83,9 @@ class NetworkBuild(object):
         # Stack the coords
         coords = np.column_stack(map(metrics.get, coord_cols))
 
-        #if coords are in utm, need to convert to longlat
-        if proj4 and proj4['proj'] == 'utm':
-            coords = utm_to_wgs84(coords, int(proj4['zone']))
+        #if coords are not in latlong need to convert
+        if input_proj and input_proj != PROJ4_LATLONG:
+            coords = coordinate_transform_proj(input_proj, PROJ4_LATLONG, coords)
 
         # Store the MV array
         if hasattr(metrics, 'Demand > Projected nodal demand per year'):
@@ -91,7 +99,7 @@ class NetworkBuild(object):
 
         # Store the metric attrs
         nx.set_node_attributes(net, 'coords', {n: coords[n] for n in range(mv.size)})
-        nx.set_node_attributes(net, 'mv', {n: mv[n] for n in range(mv.size)})
+        nx.set_node_attributes(net, 'budget', {n: mv[n] for n in range(mv.size)})
 
         return net
 
@@ -117,6 +125,24 @@ class NetworkBuild(object):
 
     @staticmethod
     def grid_settlement_merge(grid, net):
+        """
+        Sets up the Graph, UnionFind (DisjoinSet), and RTree datastructures
+        for use in network algorithms
+
+        Args:
+            grid:  graph representing existing grid (assumes node ids don't conflict
+                with net (demand) nodes)
+            net:  graph of nodes representing demand
+
+        Returns:
+            graph:  graph with demand nodes and their nearest nodes to the 
+                existing grid (i.e. 'fake' nodes)
+            subgraphs:  UnionFind datastructure populated with fake nodes and
+                associated with the appropriate connected component
+            rtree:  spatial index populated with the edges from the 
+                existing grid
+        """
+
         # Coordinates of grid vertices, lookup strips the 'grid-' prior to indexing
         g_coords = nx.get_node_attributes(grid, 'coords')
 
@@ -138,20 +164,23 @@ class NetworkBuild(object):
         # Get the grid components to init mv grid centers
         subgrids = nx.connected_components(grid)
 
-        # Union the subgraphs, and init the DisjointSet
-        big = nx.union(grid, net)
-        subgraphs = UnionFind(big)
+        # Init the DisjointSet
+        subgraphs = UnionFind()
 
         # Build the subgrid components
         for sub in subgrids:
             # Start subcomponent with first node
-            subgraphs[sub[0]]
+            subgraphs.add_component(sub[0], budget=grid.node[sub[0]]['budget'])
             # Merge remaining nodes with component
             for node in sub[1:]:
-                subgraphs[node]
-                # The existing grid nodes have dummy mv
+                subgraphs.add_component(node, budget=grid.node[node]['budget'])
+                # The existing grid nodes have are on the grid 
+                # (so distance is 0)
                 subgraphs.union(sub[0], node, 0)
 
+        # setup graph to be populated with fake nodes
+        big = deepcopy(net)
+        
         # Id of the last real node
         last_real = max(net.nodes())
 
@@ -163,15 +192,11 @@ class NetworkBuild(object):
 
             # Add the fake node to the big net
             fake_id = last_real + idx
-            big.add_node(fake_id, coords=fake, mv=np.inf)
+            big.add_node(fake_id, coords=fake, budget=np.inf)
 
             # Merge the fake node with the grid subgraph
+            subgraphs.add_component(fake_id, budget=np.inf)
             subgraphs.union(fake_id, u, 0)
-
-        # Now that the needed grid data has been captured
-        # Pull the existing grid out of the network
-        big.remove_edges_from(grid.edges())
-        big.remove_nodes_from(grid.nodes())
 
         return big, subgraphs, rtree
 

@@ -25,7 +25,7 @@ def graph_high_mvmax_long_edge():
     graph.add_nodes_from(nodes)
 
     nx.set_node_attributes(graph, 'coords', dict(enumerate(coords)))
-    nx.set_node_attributes(graph,   'mv',   dict(enumerate(mv_max_values)))
+    nx.set_node_attributes(graph,   'budget',   dict(enumerate(mv_max_values)))
 
     return graph
   
@@ -37,7 +37,7 @@ def TestMinEdges():
     # of eachother (otherwise they should be connected)
     g = graph_high_mvmax_long_edge()
 
-    subgraphs = UnionFind(g)
+    subgraphs = UnionFind()
     rtree = Rtree()
 
     # build min span forest via modBoruvka

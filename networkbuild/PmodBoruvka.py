@@ -8,18 +8,18 @@ from copy import deepcopy
 from rtree import Rtree
 
 from networkbuild.KDTree import KDTree
-from networkbuild.utils import UnionFind, PriorityQueue, \
-                               make_bounding_box, \
-                               line_subgraph_intersection
+from networkbuild.utils import UnionFind, PriorityQueue
 
-from networkbuild.geo_math import spherical_distance_scalar, 
-                                  spherical_projection
+from networkbuild.geo_math import spherical_distance_scalar, \
+                                  make_bounding_box, \
+                                  line_subgraph_intersection, \
+                                  ang_to_vec_coords
 
 def PmodBoruvka(G, subgraphs=None, rtree=None):
     
     V = set(T.nodes(data=False))
     coords = np.row_stack(nx.get_node_attributes(T, 'coords').values())
-    projcoords = spherical_projection(coords)
+    projcoords = ang_to_vec_coords(coords)
 
     kdtree = KDTree(projcoords)
 
@@ -28,10 +28,10 @@ def PmodBoruvka(G, subgraphs=None, rtree=None):
 
         rtree = Rtree()
         # modified to handle queues, children, mv
-        subgraphs = UnionFind(T)
+        subgraphs = UnionFind()
 
     # Tests whether the node is a projection on the existing grid, using its MV
-    is_fake = lambda n: subgraphs.mv[n] == np.inf
+    is_fake = lambda n: subgraphs.budget[n] == np.inf
 
     def find_nn(node_tuple):
         u, up = node_tuple
@@ -45,8 +45,8 @@ def PmodBoruvka(G, subgraphs=None, rtree=None):
 
     # push the results into their respective queues
     for u, v, d in neighbors:
-        root = subgraphs[u]
-        subgraphs.queues[root].push((u, v), d)
+        subgraphs.add_component(u, budget=T.node[u]['budget'])
+        subgraphs.queues[u].push((u, v), d)
 
     # list to hold mst edges
     Et = []
@@ -96,9 +96,9 @@ def PmodBoruvka(G, subgraphs=None, rtree=None):
         while Ep._queue:
             (um, vm, dm) = Ep.pop()
             # if doesn't create cycle and subgraph has enough MV
-            if subgraphs[um] != subgraphs[vm] and (subgraphs.mv[subgraphs[um]] >= dm or is_fake(um)): 
+            if subgraphs[um] != subgraphs[vm] and (subgraphs.budget[subgraphs[um]] >= dm or is_fake(um)): 
                 # test that the connecting subgraph can receive the MV
-                if subgraphs.mv[subgraphs[vm]] >= dm or is_fake(vm):
+                if subgraphs.budget[subgraphs[vm]] >= dm or is_fake(vm):
 
                     # doesn't create cycles from line segment intersection
                     invalid_edge, intersections = line_subgraph_intersection(subgraphs, rtree, coords[um], coords[vm])

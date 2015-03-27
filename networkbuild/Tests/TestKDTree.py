@@ -2,7 +2,7 @@ import numpy as np
 import networkx as nx
 from nose.tools import eq_
 
-from networkbuild import utils
+from networkbuild.geo_math import nn_dists, ang_to_vec_coords
 from networkbuild import KDTree
 
 def simple_coord_set():
@@ -18,9 +18,9 @@ def simple_coord_set():
 def TestKDTree():
 
     simple_coords = simple_coord_set()
-    proj_coords = utils.cartesian_projection(simple_coords)
-    coord_nn_dists = utils.nn_dists(simple_coords)
-    proj_nn_dists = utils.nn_dists(proj_coords, spherical=False)
+    proj_coords = ang_to_vec_coords(simple_coords)
+    coord_nn_dists = nn_dists(simple_coords)
+    proj_nn_dists = nn_dists(proj_coords, spherical=False)
 
     coord_idx = np.arange(proj_coords.shape[0])
     kdt = KDTree(proj_coords)

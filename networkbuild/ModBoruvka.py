@@ -9,18 +9,13 @@ from copy import deepcopy
 from rtree import Rtree
 
 from networkbuild.KDTree import KDTree
-from networkbuild.utils import UnionFind, PriorityQueue, \
-                               make_bounding_box,\
-                               line_subgraph_intersection
+from networkbuild.utils import UnionFind, PriorityQueue
 
-from networkbuild.geo_math import spherical_projection, \
-                                  spherical_distance_scalar
-
-def sq_dist(a,b):
-    """
-    Calculates square distance to reduce performance overhead of square root
-    """
-    return np.sum((a-b)**2)
+from networkbuild.geo_math import ang_to_vec_coords, \
+                                  spherical_distance_scalar, \
+                                  make_bounding_box, \
+                                  line_subgraph_intersection, \
+                                  square_distance
 
 
 def modBoruvka(T, subgraphs=None, rtree=None, spherical_coords=True):
@@ -31,7 +26,7 @@ def modBoruvka(T, subgraphs=None, rtree=None, spherical_coords=True):
 
     V = set(T.nodes(data=False))
     coords = np.row_stack(nx.get_node_attributes(T, 'coords').values())
-    projcoords = spherical_projection(coords) if spherical_coords else coords
+    projcoords = ang_to_vec_coords(coords) if spherical_coords else coords
     kdtree = KDTree(projcoords)
 
     # Handle "dead" components
@@ -42,9 +37,30 @@ def modBoruvka(T, subgraphs=None, rtree=None, spherical_coords=True):
 
         rtree = Rtree()
         # modified to handle queues, children, mv
-        subgraphs = UnionFind(T)
+        subgraphs = UnionFind()
 
     # <helper_functions> 
+    def components_in_graph(C):
+        """
+        get component set of subgraph but filter out
+        those not in our original set of nodes
+        """
+        return [c for c in subgraphs.component_set(C) if c in V]
+
+
+        return set([self.parents[r] for r in self.parents.keys() if not
+                all('grid' in str(c) for c in self.children[self[r]])])
+
+
+    def connected_component_in_graph():
+        """
+        get component set of subgraph but filter out
+        those whose set of children are not in our original set of nodes
+        """
+        return set([C for C in subgraphs.connected_components() if not \
+                    all(c for c in subgraphs.children[C] if c in V)])
+
+
     def candidate_components(C):  
         """
         return the set of candidate nearest components for the connected component 
@@ -71,7 +87,7 @@ def modBoruvka(T, subgraphs=None, rtree=None, spherical_coords=True):
         while vm not in candidates:
             subgraphs.queues[C].pop()
             um, _ = kdtree.query_subset(projcoords[v], candidates)
-            dm = sq_dist(projcoords[v], projcoords[um])
+            dm = square_distance(projcoords[v], projcoords[um])
             subgraphs.push(subgraphs.queues[C], (v,um), dm)
             # Note:  v will always be a vertex in this connected component
             #        vm *may* be external
@@ -80,12 +96,12 @@ def modBoruvka(T, subgraphs=None, rtree=None, spherical_coords=True):
         return (v, vm)
 
     # Tests whether the node is a projection on the existing grid, using its MV
-    is_fake = lambda n: subgraphs.mv[n] == np.inf
+    is_fake = lambda n: subgraphs.budget[n] == np.inf
     
     # Test whether the component is dead 
     # i.e. can never connect to another node
     def is_dead(c, nn_dist):
-        return not is_fake(c) and subgraphs.mv[c] < nn_dist
+        return not is_fake(c) and subgraphs.budget[c] < nn_dist
 
     # "true" distance between components
     def component_dist(c1, c2):
@@ -93,7 +109,7 @@ def modBoruvka(T, subgraphs=None, rtree=None, spherical_coords=True):
         if spherical_coords:
             dist = spherical_distance_scalar([coords[c1], coords[c2]])
         else:
-            dist = np.sqrt(sq_dist(coords[c1], coords[c2]))
+            dist = np.sqrt(square_distance(coords[c1], coords[c2]))
         return dist
  
     # </helper_functions>
@@ -102,17 +118,17 @@ def modBoruvka(T, subgraphs=None, rtree=None, spherical_coords=True):
     # and push the nearest neighbor into its queue
     for v in V:
         vm, _ = kdtree.query_subset(projcoords[v], list(V - {v}))
-        dm = sq_dist(projcoords[v], projcoords[vm])
-        C = subgraphs[v]
-        subgraphs.push(subgraphs.queues[C], (v, vm), dm)
+        dm = square_distance(projcoords[v], projcoords[vm])
+        subgraphs.add_component(v, budget=T.node[v]['budget'])
+        subgraphs.push(subgraphs.queues[v], (v, vm), dm)
 
         # Add to dead set if warranted
         nn_dist = component_dist(v, vm) 
        
-        if is_dead(C, nn_dist):
+        if is_dead(v, nn_dist):
             # here components are single nodes
             # so no need to worry about adding children to dead set
-            if C not in D: D.add(C)
+            if v not in D: D.add(v)
 
     Et = [] # Initialize MST edges to empty list
     last_state = None
@@ -179,11 +195,11 @@ def modBoruvka(T, subgraphs=None, rtree=None, spherical_coords=True):
             (um, vm, dm) = Ep.pop()
 
             # if doesn't create cycle and subgraph has enough MV
-            if subgraphs[um] != subgraphs[vm] and (subgraphs.mv[subgraphs[um]] >= dm or is_fake(um)):
+            if subgraphs[um] != subgraphs[vm] and (subgraphs.budget[subgraphs[um]] >= dm or is_fake(um)):
                 # test that the connecting subgraph can receive the MV AND
                 # that both nodes are not fake
                 # TODO:  Clean up this logic
-                if (subgraphs.mv[subgraphs[vm]] >= dm or is_fake(vm)) and \
+                if (subgraphs.budget[subgraphs[vm]] >= dm or is_fake(vm)) and \
                    not (is_fake(um) and is_fake(vm)):
 
                     # doesn't create cycles from line segment intersection

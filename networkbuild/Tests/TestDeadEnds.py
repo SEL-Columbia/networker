@@ -23,7 +23,7 @@ def graph_with_dead_node():
     graph.add_nodes_from(nodes)
 
     nx.set_node_attributes(graph, 'coords', dict(enumerate(coords)))
-    nx.set_node_attributes(graph,   'mv',   dict(enumerate(mv_max_values)))
+    nx.set_node_attributes(graph,   'budget',   dict(enumerate(mv_max_values)))
 
     return graph
   
@@ -35,7 +35,7 @@ def TestDeadBypass():
     # of eachother (otherwise they should be connected)
     g = graph_with_dead_node()
 
-    subgraphs = UnionFind(g)
+    subgraphs = UnionFind()
     rtree = Rtree()
 
     # build min span forest via modBoruvka
@@ -70,8 +70,8 @@ def TestDeadBypass():
     for pair in itertools.product(components, components):
         
         if pair[0] != pair[1] and \
-           subgraphs.mv[pair[0]] >= component_dists[pair] and \
-           subgraphs.mv[pair[1]] >= component_dists[pair]: 
+           subgraphs.budget[pair[0]] >= component_dists[pair] and \
+           subgraphs.budget[pair[1]] >= component_dists[pair]: 
             missed_connections.append(pair)
 
     assert len(missed_connections) == 0, "missed connections: " + str(missed_connections)

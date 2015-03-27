@@ -75,7 +75,7 @@ class NP_Boruvka_Interface(object):
                 edge = u, v
 
                 # If any fake nodes in the edge, add to the dstore
-                for i, fake in enumerate([n for n in edge if mst.node[n]['mv'] == np.inf], 1):
+                for i, fake in enumerate([n for n in edge if mst.node[n]['budget'] == np.inf], 1):
                     dataset_node = self.dstore.addNode(subgraph.node[fake]['coords'], is_fake=True)
                     dataset_node.id = fake 
                     self.dstore.session.add(dataset_node)
@@ -99,7 +99,7 @@ class NP_Boruvka_Interface(object):
     def _metric_graph(self):
         """Converts the dataset_store metrics to a nx graph"""
 
-        data = [(i, {'mv': node.metric, 'coords': node.getCommonCoordinates()})
+        data = [(i, {'budget': node.metric, 'coords': node.getCommonCoordinates()})
                  for i, node in enumerate(self.dstore.cycleNodes())]
         G = nx.Graph()
         G.add_nodes_from(data)
@@ -118,7 +118,7 @@ def dataset_store_to_nx_graph(dataset_store):
                 list(dataset_store.cycleNodes(isFake=True))
     np_to_nx_id = {node.id: i for i, node in enumerate(all_nodes)} 
 
-    data = [(i, {'mv': node.metric, 'coords': node.getCommonCoordinates(), 'np_id': node.id})
+    data = [(i, {'budget': node.metric, 'coords': node.getCommonCoordinates(), 'np_id': node.id})
              for i, node in enumerate(all_nodes)]
     G = nx.Graph()
     G.add_nodes_from(data)

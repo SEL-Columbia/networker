@@ -2,7 +2,7 @@ import argparse
 import numpy as np
 import sys
 from networkbuild.KDTree import KDTree
-from networkbuild.geo_math import spherical_projection, 
+from networkbuild.geo_math import ang_to_vec_coords, 
                                   spherical_distance
 
 selectors = {
@@ -16,7 +16,7 @@ def generate_nodes(n, min_max, demand_selector="median"):
 
     coords = np.random.uniform(low=min_max[0], high=min_max[1], size=(n, 2))
     # proj coords into 3-space (center at center of earth)
-    proj_coords = utils.spherical_projection(coords)
+    proj_coords = ang_to_vec_coords(coords)
 
     kdt = KDTree(proj_coords)
 

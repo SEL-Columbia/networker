@@ -1,10 +1,13 @@
 # -*- coding: utf-8 -*-
 
-import ogr
+import ogr, osr
 import numpy as np
 import networkx as nx
 import pandas as pd
+import networkbuild.geo_math as gm
 from networkbuild.classes import GeoGraph
+import warnings
+import os
 
 """
 Package for reading/writing networkx based GeoGraphs
@@ -14,26 +17,35 @@ Note:  these wrap existing networkx functions for custom behavior
 def load_shp(shp_path):
     """ loads a shapefile into a networkx based GeoGraph object
 
-    Parameters
-    ----------
+    Args:
+        shp_path:  string path to a line or point shapefile
 
-    shp_path:  string path to a line or point shapefile
-
-    Returns
-    -------
-
-    geograph:  GeoGraph 
+    Returns:
+        geograph:  GeoGraph 
 
     """
 
     driver = ogr.GetDriverByName('ESRI Shapefile')
     shp = driver.Open(shp_path)
     layer = shp.GetLayer()
-    spatial_ref = layer.GetSpatialRef()
-    proj4 = spatialRef.ExportToProj4()
-
     g = nx.read_shp(shp_path)
     coords = np.array(g.nodes())
+
+    spatial_ref = layer.GetSpatialRef()
+    proj4 = None
+    if not spatial_ref:
+        bounds = gm.make_bounding_box_array(coords)
+        xbounds = np.array([bounds[0], bounds[2]])
+        ybounds = np.array([bounds[1], bounds[3]])
+        if np.all(xbounds) < 180.0 and np.all(xbounds > -180.0) and \
+           np.all(ybounds) < 90.0 and np.all(ybounds > -90):
+           proj4 = gm.PROJ4_LATLONG
+        else:
+            warnings.warn("Spatial Reference could not be set for {}".\
+            format(shp_path))
+
+    else:
+        proj4 = spatial_ref.ExportToProj4()
 
     g = nx.convert_node_labels_to_integers(g)
 
@@ -43,24 +55,37 @@ def load_shp(shp_path):
 def write_shp(geograph, shp_dir):
     """ writes a shapefile from a networkx based GeoGraph object
 
-    Parameters
-    ----------
-
-    geograph: GeoGraph object
-    shp_dir:  string path to dir to write shape files
+    Args:
+        geograph: GeoGraph object
+        shp_dir:  string path to dir to write shape files
 
     """
 
-    assert geograph.node.keys() == range(geograph.coords),\
-           "GeoGraph nodes and coords are not aligned"
+    assert geograph.is_valid() 
 
-    # need to relabel nodes by their coords
+    # looks like networkx wants us to relabel nodes by their coords
     coord_tups = map(tuple, geograph.coords)
     tup_map = {i: tup for i, tup in enumerate(coord_tups)}
     
-    nx_coord_graph = nx.relabel_nodes(geograph, tup_map)
+    # copy geograph to plain networkx graph 
+    # (relabeling a GeoGraph doesn't seem to work)
+    nx_coord_graph = nx.Graph(data=geograph)
+    nx.relabel_nodes(nx_coord_graph, tup_map, copy=False)
 
-    nx.write(nx_coord_graph, shp_dir)
+    nx.write_shp(nx_coord_graph, shp_dir)
 
-
-
+    if geograph.srs:
+        # write srs info to prj file (nx seems to miss this)
+        sr = osr.SpatialReference()
+        sr.ImportFromProj4(geograph.srs)
+        main_prj_filename = shp_dir + '.prj'
+        edge_prj_filename = os.path.join(shp_dir, 'edges.prj')
+        node_prj_filename = os.path.join(shp_dir, 'nodes.prj')
+        def write_prj(prj_filename):
+            out = open(prj_filename, 'w')
+            out.write(sr.ExportToWkt())
+            out.close()
+        
+        write_prj(main_prj_filename)
+        write_prj(edge_prj_filename)
+        write_prj(node_prj_filename)

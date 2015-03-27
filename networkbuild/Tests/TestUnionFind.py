@@ -19,25 +19,39 @@ def init_network(n):
     
     #add attributes
     nx.set_node_attributes(graph, 'coords', dict(enumerate(coords)))
-    nx.set_node_attributes(graph,   'mv',   dict(enumerate(mv)))
+    nx.set_node_attributes(graph,   'budget',   dict(enumerate(mv)))
     return graph
     
-def TestUnionMV():
+def TestUnionBudget():
 
     net = init_network(5000)
-    subgraphs = UnionFind(deepcopy(net))
+    subgraphs = UnionFind()
     nodes = net.nodes(data=True)
     pairs = zip(nodes[:-1], nodes[1:])
 
     mv = None
     for ((n1, d1), (n2, d2)) in pairs:
         if mv is None:
-            mv = d1['mv'] 
-        mv = (mv + d2['mv']) - \
+            mv = d1['budget'] 
+        mv = (mv + d2['budget']) - \
              spherical_distance_scalar([d1['coords'], d2['coords']])
 
-        subgraphs[n1]; subgraphs[n2]
+        subgraphs.add_component(n1, budget=d1['budget'])
+        subgraphs.add_component(n2, budget=d2['budget'])
         d = spherical_distance_scalar([d1['coords'], d2['coords']])
         subgraphs.union(n1, n2, d)
 
-    eq_(np.allclose(subgraphs.mv[subgraphs[1]], mv), True)
+    eq_(np.allclose(subgraphs.budget[subgraphs[1]], mv), True)
+
+
+def TestComponentFunctions():
+    """
+    Tests whether UnionFind component/connected_component methods
+    work as expected
+    """
+
+    components = range(5)
+    external_components = range(5, 10)
+
+
+
