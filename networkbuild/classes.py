@@ -87,6 +87,8 @@ class GeoGraph(GeoObject, nx.Graph):
         """
         project other GeoGraph nodes onto their nearest point on this GeoGraph
 
+        Assumes there is no node label overlap between self and other
+
         Args:
             other:  GeoGraph with nodes to be projected onto this GeoGraph
             rtree_index:  rtree of edges within self to be used for speeding
@@ -102,6 +104,9 @@ class GeoGraph(GeoObject, nx.Graph):
                     nearest to
                 coords:  point on edge other node projects to
         """
+        assert len(set(self.nodes()).intersection(set(other.nodes()))) == 0, \
+            "the intersection of self and other graphs should be empty"
+
         projections = {}
         for node in other.nodes():
             edge, coords = self.find_nearest_edge(other.coords[node], rtree_index)
@@ -148,14 +153,16 @@ class GeoGraph(GeoObject, nx.Graph):
             # exhaustively compare segments
             min_dist = np.inf
             near_edge = None
+            near_coords = None
 
             for edge in self.edges():
                 sq_dist, coords = self._sq_dist_to_edge(edge, coord)
                 if sq_dist < min_dist:
                     near_edge = edge
                     min_dist = sq_dist
+                    near_coords = coords
 
-            return near_edge, coords
+            return near_edge, near_coords
      
 
     def _sq_dist_to_edge(self, edge, coord):
@@ -184,7 +191,7 @@ class GeoGraph(GeoObject, nx.Graph):
         
         proj_coord = project_fun[space](coord, c0, c1)
            
-        return np.sum((proj_coord - np.array(coord)) ** 2), coord
+        return np.sum((proj_coord - np.array(coord)) ** 2), proj_coord
 
 
     def get_rtree_index(self):

@@ -319,7 +319,7 @@ def project_point_on_segment(p, v1, v2):
     """
     Find point on segment (v1, v2) nearest to point p
 
-    v1, v2 ϵ R^2
+    v1, v2 ϵ R^2 (and must be floating point types!)
 
     Args:
         p:  point to project
@@ -443,15 +443,15 @@ def project_point_on_arc(p, v1, v2, radius=MEAN_EARTH_RADIUS_M):
         on_arc_test=False, radius=radius)
 
     # if p_i is further from any arc endpoint than the 
-    # length of arc, then return the OTHER point
-    d_a = np.sum((v1 - v2) ** 2)
-    d_p_v1 = np.sum(v1 - p ** 2)
-    d_p_v2 = np.sum(v2 - p ** 2)
-    if d_p_v1 > d_a:
-        return v2
+    # length of arc, then return the closest endpoint to 
+    # p_i
+    arc_length = np.sum((v1 - v2) ** 2)
 
-    if d_p_v2 > d_a:
-        return v1
+    v_arr = np.array([v1, v2])
+    distance_p_v = np.sum((v_arr - p_i) ** 2, axis=1)
+    
+    if any(distance_p_v < arc_length):
+        return v_arr[np.argmin(distance_p_v)]
 
     return p_i
 
