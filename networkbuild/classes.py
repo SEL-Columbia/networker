@@ -13,7 +13,8 @@ Module for GeoGraph extension to networkx Graph class
 
 class GeoObject(object):
 
-    """ Base class for Geo objects 
+    """ 
+    Base class for Geo objects 
     
     Attributes:
         srs:  spatial reference system for the coords
@@ -38,7 +39,8 @@ class GeoObject(object):
 
 class GeoGraph(GeoObject, nx.Graph):
 
-    """ class representing networkx Graph with Geo components 
+    """ 
+    class representing networkx Graph with Geo components 
     
     Attributes:
         inherited from GeoObject and nx.Graph
