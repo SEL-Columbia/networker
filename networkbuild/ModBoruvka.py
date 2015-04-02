@@ -40,31 +40,10 @@ def modBoruvka(T, subgraphs=None, rtree=None, spherical_coords=True):
         subgraphs = UnionFind()
 
     # <helper_functions> 
-    def components_in_graph(C):
-        """
-        get component set of subgraph but filter out
-        those not in our original set of nodes
-        """
-        return [c for c in subgraphs.component_set(C) if c in V]
-
-
-        return set([self.parents[r] for r in self.parents.keys() if not
-                all('grid' in str(c) for c in self.children[self[r]])])
-
-
-    def connected_component_in_graph():
-        """
-        get component set of subgraph but filter out
-        those whose set of children are not in our original set of nodes
-        """
-        return set([C for C in subgraphs.connected_components() if not \
-                    all(c for c in subgraphs.children[C] if c in V)])
-
-
     def candidate_components(C):  
         """
         return the set of candidate nearest components for the connected component 
-        containing c.  Do not consider those in C's connected component or 
+        containing C.  Do not consider those in C's connected component or 
         those that are 'dead'.
         """
         component_set = subgraphs.component_set(C)
@@ -140,7 +119,7 @@ def modBoruvka(T, subgraphs=None, rtree=None, spherical_coords=True):
         Ep = PriorityQueue()
 
         #∀ C of T; where c <- connected component
-        for C in subgraphs.connected_components():
+        for C in subgraphs.connected_components(component_subset=V):
 
             candidates = candidate_components(C)
 
@@ -165,7 +144,7 @@ def modBoruvka(T, subgraphs=None, rtree=None, spherical_coords=True):
         # Otherwise we might be testing only 'dead' candidates
         # and therefore mistakenly think we were done (since
         # no new edges would have been added)
-        for C in subgraphs.connected_components():
+        for C in subgraphs.connected_components(component_subset=V):
 
             candidates = candidate_components(C)
 

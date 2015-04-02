@@ -15,7 +15,7 @@ from networkbuild.utils import UnionFind
 from networkbuild.geo_math import spherical_distance_scalar, \
                                   coordinate_transform_proj4, \
                                   make_bounding_box, \
-                                  project_point_to_segment, \
+                                  project_point_on_segment, \
                                   PROJ4_LATLONG
 
 class NetworkBuild(object):
@@ -117,7 +117,7 @@ class NetworkBuild(object):
             nearest_segment = rtree.nearest(np.ravel((coord, coord)), objects=True).next()
             uv, line = nearest_segment.object
             # project the coord onto the edge and append to the list of fake nodes
-            fake = project_point_to_segment(coord, *line)
+            fake = project_point_on_segment(coord, *line)
             #Todo: only add unique fake nodes
             fake_nodes.append((uv, fake))
 
@@ -174,8 +174,7 @@ class NetworkBuild(object):
             # Merge remaining nodes with component
             for node in sub[1:]:
                 subgraphs.add_component(node, budget=grid.node[node]['budget'])
-                # The existing grid nodes have are on the grid 
-                # (so distance is 0)
+                # The existing grid nodes are on the grid (so distance is 0)
                 subgraphs.union(sub[0], node, 0)
 
         # setup graph to be populated with fake nodes

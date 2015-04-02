@@ -13,6 +13,14 @@ Module for geometric/geographic utility functions
 MEAN_EARTH_RADIUS_M = 6371010
 PROJ4_LATLONG = "+proj=latlong +datum=WGS84"
 
+# aka EPSG:3587 or 'tiling' projection
+PROJ4_FLAT_EARTH = "+proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0 +k=1.0 +units=m +nadgrids=@null +wktext  +no_defs"
+
+# meant to represent xyz based coordinates from center of earth
+# (in this implementation we simplify earth into a sphere, 
+#  not an ellipsoid as in WGS84)
+PROJ4_GEOCENTRIC = "+proj=geocent +datum=WGS84 +units=m +no_defs"
+
 def ang_to_vec_coords(coords, radius=MEAN_EARTH_RADIUS_M):
     """
     Transform angular coordinates on a sphere to x, y, z coordinates
@@ -143,7 +151,7 @@ def square_distance(a,b):
         a, b:  vectors representing points in space
 
     Returns:
-        distance:  Euclidean distance between points
+        distance:  Euclidean distance between points, squared
     """
     return np.sum((a-b)**2)
 
@@ -307,43 +315,145 @@ def line_subgraph_intersection(subgraphs, rtree, p1, p2):
     # the mv for all intersecting subnets
     return False, intersecting_subnets
 
-
-def project_point_to_segment(p, v1, v2):
+def project_point_on_segment(p, v1, v2):
     """
     Find point on segment (v1, v2) nearest to point p
 
+    v1, v2 ϵ R^2
+
     Args:
-    p:  point to project
-    v1, v2:  points representing a segment
+        p:  point to project
+        v1, v2:  points representing a segment
 
     Returns:
-    proj:  projected point
+        proj:  projected point
+       
+    The following main concept is used to compute
+
+        /|
+       / |
+    v /  |
+     / θ |
+    /____|______
+    v*cos(θ)  u
+   
+    where v*cos(θ) is u∙v/||u|| (i.e. the scalar projection)
+
+    The vector projection is (u∙v/||u||^2)*u
+
+    This was helpful:  
+    http://math.stackexchange.com/questions/108980/projecting-a-point-onto-a-vector-2d
+
     """
 
-
-    # Read line segment left to right
-    if v1[0] > v2[0]:
-        v1, v2 = v2, v1
-
-    # Line segment vector (x, y)
-    e1 = np.array([v2[0] - v1[0], v2[1] - v1[1]])
-    # v1 -> p vector (x, y)
-    e2 = np.array([p[0] - v1[0], p[1] - v1[1]])
+    # make 2 vectors with origin at point v1
+    u = np.array([v2[0] - v1[0], v2[1] - v1[1]])
+    v = np.array([p[0] - v1[0], p[1] - v1[1]])
 
     # Dot product and magnitude^2
-    dp = np.dot(e1, e2)
-    e_mag = np.sum(e1 ** 2)
+    dp = np.dot(u, v)
+    u_mag_2 = np.sum(u ** 2)
 
-    # P' of P on Line(v1, v2)
-    proj = np.array([v1[0] + (dp * e1[0]) / e_mag,
-                     v1[1] + (dp * e1[1]) / e_mag])
-
-    # Constrain point at end points
-    if proj[0] < v1[0]:
+    if dp <= 0:
         return v1
-    if proj[0] > v2[0]:
+
+    if dp > u_mag_2:
         return v2
-    return proj
+
+    # project onto u and convert back to original reference system
+    point_on_u = (dp / u_mag_2) * u
+    return point_on_u + v1
+
+
+def arc_intersection(a1, a2, radius=MEAN_EARTH_RADIUS_M, on_arc_test=True):
+    """
+    EXPERIMENTAL (needs more testing)
+
+    Find point intersecting arcs a1, a2
+
+    a1, a2 ϵ R^3
+ 
+    Args:
+        a1, a2:  arcs, each represented by 2 points in R^3 
+        radius:  the radius to project the intersecting vector by
+        on_arc_test:  whether to return
+
+    Returns:
+        point:  projected point in R^3 (or None if no intersection and \
+            on_arc_test is True) 
+       
+    The main idea here is:
+    1. get orthogonal vectors to a1 and a2 (o1 and o2)
+    2. find unit orthogonal vector to o1 and o2 (u)
+    3. scale u by the radius to get intersecting point p
+    4. determine if p is on both arcs
+
+    """
+
+    o1 = np.cross(a1[0], a1[1])
+    o2 = np.cross(a2[0], a2[1])
+    u = np.cross(o1, o2)
+    # are we introducing some imprecision/sluggishness with sqrt here?
+    u_hat = u / np.sqrt(np.sum(u ** 2))
+    p = u_hat * radius
+    
+    if on_arc_test:
+        # if the dist from p to any points of original arcs is
+        # larger than the dist between those arcs, then it's
+        # not ON that arc
+        # (work with square dists for speed)
+        d_a1 = np.sum(a1[0] - a1[1] ** 2)
+        d_a2 = np.sum(a2[0] - a2[1] ** 2)
+        # calculate dists to arc points
+        d_p_a1_0 = np.sum(a1[0] - p ** 2)
+        d_p_a1_1 = np.sum(a1[1] - p ** 2)
+        d_p_a2_0 = np.sum(a1[0] - p ** 2)
+        d_p_a2_1 = np.sum(a1[1] - p ** 2)
+
+        if any([(d_p_a1_0 > d_a1), (d_p_a1_1 > d_a1), \
+                (d_p_a1_0 > d_a2), (d_p_a2_1 > d_a2)]):
+            return None
+
+    return p
+
+
+def project_point_on_arc(p, v1, v2, radius=MEAN_EARTH_RADIUS_M):
+    """
+    EXPERIMENTAL (needs more testing) 
+
+    Find point on arc (v1, v2) nearest to point p
+
+    v1, v2 ϵ R^3
+ 
+    Args:
+        p:  point to project
+        v1, v2:  points representing an arc on sphere with radius 
+        radius:  radius of sphere
+
+    Returns:
+        point:  projected point
+       
+    Uses arc_intersection
+
+    """
+
+    # create arc on the plane made by the orthognal to v1, v2 and p
+    o = np.cross(v1, v2)
+    p_i = arc_intersection(np.array([o, p]), np.array([v1, v2]), \
+        on_arc_test=False, radius=radius)
+
+    # if p_i is further from any arc endpoint than the 
+    # length of arc, then return the OTHER point
+    d_a = np.sum((v1 - v2) ** 2)
+    d_p_v1 = np.sum(v1 - p ** 2)
+    d_p_v2 = np.sum(v2 - p ** 2)
+    if d_p_v1 > d_a:
+        return v2
+
+    if d_p_v2 > d_a:
+        return v1
+
+    return p_i
 
 
 def all_dists(coords, spherical=True):
