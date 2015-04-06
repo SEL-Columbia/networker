@@ -1,7 +1,5 @@
 import networkx as nx
 
-from nose.tools import eq_
-
 from networkbuild.classes import GeoGraph
 from networkbuild.utils import UnionFind
 import networkbuild.geo_math as gm
@@ -17,7 +15,7 @@ def network_nodes_projections():
         return {i: val for i, val in enumerate(a)}
 
     net_coords = [[0.0, 0.0], [3.0, 0.0], [3.0, 3.0]] 
-    net_edges = [(0.0, 1.0), (1.0, 2.0)]
+    net_edges = [(0, 1), (1, 2)]
     node_coords = {3: [-2.0, 0.0], 4: [1.0, 1.0], 5: [4.0, -1.0], 6: [4.0, 1.0]}
 
     projected_coords = {3: [0.0, 0.0], 4: [1.0, 0.0], 5: [3.0, 0.0], 6: [3.0, 1.0]}
@@ -42,4 +40,13 @@ def test_project_onto():
     tests = [projections[p] in neighbor_coords[p] for p in projections.keys()]
     assert all(tests), \
            "expected projection does not match actual"
+
+    # ensure that the rtree based projection results in the same network
+    rtree = net.get_rtree_index()
+    new_net_rt = net.project_onto(nodes, rtree_index=rtree)
+    
+    assert nx.is_isomorphic(new_net, new_net_rt) and \
+        [list(c) for c in new_net.coords.values()] == \
+        [list(c) for c in new_net_rt.coords.values()], \
+        "project_onto with and without rtree inputs don't match" 
 

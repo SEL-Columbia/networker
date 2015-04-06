@@ -111,7 +111,7 @@ class GeoGraph(GeoObject, nx.Graph):
 
         projections = {}
         for node in other.nodes():
-            edge, coords = self.find_nearest_edge(other.coords[node], rtree_index)
+            edge, coords = self.find_nearest_edge(other.coords[node], rtree_index=rtree_index)
             projections[node] = (edge, coords)
         
         # create new GeoGraph with others coords
@@ -151,7 +151,8 @@ class GeoGraph(GeoObject, nx.Graph):
             nearest_segment = rtree_index.nearest(np.ravel((coord, coord)), \
                 objects=True).next()
             near_edge, coords = nearest_segment.object
-            return near_edge, coords
+            sq_dist, near_coords = self._sq_dist_to_edge(near_edge, coord)
+            return near_edge, near_coords
 
         else:
             # exhaustively compare segments
@@ -172,7 +173,7 @@ class GeoGraph(GeoObject, nx.Graph):
     def _sq_dist_to_edge(self, edge, coord):
         """
         helper to calculate the square distance from coord to
-        the edge
+        the edge and the nearest coord on that edge
 
         Args:
             edge:  tuple of nodes representing edge
@@ -211,7 +212,7 @@ class GeoGraph(GeoObject, nx.Graph):
 
             for edge, box in edges_bounds:
                 # Object is in form of (u.label, v.label), (u.coord, v.coord)
-                yield (hash(edge), box, (edge, map(lambda ep: np.array(self[ep]), edge)))
+                yield (hash(edge), box, (edge, map(lambda ep: np.array(self.coords[ep]), edge)))
 
 
         # Init rtree and store grid edges

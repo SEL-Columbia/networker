@@ -8,6 +8,8 @@ from networkbuild.classes import GeoGraph
 import networkbuild.network_io as nio
 import networkbuild.geo_math as gm
 import networkbuild.algorithms as algo
+import os
+import json, jsonschema
 
 class Networker(object):
 
@@ -16,8 +18,7 @@ class Networker(object):
     spatially referenced nodes
 
     Attributes:
-        config:  dict (potentially nested) of configuration params
-            TODO:  detail the params and define defaults 
+        config:  nested dict of configuration params
 
             existing_networks:  
                 filename:  shapefile
@@ -34,6 +35,7 @@ class Networker(object):
     """
 
     ALGOS = {'mod_boruvka': algo.mod_boruvka}
+    SCHEMA_FILE = "networker_config_schema.json"
 
     def __init__(self, config):
         self.config = config
@@ -207,13 +209,13 @@ class Networker(object):
         coords = np.column_stack(map(metrics.get, coord_cols))
         budget = metrics[budget_column]
 
-        to_dict = lambda column: {i, value for i, value in enumerate(column)}
+        to_dict = lambda column: {i: value for i, value in enumerate(column)}
         coords_dict = to_dict(coords)
-        budget_dict = to_dict{budget}
+        budget_dict = to_dict(budget)
 
         geo_nodes = GeoGraph(input_proj, coords_dict)
         
-        nx.set_node_attributes(geo_nnodes, 'budget', budget_dict)
+        nx.set_node_attributes(geo_nodes, 'budget', budget_dict)
         return geo_nodes
        
 
@@ -221,4 +223,11 @@ class Networker(object):
     def _validate(config):
         """
         validate configuration
+        throws jsonschema Validate exception if invalid
         """
+
+        # load schema and validate it via jsonschema
+        schema_path = os.path.join(os.path.dirname(\
+            os.path.abspath(__file__)), Networker.SCHEMA_FILE)
+        schema = json.load(open(schema_path))
+        jsonschema.validate(config, schema)

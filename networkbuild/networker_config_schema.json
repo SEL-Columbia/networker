@@ -1,0 +1,63 @@
+{
+    "schema": "http://json-schema.org/draft-04/schema#",
+    "title": "Networker Configuration",
+    "type": "object",
+    "properties": {
+        "existing_networks": {
+            "type": "object", 
+            "properties": {
+                "filename": {"type": "string"},
+                "budget_value": {
+                    "type": "number", 
+                    "description": "Initial Budget value for network nodes",
+                    "default": 0
+                }
+            },
+            "required": ["filename"]
+        },
+        "demand_nodes": {
+            "type": "object", 
+            "properties": {
+                "filename": {"type": "string"},
+                "x_column": {
+                    "type": "string", 
+                    "description": "column for x or longitude values",
+                    "default": "X"
+                },
+                "y_column": {
+                    "type": "string", 
+                    "description": "column for y or latitude values",
+                    "default": "Y"
+                }
+
+            },
+            "required": ["filename"]
+        },
+        "network_algorithm": {
+            "type": "string",
+            "description": "algorithm for network creation",
+            "enum": [
+                "mod_boruvka",
+                "mod_kruskal"
+            ],
+            "default": "mod_boruvka"
+        },
+        "network_parameters": {
+            "type": "object", 
+            "properties": {
+                "minimum_node_count": {
+                    "type": "number", 
+                    "description": "Minimum number of nodes in a subnetwork",
+                    "minimum": 0,
+                    "default": 0
+                }
+            }
+        },
+        "output_directory": {
+            "type": "string",
+            "description": "directory to write output network shapefile to"
+        }
+ 
+    },
+    "required": ["demand_nodes", "network_algorithm", "output_directory"]
+}
