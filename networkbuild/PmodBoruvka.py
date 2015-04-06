@@ -10,7 +10,7 @@ from rtree import Rtree
 from networkbuild.KDTree import KDTree
 from networkbuild.utils import UnionFind, PriorityQueue
 
-from networkbuild.geo_math import spherical_distance_scalar, \
+from networkbuild.geo_math import spherical_distance, \
                                   make_bounding_box, \
                                   line_subgraph_intersection, \
                                   ang_to_vec_coords
@@ -36,7 +36,7 @@ def PmodBoruvka(G, subgraphs=None, rtree=None):
     def find_nn(node_tuple):
         u, up = node_tuple
         v, _ = kdtree.query_subset(up, list(V - {u}))
-        return u, v, spherical_distance_scalar([coords[u], coords[v]])
+        return u, v, spherical_distance([coords[u], coords[v]])
 
     # find the nearest neigbor of all nodes
     p = mp.Pool(processes=6)
@@ -74,16 +74,16 @@ def PmodBoruvka(G, subgraphs=None, rtree=None):
             while v in component_set:
                 subgraphs.queues[component].pop()
                 vprime, _ = kdtree.query_subset(projcoords[u], disjointVC)
-                dm = spherical_distance_scalar([coords[u], coords[vprime]])
+                dm = spherical_distance([coords[u], coords[vprime]])
                 subgraphs.queues[component].push((u, vprime), dm)
                 (u, v) = subgraphs.queues[component].top()
             else:
-                dm = spherical_distance_scalar([coords[u], coords[v]])
+                dm = spherical_distance([coords[u], coords[v]])
 
             return (u, v, dm), dm
 
         p = mp.Pool(processes=6)
-        foreign_neighbors = map(update_queues, subgraphs.connected_components())
+        foreign_neighbors = map(update_queues, subgraphs.connected_components(component_subset=V))
         p.close()
 
         for neighbor in foreign_neighbors:

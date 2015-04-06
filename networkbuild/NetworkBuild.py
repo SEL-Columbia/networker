@@ -12,7 +12,7 @@ import pandas as pd
 from rtree import Rtree
 from networkbuild.utils import UnionFind
 
-from networkbuild.geo_math import spherical_distance_scalar, \
+from networkbuild.geo_math import spherical_distance, \
                                   coordinate_transform_proj4, \
                                   make_bounding_box, \
                                   project_point_on_segment, \
@@ -61,7 +61,7 @@ class NetworkBuild(object):
         # Set edge weights
         get_coord = lambda x: grid.node[x]['coords']
         nx.set_edge_attributes(grid, 'weight', {(u, v): \
-                       spherical_distance_scalar(map(get_coord, [u,v]))  \
+                       spherical_distance(map(get_coord, [u,v]))  \
                        for u,v in grid.edges()}) 
 
         return grid.to_undirected()

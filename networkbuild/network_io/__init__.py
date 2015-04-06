@@ -34,11 +34,7 @@ def load_shp(shp_path):
     spatial_ref = layer.GetSpatialRef()
     proj4 = None
     if not spatial_ref:
-        bounds = gm.make_bounding_box_array(coords)
-        xbounds = np.array([bounds[0], bounds[2]])
-        ybounds = np.array([bounds[1], bounds[3]])
-        if np.all(xbounds) < 180.0 and np.all(xbounds > -180.0) and \
-           np.all(ybounds) < 90.0 and np.all(ybounds > -90):
+        if gm.is_in_lon_lat(coords):
            proj4 = gm.PROJ4_LATLONG
         else:
             warnings.warn("Spatial Reference could not be set for {}".\

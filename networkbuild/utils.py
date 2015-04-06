@@ -244,7 +244,7 @@ def csv_projection(path):
         path (str): path to the csv
 
     Returns:
-        Projection (dict) of the csv coordinates if included in header else None
+        Proj4 projection if included in header else None
     """
 
     with open(path) as raw_text:

@@ -4,7 +4,7 @@ from copy import deepcopy
 from nose.tools import eq_
 
 from networkbuild.utils import UnionFind
-from networkbuild.geo_math import spherical_distance_scalar
+from networkbuild.geo_math import spherical_distance
 
 def init_network(n):
 
@@ -34,11 +34,11 @@ def TestUnionBudget():
         if mv is None:
             mv = d1['budget'] 
         mv = (mv + d2['budget']) - \
-             spherical_distance_scalar([d1['coords'], d2['coords']])
+             spherical_distance([d1['coords'], d2['coords']])
 
         subgraphs.add_component(n1, budget=d1['budget'])
         subgraphs.add_component(n2, budget=d2['budget'])
-        d = spherical_distance_scalar([d1['coords'], d2['coords']])
+        d = spherical_distance([d1['coords'], d2['coords']])
         subgraphs.union(n1, n2, d)
 
     eq_(np.allclose(subgraphs.budget[subgraphs[1]], mv), True)

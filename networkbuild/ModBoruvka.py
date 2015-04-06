@@ -12,7 +12,7 @@ from networkbuild.KDTree import KDTree
 from networkbuild.utils import UnionFind, PriorityQueue
 
 from networkbuild.geo_math import ang_to_vec_coords, \
-                                  spherical_distance_scalar, \
+                                  spherical_distance, \
                                   make_bounding_box, \
                                   line_subgraph_intersection, \
                                   square_distance
@@ -86,7 +86,7 @@ def modBoruvka(T, subgraphs=None, rtree=None, spherical_coords=True):
     def component_dist(c1, c2):
         dist = 0
         if spherical_coords:
-            dist = spherical_distance_scalar([coords[c1], coords[c2]])
+            dist = spherical_distance([coords[c1], coords[c2]])
         else:
             dist = np.sqrt(square_distance(coords[c1], coords[c2]))
         return dist

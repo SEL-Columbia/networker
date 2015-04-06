@@ -98,7 +98,7 @@ def spherical_distance_haversine(coord_pairs, radius=MEAN_EARTH_RADIUS_M):
     return radius * central_angle
 
 
-def spherical_distance_scalar(coord_pair, radius=MEAN_EARTH_RADIUS_M):
+def spherical_distance(coord_pair, radius=MEAN_EARTH_RADIUS_M):
     """
     Wrapper for spherical_distance which takes a single set of pairs
 
@@ -142,6 +142,20 @@ def spherical_distance_dot(coord_pairs, radius=MEAN_EARTH_RADIUS_M):
     dot_prod = np.sum(np.product(coords_3, axis=1), axis=1)
     theta = 2 * np.arcsin(np.sqrt((dot_prod / -2.0) + 0.5))
     return radius * theta
+
+def euclidean_distance(coord_pair):
+    """
+    Euclidean distance 
+    
+    Args:
+        coord_pair:  lists representing points in space
+
+    Returns:
+        distance:  Euclidean distance between points
+    """
+
+    return np.sqrt(np.sum((np.asarray(coord_pair[0]) - np.asarray(coord_pair[1]))**2))
+
 
 def square_distance(a,b):
     """
@@ -455,6 +469,17 @@ def project_point_on_arc(p, v1, v2, radius=MEAN_EARTH_RADIUS_M):
 
     return p_i
 
+def is_in_lon_lat(coords):
+    """
+    guess whether coordinates are in lon_lat srs based on their bounds
+    """
+
+    bounds = make_bounding_box_array(coords)
+    xbounds = np.array([bounds[0], bounds[2]])
+    ybounds = np.array([bounds[1], bounds[3]])
+    return np.all(xbounds) < 180.0 and np.all(xbounds > -180.0) and \
+        np.all(ybounds) < 90.0 and np.all(ybounds > -90)
+
 
 def all_dists(coords, spherical=True):
     """
@@ -549,5 +574,4 @@ def coordinate_transform_proj4(proj1, proj2, coords):
     srs2.ImportFromProj4(proj2)
 
     return coordinate_transform(srs1, srs2, coords)
-
 

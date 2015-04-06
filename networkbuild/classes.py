@@ -69,7 +69,7 @@ class GeoGraph(GeoObject, nx.Graph):
         self.add_nodes_from(new_nodes)
 
 
-    def nodes_coordinates_aligned(self):
+    def is_aligned(self):
         """
         Test whether this GeoGraph node dict and coords dict are aligned
 
@@ -116,12 +116,14 @@ class GeoGraph(GeoObject, nx.Graph):
         
         # create new GeoGraph with others coords
         geo = GeoGraph(other.srs, other.coords)
+
         # add nodes and edges
         # assumes nodes are numeric
+        # assign new node ids by sequence starting at max node val of other 
         max_node = max(other.nodes())
-        for node in other.nodes():
+        for i, node in enumerate(other.nodes(), 1):
             edge, coords = projections[node]
-            new_node = max_node + node
+            new_node = max_node + i 
             # add 'real' node to 'fake' node edge
             geo.add_edge(node, new_node)
             # split edge with new node
@@ -214,6 +216,7 @@ class GeoGraph(GeoObject, nx.Graph):
 
         # Init rtree and store grid edges
         rtree = Rtree(edge_generator())
+        return rtree
 
 
 
