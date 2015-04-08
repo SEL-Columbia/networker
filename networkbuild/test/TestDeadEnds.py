@@ -28,7 +28,7 @@ def graph_with_dead_node():
     return graph
   
 
-def TestDeadBypass():
+def test_dead_bypass():
 
     # run modBoruvka on graph with dead node and make sure 
     # all connected components are NOT within their respective mvMax

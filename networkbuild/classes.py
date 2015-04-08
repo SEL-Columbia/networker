@@ -169,6 +169,16 @@ class GeoGraph(GeoObject, nx.Graph):
 
             return near_edge, near_coords
      
+    def get_coord_edge_set(self):
+        """
+        get edges as a set of frozensets of coordinate pairs
+        """
+
+        tup_map = {i: tuple(coords) for i, coords in self.coords.items()}
+        edge_sets = map(lambda e: frozenset([tup_map[e[0]], tup_map[e[1]]]),\
+            self.edges())
+        return set(edge_sets)
+
 
     def _sq_dist_to_edge(self, edge, coord):
         """

@@ -21,12 +21,20 @@ def test_networker_run():
     nwk = networker.Networker(cfg)
     nwk.run()
 
-    # compare this run against existing
+    # compare this run against existing results
     test_geo = network_io.load_shp(os.path.join(cfg['output_directory'], \
         "edges.shp"))
     known_geo = network_io.load_shp("data/max_100/networks-proposed.shp")
+    # compare sets of edges
+
+    test_edges = test_geo.get_coord_edge_set()
+    known_edges = known_geo.get_coord_edge_set()
+
+    assert test_edges == known_edges, \
+        "edges in test do not match known results"
+
     assert nx.is_isomorphic(test_geo, known_geo), \
-        "test results do not match known"
+        "test result graph is not isomorphic to known result graph"
 
     
 def random_settlements(n):
@@ -109,16 +117,13 @@ def nodes_plus_existing_grid():
     """
 
     # setup grid
-    grid_coords = np.array([[-5, 0], [5, 0]])
-    grid = nx.Graph()
-    grid.add_nodes_from(range(2))
-    nx.set_node_attributes(grid, 'coords', dict(enumerate(grid_coords)))
+    grid_coords = np.array([[-5.0, 0.0], [5.0, 0.0]])
+    grid = cls.GeoGraph(gm.PROJ4_FLAT_EARTH, {'grid-' + str(n): c for n, c in enumerate(grid_coords)})
     nx.set_node_attributes(grid, 'budget', {n:0 for n in grid.nodes()})
-    grid.add_edges_from([(0, 1)])
-    grid = nx.relabel_nodes(grid, {n: 'grid-' + str(n) for n in grid.nodes()})
+    grid.add_edges_from([('grid-0', 'grid-1')])
 
     # setup input nodes
-    node_coords = np.array([[0, 2], [-1, 4], [4, 1]])
+    node_coords = np.array([[0.0, 2.0], [-1.0, 4.0], [4.0, 1.0]])
     nodes = cls.GeoGraph(gm.PROJ4_FLAT_EARTH, dict(enumerate(node_coords)))
     budget_values = [2, 3, 5]
     nx.set_node_attributes(nodes, 'budget', dict(enumerate(budget_values)))
@@ -139,8 +144,9 @@ def test_msf_behavior():
 
     for n, _ in enumerate(nodes.node):
         sub = nodes.subgraph(range(n+1))
+        sub.coords = {i: nodes.coords[i] for i in range(n+1)}
         G, DS, R = networker.merge_network_and_nodes(grid, sub)
-        msf = mod_boruvka(G, DS, R, spherical_coords=False)
+        msf = mod_boruvka(G, DS, R)
         msf_sets = set([frozenset(e) for e in msf.edges()])
         iter_edge_set = set([frozenset(e) for e in edges_at_iteration[n]])
         eq_(msf_sets, iter_edge_set)

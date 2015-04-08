@@ -28,7 +28,7 @@ def load_shp(shp_path):
     # NOTE:  if shp_path is unicode io doesn't work for some reason
     shp_path = shp_path.encode('ascii', 'ignore')
     g = nx.read_shp(shp_path)
-    coords = np.array(g.nodes())
+    coords = dict(enumerate(g.nodes()))
 
     driver = ogr.GetDriverByName('ESRI Shapefile')
     shp = driver.Open(shp_path)

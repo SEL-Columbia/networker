@@ -30,7 +30,7 @@ def graph_high_mvmax_long_edge():
     return graph
   
 
-def TestMinEdges():
+def test_min_edges():
 
     # run modBoruvka on graph with high mv max and long edge and make sure 
     # that the result is an MST
