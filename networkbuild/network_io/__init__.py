@@ -25,11 +25,14 @@ def load_shp(shp_path):
 
     """
 
+    # NOTE:  if shp_path is unicode io doesn't work for some reason
+    shp_path = shp_path.encode('ascii', 'ignore')
+    g = nx.read_shp(shp_path)
+    coords = np.array(g.nodes())
+
     driver = ogr.GetDriverByName('ESRI Shapefile')
     shp = driver.Open(shp_path)
     layer = shp.GetLayer()
-    g = nx.read_shp(shp_path)
-    coords = np.array(g.nodes())
 
     spatial_ref = layer.GetSpatialRef()
     proj4 = None
@@ -57,11 +60,10 @@ def write_shp(geograph, shp_dir):
 
     """
 
-    assert geograph.is_valid() 
+    assert geograph.is_aligned() 
 
     # looks like networkx wants us to relabel nodes by their coords
-    coord_tups = map(tuple, geograph.coords)
-    tup_map = {i: tup for i, tup in enumerate(coord_tups)}
+    tup_map = {i: tuple(coords) for i, coords in geograph.coords.items()}
     
     # copy geograph to plain networkx graph 
     # (relabeling a GeoGraph doesn't seem to work)

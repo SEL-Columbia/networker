@@ -54,7 +54,7 @@ class GeoGraph(GeoObject, nx.Graph):
     
     """
 
-    def __init__(self, srs, coords, data=None, **attr):
+    def __init__(self, srs=gm.PROJ4_FLAT_EARTH, coords={}, data=None, **attr):
         """ initialize via both parent classes """
         
         GeoObject.__init__(self, srs, coords)

@@ -1,65 +1,34 @@
 # -*- coding: utf-8 -*-
-# <nbformat>3.0</nbformat>
 
-# <codecell>
-
-#%pylab inline
+import os, itertools, json
 import numpy as np
 import networkx as nx
-from networkbuild import NetworkBuild
+import networkbuild.classes as cls
+from networkbuild import networker 
+from networkbuild import network_io
+from networkbuild import geo_math as gm 
+from networkbuild.algorithms import mod_boruvka
 
-from networkbuild import modBoruvka
 from nose.tools import eq_
 
-from networkbuild import geo_math as gm 
-import itertools
+NETWORKER_TEST_CONFIG = "networker_config_max100.json"
 
+def test_networker_run():
+    # get config and run
+    cfg_path = os.path.join(os.path.dirname(\
+        os.path.abspath(__file__)), NETWORKER_TEST_CONFIG)
+    cfg = json.load(open(cfg_path))
+    nwk = networker.Networker(cfg)
+    nwk.run()
 
-# <codecell>
+    # compare this run against existing
+    test_geo = network_io.load_shp(os.path.join(cfg['output_directory'], \
+        "edges.shp"))
+    known_geo = network_io.load_shp("data/max_100/networks-proposed.shp")
+    assert nx.is_isomorphic(test_geo, known_geo), \
+        "test results do not match known"
 
-def TestGrid():
-    g_coords = np.array([[-7., 5],
-                     [-5. , 0.],
-                     [ 5. , 0.],
-                     [7. , 5]])
-
-    nodes = dict(enumerate(g_coords))
-    grid = nx.Graph()
-    grid.add_nodes_from(nodes)
-    grid.add_edges_from(zip(grid.nodes()[:-1], grid.nodes()[1:]))
     
-    nx.set_node_attributes(grid, 'coords', nodes)
-    #prepend grid to labels
-    grid = nx.relabel_nodes(grid, {n: 'grid-' + str(n) for n in grid.nodes()})
-    # Set budget to 0
-    nx.set_node_attributes(grid, 'budget', {n:0 for n in grid.nodes()})
-
-    return grid.to_undirected()
-
-def TestNet():
-    coords = np.array([[0,  1], 
-                       [0, 2.5],
-                       [.5, 2.5],
-                       [-.5, 2.5],
-                       [0, -1]
-                       ])
-    
-    budget = np.array([111196, # 0 grid connection
-                   158000, 
-                   60000,  # edges 1, 2, 3 create enough to connect to 0
-                   60000,
-                   300000  # 4 connects to grid providing subgraph[0] budget to connect 0 -> 1
-                   ])
-    
-    net = nx.Graph()
-    nodes = dict(enumerate(coords))
-    net.add_nodes_from(nodes)
-    nx.set_node_attributes(net, 'coords', nodes)
-    nx.set_node_attributes(net, 'budget', dict(enumerate(budget)))
-    
-    return net.to_undirected()
-
-
 def random_settlements(n):
 
     coords = np.random.uniform(size=(n, 2))
@@ -85,19 +54,17 @@ def random_settlements(n):
     budget_vals = np.repeat(np.median(min_dists), len(coords))
 
     # build graph
-    graph = nx.Graph()
-    graph.add_nodes_from(range(len(coords)))
-    nx.set_node_attributes(graph, 'coords', dict(enumerate(coords)))
+    graph = cls.GeoGraph(gm.PROJ4_FLAT_EARTH, dict(enumerate(coords)))
     nx.set_node_attributes(graph, 'budget', dict(enumerate(budget_vals)))
 
     return graph, full_dist_matrix
 
 
-def TestComponentsMST():
+def test_msf_components():
 
     grid, dist_matrix = random_settlements(500)
 
-    msf = modBoruvka(grid)
+    msf = mod_boruvka(grid)
 
     msf_subgraph = lambda components: nx.subgraph(msf, components) 
     component_graphs = map(msf_subgraph, nx.connected_components(msf))
@@ -152,10 +119,8 @@ def nodes_plus_existing_grid():
 
     # setup input nodes
     node_coords = np.array([[0, 2], [-1, 4], [4, 1]])
-    nodes = nx.Graph()
-    nodes.add_nodes_from(range(len(node_coords)))
+    nodes = cls.GeoGraph(gm.PROJ4_FLAT_EARTH, dict(enumerate(node_coords)))
     budget_values = [2, 3, 5]
-    nx.set_node_attributes(nodes, 'coords', dict(enumerate(node_coords)))
     nx.set_node_attributes(nodes, 'budget', dict(enumerate(budget_values)))
 
     # setup resulting edges when creating msf through the sequence of nodes
@@ -169,47 +134,16 @@ def nodes_plus_existing_grid():
     return grid, nodes, edges_at_iteration 
 
 
-def TestMSTBehavior():
+def test_msf_behavior():
     grid, nodes, edges_at_iteration = nodes_plus_existing_grid()
 
     for n, _ in enumerate(nodes.node):
         sub = nodes.subgraph(range(n+1))
-        G, DS, R = NetworkBuild.grid_settlement_merge(grid, sub)
-        msf = modBoruvka(G, DS, R, spherical_coords=False)
+        G, DS, R = networker.merge_network_and_nodes(grid, sub)
+        msf = mod_boruvka(G, DS, R, spherical_coords=False)
         msf_sets = set([frozenset(e) for e in msf.edges()])
         iter_edge_set = set([frozenset(e) for e in edges_at_iteration[n]])
         eq_(msf_sets, iter_edge_set)
  
 
-"""
-def TestMSTBehavior():
-    grid, net = TestGrid(), TestNet()
-
-    #Note: Fake nodes integer label begins at the total number of nodes in net + 1
-    #Hence why the fake node in the test is incremented by one on each iteration
-
-    edges_at_iteration = [[(0, 1)], # 0 connects to fake_node
-                          [(0, 2)], # 0, 1 cant connect 
-                          [(0, 3), (1, 2)], # 1 connects to 2
-                          [(4, 0), (1, 2), (1,3)], # 1 connects to 3
-                          [(4, 5), (5, 0), (0, 1), 
-                           (1, 2), (1, 3)]] #4 connects to grid providing budget for (1, 2)
-
-    for n, _ in enumerate(net.node):
-        sub = net.subgraph(range(n+1))
-        G, DS, R = NetworkBuild.grid_settlement_merge(grid, sub)
-        mst = modBoruvka(G, DS, R)
-        assert set(mst.edges()) == set(edges_at_iteration[n])
-"""
-
-"""
-When further developing this test, it is helpful to graphically inspect the connections
-
-uncomment the below codeblock to plot the Network and Grid in ipython notebook with
-%pylab inline 
-magic enabled
-"""
-#     figsize(22, 6)
-#     c = ['b' if x['budget'] == np.inf else 'r' for _, x in G.nodes(data=True)]
-#     nx.draw_networkx(mst, nx.get_node_attributes(mst, 'coords'), node_color=c)
-#     nx.draw_networkx(grid, nx.get_node_attributes(grid, 'coords'), node_color='m', edge_color='r')
+    

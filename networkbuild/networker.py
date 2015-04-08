@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import networkx as nx
+import numpy as np
 import pandas as pd
 
 from networkbuild.utils import UnionFind, csv_projection
@@ -48,32 +49,40 @@ class Networker(object):
 
         geo_graph = subgraphs = rtree = None
 
-        demand_nodes = load_node_metrics(**config['demand_node_metrics'])
-        if config.has_key('existing_networks'): 
-            existing = load_existing_networks(**config['existing_networks'])
+        demand_nodes = Networker.load_node_metrics(**self.config['demand_nodes'])
+        if self.config.has_key('existing_networks'): 
+            existing = Networker.load_existing_networks(**self.config['existing_networks'])
             # rename existing nodes so that they don't intersect with metrics 
             existing = nx.relabel_nodes(existing, \
                 {n: 'grid-' + str(n) for n in existing.nodes()})
-            geo_graph, subgraphs, rtree = merge_network_and_nodes(existing, demand_nodes)
+            geo_graph, subgraphs, rtree = Networker.\
+                merge_network_and_nodes(existing, demand_nodes)
         else:
             geo_graph = demand_nodes
 
         # now run the selected algorithm
-        network_algo = ALGOS[config['network_algorithm']]
-        result_geo_graph = network_algo(geo_graph, subgraphs=subgraphs, rtree=tree)
+        network_algo = Networker.ALGOS[self.config['network_algorithm']]
+        result_geo_graph = network_algo(geo_graph, subgraphs=subgraphs, rtree=rtree)
 
-        # filter out any unused fake nodes
+        # TODO: Remove unreferenced fake nodes? 
 
         # now filter out subnetworks via minimum node count
-        min_node_count = config['network_parameters']['minimum_node_count']
+        min_node_count = self.config['network_parameters']['minimum_node_count']
+        # TODO:  update union_all to support GeoGraph?
         filtered_graph = nx.union_all(filter(lambda sub: len(sub.node) >= min_node_count,
             nx.connected_component_subgraphs(result_geo_graph)))
         # map coords back to geograph
+
+        # NOTE:  explicit relabel to int as somewhere in filtering above, some node ids are 
+        # set to numpy types which screws up comparisons to tuples in write op
+        # TODO:  Google problem and report to networkx folks if needed
+        nx.relabel_nodes(filtered_graph, {i: int(i) for i in filtered_graph}, copy=False)
         coords = {i: result_geo_graph.coords[i] for i in filtered_graph}
         geo = GeoGraph(result_geo_graph.srs, coords=coords, data=filtered_graph)
 
+        import pdb; pdb.set_trace()
         # now save it
-        nio.write_shp(geo, config['output_directory'])
+        nio.write_shp(geo, self.config['output_directory'])
             
     @staticmethod
     def merge_network_and_nodes(network, demand_nodes):
@@ -177,7 +186,7 @@ class Networker(object):
 
     @staticmethod
     def load_node_metrics(filename="metrics.csv", x_column="X", y_column="Y", \
-        budget_column="metric"):
+        budget_column="metric", budget_value=1000):
         """
         load node_metrics csv into GeoGraph (nodes only)
 
@@ -185,35 +194,37 @@ class Networker(object):
             filename:  nodal metrics csv file
             x_column, y_column:  col names to take x, y from
             budget_column:  col to take budget from
+            budget_value: default value for nodal budget
         
         Returns:
             GeoGraph of nodes only with budget attribute
         """
     
-        input_proj = csv_projection(metric_config['file'])
+        input_proj = csv_projection(filename)
         header_row = 1 if input_proj else 0
 
         # read in the csv
-        metrics = pd.read_csv(path, header=header_row)
+        metrics = pd.read_csv(filename, header=header_row)
 
         coord_cols = [x_column, y_column]
         assert all([hasattr(metrics, col) for col in coord_cols]), \
             "metrics file does not contain coordinate columns {}, {}".\
             format(x_column, y_column)
 
-        assert hasattr(metrics, budget_column), \
-            "metrics file does not contain budget columns {}".\
-            format(budget_column)
+        # default budget
+        budget = len(metrics) * [budget_value]
+        # try to get nodal budgets
+        if hasattr(metrics, budget_column):
+            budget = metrics[budget_column].fillna(budget_value)
 
         # Stack the coords and get the budget
         coords = np.column_stack(map(metrics.get, coord_cols))
-        budget = metrics[budget_column]
 
         to_dict = lambda column: {i: value for i, value in enumerate(column)}
-        coords_dict = to_dict(coords)
-        budget_dict = to_dict(budget)
+        coords_dict = dict(enumerate(coords))
+        budget_dict = dict(enumerate(budget))
 
-        geo_nodes = GeoGraph(input_proj, coords_dict)
+        geo_nodes = GeoGraph(input_proj if input_proj else gm.PROJ4_FLAT_EARTH, coords_dict)
         
         nx.set_node_attributes(geo_nodes, 'budget', budget_dict)
         return geo_nodes

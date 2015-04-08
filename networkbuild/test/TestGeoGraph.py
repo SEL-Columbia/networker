@@ -11,16 +11,13 @@ def network_nodes_projections():
     the expected result of project_onto for testing
     """
 
-    def to_dict(a):
-        return {i: val for i, val in enumerate(a)}
-
     net_coords = [[0.0, 0.0], [3.0, 0.0], [3.0, 3.0]] 
     net_edges = [(0, 1), (1, 2)]
     node_coords = {3: [-2.0, 0.0], 4: [1.0, 1.0], 5: [4.0, -1.0], 6: [4.0, 1.0]}
 
     projected_coords = {3: [0.0, 0.0], 4: [1.0, 0.0], 5: [3.0, 0.0], 6: [3.0, 1.0]}
     
-    g_net = GeoGraph(gm.PROJ4_FLAT_EARTH, to_dict(net_coords), data=net_edges)
+    g_net = GeoGraph(gm.PROJ4_FLAT_EARTH, dict(enumerate(net_coords)), data=net_edges)
     g_nodes = GeoGraph(gm.PROJ4_FLAT_EARTH, node_coords)
 
     return g_net, g_nodes, projected_coords

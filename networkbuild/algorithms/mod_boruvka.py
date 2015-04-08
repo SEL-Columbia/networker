@@ -46,7 +46,7 @@ def mod_boruvka(G, subgraphs=None, rtree=None):
         return G
 
     V = set(G.nodes())
-    coords = np.row_stack(G.coords().values())
+    coords = np.row_stack(G.coords.values())
     projcoords = ang_to_vec_coords(coords) if G.is_geographic() else coords
     kdtree = KDTree(projcoords)
 
@@ -109,7 +109,7 @@ def mod_boruvka(G, subgraphs=None, rtree=None):
         if G.is_geographic():
             dist = spherical_distance([coords[c1], coords[c2]])
         else:
-            dist = euclidean_distance(coords[c1], coords[c2])
+            dist = euclidean_distance([coords[c1], coords[c2]])
         return dist
  
     # </helper_functions>
