@@ -151,5 +151,3 @@ def test_msf_behavior():
         iter_edge_set = set([frozenset(e) for e in edges_at_iteration[n]])
         eq_(msf_sets, iter_edge_set)
  
-
-    

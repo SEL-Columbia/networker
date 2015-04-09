@@ -464,7 +464,7 @@ def project_point_on_arc(p, v1, v2, radius=MEAN_EARTH_RADIUS_M):
     v_arr = np.array([v1, v2])
     distance_p_v = np.sum((v_arr - p_i) ** 2, axis=1)
     
-    if any(distance_p_v < arc_length):
+    if any(distance_p_v > arc_length):
         return v_arr[np.argmin(distance_p_v)]
 
     return p_i

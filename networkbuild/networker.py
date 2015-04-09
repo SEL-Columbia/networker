@@ -249,4 +249,3 @@ def load_node_metrics(filename="metrics.csv", x_column="X", y_column="Y", \
     nx.set_node_attributes(geo_nodes, 'budget', budget_dict)
     return geo_nodes
    
-
