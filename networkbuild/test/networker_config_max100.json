@@ -1,0 +1,13 @@
+{
+    "demand_nodes": {
+        "filename": "data/max_100.csv",
+        "x_column": "X", 
+        "y_column": "Y",
+        "budget_column": "mvmax"
+    },
+    "network_algorithm": "mod_boruvka",
+    "network_parameters": {
+        "minimum_node_count": 2
+    },
+    "output_directory": "data/tmp" 
+}

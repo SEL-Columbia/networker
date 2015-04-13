@@ -196,18 +196,19 @@ def make_bounding_box_vectors(coord_pairs):
 
     return coord_pairs[i0, i1, i2]
 
-def make_bounding_box_array(coord_array):
+def make_bounding_box_array(coords):
     """
     Return a bbox for entire coord_array
     
     Args:
-        coord_array:  nx2 array of coordinates
+        coords:  castable to nx2 array of coordinates
 
     Returns:
         array: 4 element tuple (min_x, min_y, max_x, max_y)
 
     """
 
+    coord_array = np.array(coords)
     x_sort = np.argsort(coord_array[:, 0])
     y_sort = np.argsort(coord_array[:, 1])
     return coord_array[x_sort[0]][0], coord_array[y_sort[0]][1],\

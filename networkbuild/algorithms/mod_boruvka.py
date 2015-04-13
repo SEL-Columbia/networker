@@ -227,6 +227,8 @@ def mod_boruvka(G, subgraphs=None, rtree=None):
 
 
     # create new GeoGraph with results 
-    result = GeoGraph(G.srs, G.coords)
+    result = G.copy()
+    result.coords = G.coords
+    result.remove_edges_from(result.edges())
     result.add_edges_from(Et)
     return result

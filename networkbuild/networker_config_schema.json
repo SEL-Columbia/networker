@@ -5,6 +5,7 @@
     "properties": {
         "existing_networks": {
             "type": "object", 
+            "description": "parameters related to existing network input",
             "properties": {
                 "filename": {"type": "string"},
                 "budget_value": {
@@ -17,6 +18,7 @@
         },
         "demand_nodes": {
             "type": "object", 
+            "description": "parameters related to demand node input",
             "properties": {
                 "filename": {"type": "string"},
                 "x_column": {

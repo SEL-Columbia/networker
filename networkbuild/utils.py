@@ -288,7 +288,7 @@ def draw_np_graph(g, node_color='r', edge_color='b', node_label_field='ix', edge
         nx.draw_networkx_edge_labels(g, pos=node_pos, edge_labels=edge_labels)
 
 
-# to js
+# GeoGraph to js
 def network_to_json(g):
 
     from mpl_toolkits.basemap import Basemap
@@ -306,7 +306,7 @@ def network_to_json(g):
 
     g2 = g.copy()
     for nd in g.nodes():
-        g2.node[nd]['coords'] = m(g.node[nd]['coords'][0], g.node[nd]['coords'][1])
+        g2.node[nd]['coords'] = m(g.coords[nd][0], g.coords[nd][1])
 
     js_g = json_graph.node_link_data(g2)
     return js_g

@@ -1,0 +1,65 @@
+{
+    "schema": "http://json-schema.org/draft-04/schema#",
+    "title": "NetworkPlanner Configuration",
+    "type": "object",
+    "properties": {
+        "existing_networks": {
+            "type": "object", 
+            "description": "parameters related to existing network input",
+            "properties": {
+                "filename": {"type": "string"},
+                "budget_value": {
+                    "type": "number", 
+                    "description": "initial budget value for network nodes",
+                    "default": 0
+                }
+            },
+            "required": ["filename"]
+        },
+        "demand_nodes_file": {
+            "type": "string", 
+            "description": "demand node input file as csv"
+        },
+        "network_algorithm": {
+            "type": "string",
+            "description": "algorithm for network creation",
+            "enum": [
+                "mod_boruvka",
+                "mod_kruskal"
+            ],
+            "default": "mod_boruvka"
+        },
+        "network_parameters": {
+            "type": "object", 
+            "properties": {
+                "minimum_node_count": {
+                    "type": "number", 
+                    "description": "minimum number of nodes in a subnetwork",
+                    "minimum": 0,
+                    "default": 0
+                }
+            }
+        },
+        "metric_model": {
+            "type": "string",
+            "description": "model for computing metrics and budget (legacy)",
+            "enum": [
+                "mvMax2",
+                "mvMax3",
+                "mvMax4",
+                "mvMax5"
+            ],
+            "default": "mvMax5"
+        },
+        "metric_model_parameters_file": {
+            "type": "string", 
+            "description": "json file of config params to be passed to networkplanner model (legacy)",
+        },
+        "output_directory": {
+            "type": "string",
+            "description": "directory to write networkplanner outputs to"
+        }
+ 
+    },
+    "required": ["demand_nodes", "metric_model", "network_algorithm", "output_directory"]
+}

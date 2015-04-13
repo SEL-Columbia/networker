@@ -19,7 +19,7 @@ class NP_Boruvka_Interface(object):
         if not os.path.exists(self.output):
             os.makedirs(self.output)
 
-        targetPath = os.path.join(self.output, "database.db")
+        targetPath = os.path.join(self.output, "dataset.db")
         self.dstore = dataset_store.create(targetPath, metrics)
 
         # setup models

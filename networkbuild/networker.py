@@ -24,7 +24,7 @@ class Networker(object):
             existing_networks:  
                 filename:  shapefile
                 budget_value:  { 0 }
-            demand_node_metrics:  
+            demand_nodes:  
                 filename:  
                 x_column: column for x or longitude values { 'X' }
                 y_column: column for y or latitude values { 'Y' } 
@@ -46,7 +46,23 @@ class Networker(object):
         run a minimum spanning forest algorithm on inputs and write output 
         based on configuration
         """
+        msf = self._build_network()
 
+        # now save it
+        if not os.path.exists(self.config['output_directory']):
+            os.makedirs(self.config['output_directory'])
+
+        nio.write_shp(msf, self.config['output_directory'])
+         
+    def _build_network(self):
+        """
+        project demand nodes onto optional existing supply network and 
+        network generation algorithm on it
+
+        Returns:
+            GeoGraph  minimum spanning forest proposed by the chosen 
+                network algorithm
+        """
         geo_graph = subgraphs = rtree = None
 
         demand_nodes = load_node_metrics(**self.config['demand_nodes'])
@@ -81,11 +97,10 @@ class Networker(object):
         nx.relabel_nodes(filtered_graph, {i: int(i) for i in filtered_graph}, copy=False)
         coords = {i: result_geo_graph.coords[i] for i in filtered_graph}
         geo = GeoGraph(result_geo_graph.srs, coords=coords, data=filtered_graph)
+        return geo
 
-        # now save it
-        nio.write_shp(geo, self.config['output_directory'])
-         
-    def _validate(self, config):
+
+    def validate(self):
         """
         validate configuration
         throws jsonschema Validate exception if invalid
