@@ -4,15 +4,16 @@ import networkx as nx
 import numpy as np
 import pandas as pd
 
-from networkbuild.utils import UnionFind, csv_projection
-from networkbuild.classes import GeoGraph
-import networkbuild.network_io as nio
-import networkbuild.geo_math as gm
-import networkbuild.algorithms as algo
+from networker.classes.unionfind import UnionFind
+from networker.utils import csv_projection
+from networker.classes.geograph import GeoGraph
+import networker.io as nio
+import networker.geo_math as gm
+import networker.algorithms as algo
 import os
 import json, jsonschema
 
-class Networker(object):
+class NetworkerRunner(object):
 
     """
     class for running minimum spanning forest algorithms on a set of
@@ -79,7 +80,7 @@ class Networker(object):
             geo_graph = demand_nodes
 
         # now run the selected algorithm
-        network_algo = Networker.ALGOS[self.config['network_algorithm']]
+        network_algo = NetworkerRunner.ALGOS[self.config['network_algorithm']]
         result_geo_graph = network_algo(geo_graph, subgraphs=subgraphs, rtree=rtree)
 
         # TODO: Remove unreferenced fake nodes? 
@@ -108,7 +109,7 @@ class Networker(object):
 
         # load schema and validate it via jsonschema
         schema_path = os.path.join(os.path.dirname(\
-            os.path.abspath(__file__)), Networker.SCHEMA_FILE)
+            os.path.abspath(__file__)), NetworkerRunner.SCHEMA_FILE)
         schema = json.load(open(schema_path))
         jsonschema.validate(self.config, schema)   
 

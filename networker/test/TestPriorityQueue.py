@@ -1,4 +1,4 @@
-from networkbuild.utils import PriorityQueue 
+from networker.classes.unionfind import PriorityQueue 
 from nose.tools import eq_
 
 def TestPushPop():

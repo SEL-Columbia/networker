@@ -6,11 +6,11 @@ import networkx as nx
 from copy import deepcopy
 from rtree import Rtree
 
-from networkbuild.KDTree import KDTree
-from networkbuild.utils import UnionFind, PriorityQueue
-from networkbuild.classes import GeoGraph
+from networker.classes.kdtree import KDTree
+from networker.classes.unionfind import UnionFind, PriorityQueue
+from networker.classes.geograph import GeoGraph
 
-from networkbuild.geo_math import ang_to_vec_coords, \
+from networker.geo_math import ang_to_vec_coords, \
                                   spherical_distance, \
                                   euclidean_distance, \
                                   make_bounding_box, \

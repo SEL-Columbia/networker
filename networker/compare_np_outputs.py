@@ -3,11 +3,11 @@ import networkx as nx
 import sys
 import pandas as pd
 from np.lib import dataset_store
-from networkbuild import NetworkPlannerInterface as npi
+from networker import networkplanner 
                     
 def get_nx_graph(filename):
     ds = dataset_store.load(filename)
-    nxg = npi.dataset_store_to_nx_graph(ds)
+    nxg = networkplanner.dataset_store_to_nx_graph(ds)
     return nxg
 
 def num_edges(g):

@@ -2,8 +2,9 @@ import networkx as nx
 
 import numpy as np
 
-from networkbuild import modBoruvka
-from networkbuild.utils import UnionFind
+from networker.algorithms.mod_boruvka import mod_boruvka
+from networker.classes.unionfind import UnionFind
+from networker.classes.geograph import GeoGraph
 from rtree import Rtree
 import itertools
 
@@ -18,13 +19,10 @@ def graph_high_mvmax_long_edge():
     #        3           7            3
     
     mv_max_values = [10, 10, 10, 10]
-    coords = np.array([[0, 0], [3, 0], [10, 0], [13, 0]])
-  
-    nodes = range(len(mv_max_values))
-    graph = nx.Graph()
-    graph.add_nodes_from(nodes)
+    coords = np.array([[0.0, 0.0], [3.0, 0.0], [10.0, 0.0], [13.0, 0.0]])
+    coords_dict = dict(enumerate(coords))
 
-    nx.set_node_attributes(graph, 'coords', dict(enumerate(coords)))
+    graph = GeoGraph(coords=coords_dict)
     nx.set_node_attributes(graph,   'budget',   dict(enumerate(mv_max_values)))
 
     return graph
@@ -32,7 +30,7 @@ def graph_high_mvmax_long_edge():
 
 def test_min_edges():
 
-    # run modBoruvka on graph with high mv max and long edge and make sure 
+    # run mod_boruvka on graph with high mv max and long edge and make sure 
     # that the result is an MST
     # of eachother (otherwise they should be connected)
     g = graph_high_mvmax_long_edge()
@@ -40,11 +38,11 @@ def test_min_edges():
     subgraphs = UnionFind()
     rtree = Rtree()
 
-    # build min span forest via modBoruvka
-    msf_g = modBoruvka(g, subgraphs=subgraphs, rtree=rtree, spherical_coords=False)
+    # build min span forest via mod_boruvka
+    msf_g = mod_boruvka(g, subgraphs=subgraphs, rtree=rtree)
 
     # use networkx to build mst and compare
-    coord_list = nx.get_node_attributes(msf_g, 'coords').values()
+    coord_list = msf_g.coords.values()
     c = np.array(coord_list)
     all_dists = np.sqrt(((c[np.newaxis, :, :] - c[:, np.newaxis, :]) ** 2).sum(2)) 
     

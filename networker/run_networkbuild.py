@@ -1,5 +1,5 @@
 import argparse
-from networkbuild.NetworkPlannerInterface import NP_Boruvka_Interface
+from networker.NetworkPlannerInterface import NP_Boruvka_Interface
 
 parser = argparse.ArgumentParser(description="Run NetworkBuilder")
 parser.add_argument("demand_file_name",

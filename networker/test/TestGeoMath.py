@@ -1,7 +1,7 @@
 from nose.tools import eq_
 
 import numpy as np
-from networkbuild.geo_math import project_point_on_segment, \
+from networker.geo_math import project_point_on_segment, \
                                   project_point_on_arc, \
                                   ang_to_vec_coords
 

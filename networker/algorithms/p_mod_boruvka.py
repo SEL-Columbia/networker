@@ -7,15 +7,15 @@ import multiprocessing as mp
 from copy import deepcopy
 from rtree import Rtree
 
-from networkbuild.KDTree import KDTree
-from networkbuild.utils import UnionFind, PriorityQueue
+from networker.classes.kdtree import KDTree
+from networker.classes.unionfind import UnionFind, PriorityQueue
 
-from networkbuild.geo_math import spherical_distance, \
+from networker.geo_math import spherical_distance, \
                                   make_bounding_box, \
                                   line_subgraph_intersection, \
                                   ang_to_vec_coords
 
-def PmodBoruvka(G, subgraphs=None, rtree=None):
+def p_mod_boruvka(G, subgraphs=None, rtree=None):
     
     V = set(T.nodes(data=False))
     coords = np.row_stack(nx.get_node_attributes(T, 'coords').values())

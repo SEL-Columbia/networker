@@ -3,8 +3,8 @@ import networkx as nx
 from copy import deepcopy
 from nose.tools import eq_
 
-from networkbuild.utils import UnionFind
-from networkbuild.geo_math import spherical_distance
+from networker.classes.unionfind import UnionFind
+from networker.geo_math import spherical_distance
 
 def init_network(n):
 

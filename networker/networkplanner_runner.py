@@ -7,12 +7,12 @@ import numpy as np
 
 from np.lib import dataset_store, metric, network, variable_store as VS
 
-import networkbuild.geo_math as gm
-from networkbuild.classes import GeoGraph
-from networkbuild import networker
-from networkbuild.utils import csv_projection
+import networker.geo_math as gm
+from networker.classes.geograph import GeoGraph
+from networker import networker_runner
+from networker.utils import csv_projection
 
-class NetworkPlanner(object):
+class NetworkPlannerRunner(object):
 
     """
     class for running combined metric computation and minimum spanning forest 
@@ -100,7 +100,11 @@ class NetworkPlanner(object):
         if not input_proj:
             input_proj = self._get_default_proj4(coords)
 
-        coords_dict = dict(enumerate(coords))
+        # NOTE:  Although dataset_store nodes id sequence starts at 1
+        # leave the GeoGraph ids 0 based because there are places in the 
+        # network algorithm that assume 0 based coords 
+        # This will be realigned later
+        coords_dict = {i: coord for i, coord in enumerate(coords)}
         budget_dict = {i: node.metric for i, node in \
             enumerate(self.store.cycleNodes())}
 
@@ -112,7 +116,6 @@ class NetworkPlanner(object):
         """
         project demand nodes onto optional existing supply network and 
         network generation algorithm on it
-
 
         Args:
             demand_nodes:  GeoGraph of demand nodes
@@ -126,7 +129,7 @@ class NetworkPlanner(object):
 
         existing = None
         if self.config.has_key('existing_networks'): 
-            existing = networker.load_existing_networks(\
+            existing = networker_runner.load_existing_networks(\
                 **self.config['existing_networks'])
             # rename existing nodes so that they don't intersect with metrics 
             nx.relabel_nodes(existing, \
@@ -134,12 +137,12 @@ class NetworkPlanner(object):
             existing.coords = {'grid-' + str(n): c for n, c in \
                 existing.coords.items()}
             geo_graph, subgraphs, rtree = \
-                networker.merge_network_and_nodes(existing, demand_nodes)
+                networker_runner.merge_network_and_nodes(existing, demand_nodes)
         else:
             geo_graph = demand_nodes
 
         # now run the selected algorithm
-        network_algo = networker.Networker.ALGOS[self.config['network_algorithm']]
+        network_algo = networker_runner.NetworkerRunner.ALGOS[self.config['network_algorithm']]
         result_geo_graph = network_algo(geo_graph, subgraphs=subgraphs, rtree=rtree)
 
         # now filter out subnetworks via minimum node count
@@ -153,11 +156,10 @@ class NetworkPlanner(object):
         # TODO:  Google problem and report to networkx folks if needed
         # NOTE:  relabeling nodes in-place here drops node attributes for some reason
         #        so create a copy for now
-        # Why do we need to increment by 1????
-        # FIXME:  THIS IS REALLY CONFUSING
+        # NOTE:  use i+1 as node id in graph because dataset_store node ids 
+        # start at 1 (this is the realignment noted in _get_demand_nodes)
+        coords = {i+1: result_geo_graph.coords[i] for i in filtered_graph}
         relabeled = nx.relabel_nodes(filtered_graph, {i: int(i+1) for i in filtered_graph}, copy=True)
-        # relabeled = nx.relabel_nodes(filtered_graph, {i: int(i) for i in filtered_graph}, copy=True)
-        coords = {i: result_geo_graph.coords[i-1] for i in relabeled}
         msf = GeoGraph(result_geo_graph.srs, coords=coords, data=relabeled)
 
         return existing, msf
@@ -238,7 +240,7 @@ class NetworkPlanner(object):
 
         # load schema and validate it via jsonschema
         schema_path = os.path.join(os.path.dirname(\
-            os.path.abspath(__file__)), NetworkPlanner.SCHEMA_FILE)
+            os.path.abspath(__file__)), NetworkPlannerRunner.SCHEMA_FILE)
         schema = json.load(open(schema_path))
         jsonschema.validate(self.config, schema)   
 

@@ -3,27 +3,27 @@
 import os, itertools, json
 import numpy as np
 import networkx as nx
-import networkbuild.classes as cls
-from networkbuild import networker 
-from networkbuild import network_io
-from networkbuild import geo_math as gm 
-from networkbuild.algorithms import mod_boruvka
+import networker.io as nio
+from networker import networker_runner
+from networker import geo_math as gm 
+from networker.algorithms import mod_boruvka
+from networker.classes.geograph import GeoGraph
 
 from nose.tools import eq_
 
 
-def networker_run(config_file, known_results_file):
+def networker_run_compare(config_file, known_results_file):
     # get config and run
     cfg_path = os.path.join(os.path.dirname(\
         os.path.abspath(__file__)), config_file)
     cfg = json.load(open(cfg_path))
-    nwk = networker.Networker(cfg)
+    nwk = networker_runner.NetworkerRunner(cfg)
     nwk.run()
 
     # compare this run against existing results
-    test_geo = network_io.load_shp(os.path.join(cfg['output_directory'], \
+    test_geo = nio.load_shp(os.path.join(cfg['output_directory'], \
         "edges.shp"))
-    known_geo = network_io.load_shp(known_results_file)
+    known_geo = nio.load_shp(known_results_file)
     # compare sets of edges
 
     test_edges = test_geo.get_coord_edge_set()
@@ -43,7 +43,7 @@ def test_networker_run():
     run_config = "networker_config_med100.json"
     results_file = "data/med_100/networks-proposed.shp"
 
-    networker_run(run_config, results_file)
+    networker_run_compare(run_config, results_file)
 
 def test_networker_leona_run():
     """ test on randomly generated set of nodes (demand only) """
@@ -53,7 +53,7 @@ def test_networker_leona_run():
     # results_file = "data/leona/expected/networks-proposed.shp"
     results_file = "data/leona/expected/edges.shp"
 
-    networker_run(run_config, results_file)
+    networker_run_compare(run_config, results_file)
    
 def random_settlements(n):
 
@@ -80,7 +80,7 @@ def random_settlements(n):
     budget_vals = np.repeat(np.median(min_dists), len(coords))
 
     # build graph
-    graph = cls.GeoGraph(gm.PROJ4_FLAT_EARTH, dict(enumerate(coords)))
+    graph = GeoGraph(gm.PROJ4_FLAT_EARTH, dict(enumerate(coords)))
     nx.set_node_attributes(graph, 'budget', dict(enumerate(budget_vals)))
 
     return graph, full_dist_matrix
@@ -136,13 +136,13 @@ def nodes_plus_existing_grid():
 
     # setup grid
     grid_coords = np.array([[-5.0, 0.0], [5.0, 0.0]])
-    grid = cls.GeoGraph(gm.PROJ4_FLAT_EARTH, {'grid-' + str(n): c for n, c in enumerate(grid_coords)})
+    grid = GeoGraph(gm.PROJ4_FLAT_EARTH, {'grid-' + str(n): c for n, c in enumerate(grid_coords)})
     nx.set_node_attributes(grid, 'budget', {n:0 for n in grid.nodes()})
     grid.add_edges_from([('grid-0', 'grid-1')])
 
     # setup input nodes
     node_coords = np.array([[0.0, 2.0], [-1.0, 4.0], [4.0, 1.0]])
-    nodes = cls.GeoGraph(gm.PROJ4_FLAT_EARTH, dict(enumerate(node_coords)))
+    nodes = GeoGraph(gm.PROJ4_FLAT_EARTH, dict(enumerate(node_coords)))
     budget_values = [2, 3, 5]
     nx.set_node_attributes(nodes, 'budget', dict(enumerate(budget_values)))
 
@@ -163,7 +163,7 @@ def test_msf_behavior():
     for n, _ in enumerate(nodes.node):
         sub = nodes.subgraph(range(n+1))
         sub.coords = {i: nodes.coords[i] for i in range(n+1)}
-        G, DS, R = networker.merge_network_and_nodes(grid, sub)
+        G, DS, R = networker_runner.merge_network_and_nodes(grid, sub)
         msf = mod_boruvka(G, DS, R)
         msf_sets = set([frozenset(e) for e in msf.edges()])
         iter_edge_set = set([frozenset(e) for e in edges_at_iteration[n]])

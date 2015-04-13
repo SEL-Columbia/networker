@@ -3,27 +3,26 @@
 import os, itertools, json
 import numpy as np
 import networkx as nx
-import networkbuild.classes as cls
-from networkbuild import networkplanner
-from networkbuild import network_io
-from networkbuild import geo_math as gm 
-from networkbuild.algorithms import mod_boruvka
+import networker.io as nio
+from networker import networkplanner_runner
+from networker import geo_math as gm 
+from networker.algorithms import mod_boruvka
 
 from nose.tools import eq_
 
 
-def networkplanner_run(config_file, known_results_file):
+def networkplanner_run_compare(config_file, known_results_file):
     # get config and run
     cfg_path = os.path.join(os.path.dirname(\
         os.path.abspath(__file__)), config_file)
     cfg = json.load(open(cfg_path))
-    nwk_p = networkplanner.NetworkPlanner(cfg)
+    nwk_p = networkplanner_runner.NetworkPlannerRunner(cfg)
     nwk_p.run()
 
     # compare this run against existing results
-    test_geo = network_io.load_shp(os.path.join(cfg['output_directory'], \
+    test_geo = nio.load_shp(os.path.join(cfg['output_directory'], \
         "networks-proposed.shp"))
-    known_geo = network_io.load_shp(known_results_file)
+    known_geo = nio.load_shp(known_results_file)
     # compare sets of edges
 
     test_edges = test_geo.get_coord_edge_set()
@@ -43,7 +42,7 @@ def test_networkplanner_run():
     run_config = "networkplanner_config_pop100.json"
     results_file = "data/pop_100/networks-proposed.shp"
 
-    networkplanner_run(run_config, results_file)
+    networkplanner_run_compare(run_config, results_file)
 
 def test_networkplanner_leona_run():
     """ test on randomly generated set of nodes (demand only) """
@@ -51,5 +50,5 @@ def test_networkplanner_leona_run():
     run_config = "networkplanner_config_leona_net.json"
     results_file = "data/leona/expected/networks-proposed.shp"
 
-    networkplanner_run(run_config, results_file)
+    networkplanner_run_compare(run_config, results_file)
  

@@ -3,7 +3,7 @@
 import osr
 import networkx as nx
 import copy
-import networkbuild.geo_math as gm
+import networker.geo_math as gm
 import numpy as np
 from rtree import Rtree
 

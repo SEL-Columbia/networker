@@ -4,8 +4,8 @@ import ogr, osr
 import numpy as np
 import networkx as nx
 import pandas as pd
-import networkbuild.geo_math as gm
-from networkbuild.classes import GeoGraph
+import networker.geo_math as gm
+from networker.classes.geograph import GeoGraph
 import warnings
 import os
 

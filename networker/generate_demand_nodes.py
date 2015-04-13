@@ -1,8 +1,8 @@
 import argparse
 import numpy as np
 import sys
-from networkbuild.KDTree import KDTree
-from networkbuild.geo_math import ang_to_vec_coords, 
+from networker.classes.kdtree import KDTree
+from networker.geo_math import ang_to_vec_coords, 
                                   spherical_distance
 
 selectors = {

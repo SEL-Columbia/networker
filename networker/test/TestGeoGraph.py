@@ -1,8 +1,8 @@
 import networkx as nx
 
-from networkbuild.classes import GeoGraph
-from networkbuild.utils import UnionFind
-import networkbuild.geo_math as gm
+from networker.classes.geograph import GeoGraph
+from networker.classes.unionfind import UnionFind
+import networker.geo_math as gm
                                   
 # fixtures
 def network_nodes_projections():

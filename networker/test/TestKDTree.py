@@ -2,8 +2,8 @@ import numpy as np
 import networkx as nx
 from nose.tools import eq_
 
-from networkbuild.geo_math import nn_dists, ang_to_vec_coords
-from networkbuild import KDTree
+from networker.geo_math import nn_dists, ang_to_vec_coords
+from networker.classes.kdtree import KDTree
 
 def simple_coord_set():
 
