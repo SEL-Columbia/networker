@@ -1,0 +1,15 @@
+{
+    "demand_nodes_file": "data/leona/demographicsLL.csv",
+    "existing_networks": {
+        "filename": "data/leona/LeonaNetworksLL.shp",
+        "budget_value": 0
+    },
+
+    "network_algorithm": "mod_boruvka",
+    "network_parameters": {
+        "minimum_node_count": 2
+    },
+    "metric_model": "mvMax5",
+    "metric_model_parameters_file": "networker/test/networkplanner_metric_params.json",
+    "output_directory": "data/tmp" 
+}

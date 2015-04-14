@@ -1,0 +1,18 @@
+{
+    "demand_nodes": {
+        "filename": "data/leona/demographicsLL_metric.csv",
+        "x_column": "Longitude", 
+        "y_column": "Latitude",
+        "budget_column": "metric"
+    },
+    "existing_networks": {
+        "filename": "data/leona/LeonaNetworksLL.shp",
+        "budget_value": 0
+    },
+
+    "network_algorithm": "mod_boruvka",
+    "network_parameters": {
+        "minimum_node_count": 2
+    },
+    "output_directory": "data/tmp" 
+}
