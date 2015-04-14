@@ -1,32 +1,34 @@
-from networker.classes.unionfind import PriorityQueue 
+from networker.classes.unionfind import PriorityQueue
 from nose.tools import eq_
+
 
 def test_push_pop():
     """
-    Tests that pushing a list of items 
-    into a queue and then popping them out 
+    Tests that pushing a list of items
+    into a queue and then popping them out
     results in the expected behavior.
     """
 
     q = PriorityQueue()
-    
-    # input list (obj, priority) should be reversed 
+
+    # input list (obj, priority) should be reversed
     # in the priority_queue
-    input_list = [((1), 9), ((2), 8), ((3), 7), 
-                  ((4), 6), ((5), 5), ((6), 4), 
+    input_list = [((1), 9), ((2), 8), ((3), 7),
+                  ((4), 6), ((5), 5), ((6), 4),
                   ((7), 3), ((8), 2), ((9), 1)]
 
     # insert the items in the queue
     for obj, p in input_list:
         q.push(obj, p)
 
-    # pop the items into another list    
+    # pop the items into another list
     output = []
     while q._queue:
         output.append(q.pop())
 
     # make sure it lines up with expected result
     eq_(output, range(1, 10)[::-1])
+
 
 def test_peek_top():
     """
@@ -36,13 +38,13 @@ def test_peek_top():
 
     q = PriorityQueue()
 
-    # input list (obj, priority) should be reversed 
+    # input list (obj, priority) should be reversed
     # in the priority_queue
-    input_list = [((1), 9), ((2), 8), ((3), 7), 
-                  ((4), 6), ((5), 5), ((6), 4), 
+    input_list = [((1), 9), ((2), 8), ((3), 7),
+                  ((4), 6), ((5), 5), ((6), 4),
                   ((7), 3), ((8), 2), ((9), 1)]
 
-    #insert the items in the queue
+    # insert the items in the queue
     for obj, p in input_list:
         q.push(obj, p)
 
@@ -54,19 +56,20 @@ def test_peek_top():
 
     eq_(state, q._queue)
 
+
 def test_merge():
     """
-    Tests that merging two priority queues 
+    Tests that merging two priority queues
     results in the expected behavior
     """
 
     q1 = PriorityQueue()
     q2 = PriorityQueue()
 
-    # input list (obj, priority) should be reversed 
+    # input list (obj, priority) should be reversed
     # in the priority_queue
-    input_list = [((1), 9), ((2), 8), ((3), 7), 
-                  ((4), 6), ((5), 5), ((6), 4), 
+    input_list = [((1), 9), ((2), 8), ((3), 7),
+                  ((4), 6), ((5), 5), ((6), 4),
                   ((7), 3), ((8), 2), ((9), 1)]
 
     # insert the items into the queues

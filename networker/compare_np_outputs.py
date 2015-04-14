@@ -3,25 +3,31 @@ import networkx as nx
 import sys
 import pandas as pd
 from np.lib import dataset_store
-from networker import networkplanner 
-                    
+from networker import networkplanner
+
+
 def get_nx_graph(filename):
     ds = dataset_store.load(filename)
     nxg = networkplanner.dataset_store_to_nx_graph(ds)
     return nxg
 
+
 def num_edges(g):
     return len(g.edges())
 
+
 def num_conn_comps(g):
     return len(list(nx.connected_components(g)))
+
 
 def sum_edge_weights(g):
     weights = [e[2]['weight'] for e in g.edges(data=True)]
     return sum(weights)
 
+
 def num_unconnected_nodes(g):
     return nx.degree_histogram(g)[0]
+
 
 def edge_diff(g_left, g_right):
     get_edge_set = lambda g: set([frozenset(e) for e in g.edges()])
@@ -31,7 +37,8 @@ def edge_diff(g_left, g_right):
     only_in_right = [set(e) for e in edges_right if e not in edges_left]
     return only_in_left, only_in_right
 
-parser = argparse.ArgumentParser(description=\
+
+parser = argparse.ArgumentParser(description=
         "Compare 2 networkplanner outputs based on their dataset stores")
 parser.add_argument("dataset_left", help="dataset in left most column")
 parser.add_argument("dataset_right", help="dataset in right most column")
@@ -64,4 +71,3 @@ df.loc['uniq_edges']['left'] = edges_left
 df.loc['uniq_edges']['right'] = edges_right
 
 df.to_csv(sys.stdout)
-

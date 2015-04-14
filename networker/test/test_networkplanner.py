@@ -1,27 +1,22 @@
 # -*- coding: utf-8 -*-
 
-import os, itertools, json
-import numpy as np
-import networkx as nx
+import os
+import json
 import networker.io as nio
 from networker import networkplanner_runner
-from networker import geo_math as gm 
-from networker.algorithms import mod_boruvka
-
-from nose.tools import eq_
 
 
 def networkplanner_run_compare(config_file, known_results_file):
     # get config and run
-    cfg_path = os.path.join(os.path.dirname(\
+    cfg_path = os.path.join(os.path.dirname(
         os.path.abspath(__file__)), config_file)
     cfg = json.load(open(cfg_path))
     nwk_p = networkplanner_runner.NetworkPlannerRunner(cfg)
     nwk_p.run()
 
     # compare this run against existing results
-    test_geo = nio.load_shp(os.path.join(cfg['output_directory'], \
-        "networks-proposed.shp"))
+    test_geo = nio.load_shp(os.path.join(cfg['output_directory'],
+                            "networks-proposed.shp"))
     known_geo = nio.load_shp(known_results_file)
     # compare sets of edges
 
@@ -36,6 +31,7 @@ def networkplanner_run_compare(config_file, known_results_file):
     # assert nx.is_isomorphic(test_geo, known_geo), \
     #    "test result graph is not isomorphic to known result graph"
 
+
 def test_networkplanner_run():
     """ test on randomly generated set of nodes (demand only) """
 
@@ -44,6 +40,7 @@ def test_networkplanner_run():
 
     networkplanner_run_compare(run_config, results_file)
 
+
 def test_networkplanner_leona_run():
     """ test on randomly generated set of nodes (demand only) """
 
@@ -51,4 +48,3 @@ def test_networkplanner_leona_run():
     results_file = "data/leona/expected/networks-proposed.shp"
 
     networkplanner_run_compare(run_config, results_file)
- 

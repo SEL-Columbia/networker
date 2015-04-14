@@ -1,12 +1,15 @@
 # -*- coding: utf-8 -*-
+
 __author__ = 'Brandon Ogle'
 
 import numpy as np
 from numba import jit
 
+
 @jit
 def distance(u, v):
     return np.sum((u - v)**2)
+
 
 class KDTree(object):
 
@@ -31,7 +34,7 @@ class KDTree(object):
             http://en.wikipedia.org/wiki/K-d_tree#mediaviewer/File:KDTree-animation.gif
         """
         # Build index at top level
-        if type(index) == type(None):
+        if isinstance(index, type(None)):
             index = np.arange(data.shape[0])
 
         self.n = None
@@ -60,7 +63,8 @@ class KDTree(object):
             # Find the index of the data sorted on the current axis
             # and the midpoint in which to partition
             idx_data = np.column_stack((data[index], index))
-            sort_ax = idx_data[np.argsort(idx_data[:, self.axis]), -1].astype(int)
+            sort_ax = idx_data[np.argsort(idx_data[:, self.axis]), -1].\
+                                astype(int)
             partition = sort_ax.size / 2
 
             # Node index and data
@@ -68,7 +72,7 @@ class KDTree(object):
             self.node = data[self.idx]
 
             # Build the branches, partitioning on the next axis
-            self.left = KDTree(data, sort_ax[ : partition], depth+1)
+            self.left = KDTree(data, sort_ax[:partition], depth+1)
             self.right = KDTree(data, sort_ax[partition+1:], depth+1)
 
     def near_branch(self, point):
@@ -124,7 +128,7 @@ class KDTree(object):
         """Recursively implements constrained nearest neighbor search"""
 
         # Dead end backtrack up the tree
-        if np.all(self.node == None):
+        if _is_node_none(self.node):
             return best
 
         # Initialize node vectors
@@ -136,9 +140,10 @@ class KDTree(object):
         # if point in subset, try to update best
         if np.dot(idx_vec, subset) != 0:
             # if closer than current best, or best is none update
-            # is_closer is a thunk to prevent '__getitem__' error 
-            is_closer = lambda: distance(self.node, point) < distance(best[1], point)
-            if np.all(best == None) or is_closer():
+            # is_closer is a thunk to prevent '__getitem__' error
+            is_closer = lambda: distance(self.node, point) < \
+                                distance(best[1], point)
+            if _is_node_none(best) or is_closer():
                 best = (self.idx, self.node)
 
         near = self.near_branch(point)
@@ -166,8 +171,12 @@ class KDTree(object):
         # validate best, by ensuring closer point doesn't exist just beyond
         # partition if best still has yet to be found also look
         # into this further branch
-        if (np.all(best != None) and self.orthogonal_dist(point) <
-                distance(best[1], point)) or np.all(best == None):
+        if (not _is_node_none(best) and
+            self.orthogonal_dist(point) < distance(best[1], point)) or \
+            _is_node_none(best):
             best = far._query_subset(point, subset, best)
 
         return best
+
+def _is_node_none(node):
+    return node == None or np.all(node == [None] * len(node))

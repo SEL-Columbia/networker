@@ -2,15 +2,16 @@ import argparse
 import numpy as np
 import sys
 from networker.classes.kdtree import KDTree
-from networker.geo_math import ang_to_vec_coords, 
-                                  spherical_distance
+from networker.geomath import ang_to_vec_coords,\
+                                spherical_distance
 
 selectors = {
-    "min": np.min, 
-    "median": np.median, 
-    "max": np.max 
+    "min": np.min,
+    "median": np.median,
+    "max": np.max
 }
-                    
+
+
 def generate_nodes(n, min_max, demand_selector="median"):
     assert n > 1, "Number of nodes must be > 1"
 
@@ -20,14 +21,15 @@ def generate_nodes(n, min_max, demand_selector="median"):
 
     kdt = KDTree(proj_coords)
 
-    # find all nearest neighbor distances (only use the index from the result tuple)
+    # find all nearest neighbor distances
+    # (only use the index from the result tuple)
     index_set = set(range(len(coords)))
-    nneigh_inds = [kdt.query_subset(proj_coords[i], \
-                                    list(index_set - set([i])))[0] \
+    nneigh_inds = [kdt.query_subset(proj_coords[i],
+                                    list(index_set - set([i])))[0]
                    for i in range(len(coords))]
     nneigh_coords = coords[nneigh_inds]
-    coord_pairs = np.concatenate((coords[:, np.newaxis], \
-                                  nneigh_coords[:, np.newaxis], axis=1)
+    coord_pairs = np.concatenate((coords[:, np.newaxis],
+                                  nneigh_coords[:, np.newaxis]), axis=1)
     nn_dists = spherical_distance(coord_pairs)
 
     # assign same demand value to all nodes based on nearest neighbor dists
@@ -50,4 +52,3 @@ args = parser.parse_args()
 
 coords_demand = generate_nodes(args.num_nodes, args.min_max, args.demand_selector)
 np.savetxt(sys.stdout, coords_demand, fmt='%.10f', delimiter=",")
-

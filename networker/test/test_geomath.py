@@ -1,7 +1,7 @@
-from nose.tools import eq_
+# -*- coding: utf-8 -*-
 
 import numpy as np
-from networker.geo_math import project_point_on_segment, \
+from networker.geomath import project_point_on_segment, \
                                   project_point_on_arc, \
                                   ang_to_vec_coords
 
@@ -13,7 +13,7 @@ def test_project_point_2D():
 
     # equivalence tolerance in distance squared
     SQ_TOLERANCE = 1e-10
-    
+
     p1 = np.array([1.0, 1.0])
     l1 = np.array([[0.0, 0.0], [2.0, 0.0]])
     e = np.array([1.0, 0.0])
@@ -22,13 +22,13 @@ def test_project_point_2D():
     assert np.sum((e - p) ** 2) < SQ_TOLERANCE, \
         "projected point does not match expected"
 
-    # now reverse the segment 
+    # now reverse the segment
     e = np.array([0.0, 0.0])
     p = project_point_on_segment(p1, l1[0], -l1[1])
     assert np.sum((e - p) ** 2) < SQ_TOLERANCE, \
         "projected point does not match expected"
 
-    # now with orthogonal segment 
+    # now with orthogonal segment
     e = np.array([0.0, 1.0])
     p = project_point_on_segment(p1, l1[0], l1[1][[1, 0]])
     assert np.sum((e - p) ** 2) < SQ_TOLERANCE, \
@@ -56,7 +56,7 @@ def test_project_point_3D():
     v1 = np.array([1.0, 0.0, 0.0])
     v2 = np.array([0.0, 1.0, 0.0])
 
-    # expect point to be 1/2 between x and y 
+    # expect point to be 1/2 between x and y
     e = np.array([np.sin(np.pi/4), np.sin(np.pi/4), 0.0])
 
     p = project_point_on_arc(p1, v1, v2, radius=1)
@@ -72,4 +72,3 @@ def test_project_point_3D():
     p = project_point_on_arc(p2, v1, v2, radius=1)
     assert np.sum((e - p) ** 2) < SQ_TOLERANCE, \
         "projected point not on arc does not match expected"
-

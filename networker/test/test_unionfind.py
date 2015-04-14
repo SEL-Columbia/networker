@@ -1,27 +1,27 @@
 import numpy as np
 import networkx as nx
-from copy import deepcopy
 from nose.tools import eq_
 
 from networker.classes.unionfind import UnionFind
-from networker.geo_math import spherical_distance
+from networker.geomath import spherical_distance
+
 
 def init_network(n):
 
     coords = np.random.uniform(-10, 50, [n, 2])
     mv = np.random.uniform(7000000, 8000000, coords.shape[0])
-    
+
     nodes = range(mv.size)
 
-    
     graph = nx.Graph()
     graph.add_nodes_from(nodes)
-    
-    #add attributes
+
+    # add attributes
     nx.set_node_attributes(graph, 'coords', dict(enumerate(coords)))
     nx.set_node_attributes(graph,   'budget',   dict(enumerate(mv)))
     return graph
-    
+
+
 def test_union_budget():
 
     net = init_network(5000)
@@ -32,9 +32,9 @@ def test_union_budget():
     mv = None
     for ((n1, d1), (n2, d2)) in pairs:
         if mv is None:
-            mv = d1['budget'] 
+            mv = d1['budget']
         mv = (mv + d2['budget']) - \
-             spherical_distance([d1['coords'], d2['coords']])
+            spherical_distance([d1['coords'], d2['coords']])
 
         subgraphs.add_component(n1, budget=d1['budget'])
         subgraphs.add_component(n2, budget=d2['budget'])
@@ -71,7 +71,8 @@ def test_component_functions():
         subgraphs.union(g1, g2, 1)
 
     # should be 3 components at this point (2 within demand set)
-    eq_(subgraphs.connected_components(component_subset=demand_components), set(range(5)))
+    eq_(subgraphs.connected_components(component_subset=demand_components),
+        set(range(5)))
     eq_(subgraphs.connected_components(), set(range(5) + ['grid-1']))
 
     # connect others (including a connection to the grid via fake node 4)
@@ -85,8 +86,6 @@ def test_component_functions():
 
     # test connected components
     eq_(subgraphs.connected_components(), set([4, 2, 'grid-1']))
-    # connected component with ('grid-1', 'grid-2') should be filtered out 
-    eq_(subgraphs.connected_components(component_subset=demand_components), set([4, 2]))
-     
-
-
+    # connected component with ('grid-1', 'grid-2') should be filtered out
+    eq_(subgraphs.connected_components(component_subset=demand_components),
+        set([4, 2]))

@@ -1,22 +1,26 @@
+# -*- coding: utf-8 -*-
+
 __author__ = 'Brandon Ogle'
+
+from copy import deepcopy
 
 import numpy as np
 import networkx as nx
 import multiprocessing as mp
 
-from copy import deepcopy
 from rtree import Rtree
 
 from networker.classes.kdtree import KDTree
 from networker.classes.unionfind import UnionFind, PriorityQueue
 
-from networker.geo_math import spherical_distance, \
+from networker.geomath import spherical_distance, \
                                   make_bounding_box, \
                                   line_subgraph_intersection, \
                                   ang_to_vec_coords
 
+
 def p_mod_boruvka(G, subgraphs=None, rtree=None):
-    
+
     V = set(T.nodes(data=False))
     coords = np.row_stack(nx.get_node_attributes(T, 'coords').values())
     projcoords = ang_to_vec_coords(coords)
@@ -24,7 +28,7 @@ def p_mod_boruvka(G, subgraphs=None, rtree=None):
     kdtree = KDTree(projcoords)
 
     if subgraphs is None:
-        if rtree != None: raise ValueError('RTree passed without UnionFind')
+        if rtree is not None: raise ValueError('RTree passed without UnionFind')
 
         rtree = Rtree()
         # modified to handle queues, children, mv
@@ -83,7 +87,8 @@ def p_mod_boruvka(G, subgraphs=None, rtree=None):
             return (u, v, dm), dm
 
         p = mp.Pool(processes=6)
-        foreign_neighbors = map(update_queues, subgraphs.connected_components(component_subset=V))
+        foreign_neighbors = map(update_queues,
+            subgraphs.connected_components(component_subset=V))
         p.close()
 
         for neighbor in foreign_neighbors:
@@ -96,31 +101,38 @@ def p_mod_boruvka(G, subgraphs=None, rtree=None):
         while Ep._queue:
             (um, vm, dm) = Ep.pop()
             # if doesn't create cycle and subgraph has enough MV
-            if subgraphs[um] != subgraphs[vm] and (subgraphs.budget[subgraphs[um]] >= dm or is_fake(um)): 
+            if subgraphs[um] != subgraphs[vm] and
+                (subgraphs.budget[subgraphs[um]] >= dm or is_fake(um)):
                 # test that the connecting subgraph can receive the MV
                 if subgraphs.budget[subgraphs[vm]] >= dm or is_fake(vm):
 
                     # doesn't create cycles from line segment intersection
-                    invalid_edge, intersections = line_subgraph_intersection(subgraphs, rtree, coords[um], coords[vm])
+                    invalid_edge, intersections =\
+                        line_subgraph_intersection(subgraphs, rtree,
+                            coords[um], coords[vm])
 
                     if not invalid_edge:
-                        # valid edges should not intersect any subgraph more than once
-                        assert(filter(lambda n: n > 1, intersections.values()) == [])
+                        # edges should not intersect a subgraph more than once
+                        assert(filter(lambda n: n > 1,
+                            intersections.values()) == [])
 
                         # merge the subgraphs
                         subgraphs.union(um, vm, dm)
 
-                        # For all intersected subgraphs update the mv to that created by the edge intersecting them,
-                        # TODO: This should be updated in not such a naive method
-                        map(lambda (n, _): subgraphs.union(um, n, 0), 
-                                filter(lambda (n, i): i == 1 and subgraphs[n] != subgraphs[um], intersections.iteritems()))
+                        # Union all intersecting subgraphs
+                        # and update budgets (happens within union)
+                        map(lambda (n, _): subgraphs.union(um, n, 0),
+                                filter(lambda (n, i): i == 1 and
+                                        subgraphs[n] != subgraphs[um],
+                                    intersections.iteritems()))
 
                         # index the newly added edge
                         box = make_bounding_box(coords[um], coords[vm])
 
-                        # Object is in form of (u.label, v.label), (u.coord, v.coord)
-                        rtree.insert(hash((um, vm)), box, obj=((um, vm), (coords[um], coords[vm])))
-                        Et += [(um, vm)]  
+                        # Object is (u.label, v.label), (u.coord, v.coord)
+                        rtree.insert(hash((um, vm)), box,
+                            obj=((um, vm), (coords[um], coords[vm])))
+                        Et += [(um, vm)]
 
     T.remove_edges_from(T.edges())
     T.add_edges_from(Et)

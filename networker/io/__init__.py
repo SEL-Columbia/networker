@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 
-import ogr, osr
-import numpy as np
+import ogr
+import osr
 import networkx as nx
-import pandas as pd
-import networker.geo_math as gm
+import networker.geomath as gm
 from networker.classes.geograph import GeoGraph
 import warnings
 import os
@@ -14,6 +13,7 @@ Package for reading/writing networkx based GeoGraphs
 Note:  these wrap existing networkx functions for custom behavior
 """
 
+
 def load_shp(shp_path):
     """ loads a shapefile into a networkx based GeoGraph object
 
@@ -21,7 +21,7 @@ def load_shp(shp_path):
         shp_path:  string path to a line or point shapefile
 
     Returns:
-        geograph:  GeoGraph 
+        geograph:  GeoGraph
 
     """
 
@@ -38,10 +38,10 @@ def load_shp(shp_path):
     proj4 = None
     if not spatial_ref:
         if gm.is_in_lon_lat(coords):
-           proj4 = gm.PROJ4_LATLONG
+            proj4 = gm.PROJ4_LATLONG
         else:
-            warnings.warn("Spatial Reference could not be set for {}".\
-            format(shp_path))
+            warnings.warn("Spatial Reference could not be set for {}".
+                format(shp_path))
 
     else:
         proj4 = spatial_ref.ExportToProj4()
@@ -60,12 +60,12 @@ def write_shp(geograph, shp_dir):
 
     """
 
-    assert geograph.is_aligned() 
+    assert geograph.is_aligned()
 
     # looks like networkx wants us to relabel nodes by their coords
     tup_map = {i: tuple(coords) for i, coords in geograph.coords.items()}
-    
-    # copy geograph to plain networkx graph 
+
+    # copy geograph to plain networkx graph
     # (relabeling a GeoGraph doesn't seem to work)
     nx_coord_graph = nx.Graph(data=geograph)
     nx.relabel_nodes(nx_coord_graph, tup_map, copy=False)
@@ -79,11 +79,12 @@ def write_shp(geograph, shp_dir):
         main_prj_filename = shp_dir + '.prj'
         edge_prj_filename = os.path.join(shp_dir, 'edges.prj')
         node_prj_filename = os.path.join(shp_dir, 'nodes.prj')
+
         def write_prj(prj_filename):
             out = open(prj_filename, 'w')
             out.write(sr.ExportToWkt())
             out.close()
-        
+
         write_prj(main_prj_filename)
         write_prj(edge_prj_filename)
         write_prj(node_prj_filename)

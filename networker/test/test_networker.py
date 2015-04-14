@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
 
-import os, itertools, json
+import os
+import itertools
+import json
 import numpy as np
 import networkx as nx
 import networker.io as nio
 from networker import networker_runner
-from networker import geo_math as gm 
+from networker import geomath as gm
 from networker.algorithms import mod_boruvka
 from networker.classes.geograph import GeoGraph
 
@@ -14,15 +16,15 @@ from nose.tools import eq_
 
 def networker_run_compare(config_file, known_results_file):
     # get config and run
-    cfg_path = os.path.join(os.path.dirname(\
+    cfg_path = os.path.join(os.path.dirname(
         os.path.abspath(__file__)), config_file)
     cfg = json.load(open(cfg_path))
     nwk = networker_runner.NetworkerRunner(cfg)
     nwk.run()
 
     # compare this run against existing results
-    test_geo = nio.load_shp(os.path.join(cfg['output_directory'], \
-        "edges.shp"))
+    test_geo = nio.load_shp(os.path.join(cfg['output_directory'],
+                            "edges.shp"))
     known_geo = nio.load_shp(known_results_file)
     # compare sets of edges
 
@@ -37,6 +39,7 @@ def networker_run_compare(config_file, known_results_file):
     # assert nx.is_isomorphic(test_geo, known_geo), \
     #    "test result graph is not isomorphic to known result graph"
 
+
 def test_networker_run():
     """ test on randomly generated set of nodes (demand only) """
 
@@ -44,6 +47,7 @@ def test_networker_run():
     results_file = "data/med_100/networks-proposed.shp"
 
     networker_run_compare(run_config, results_file)
+
 
 def test_networker_leona_run():
     """ test on randomly generated set of nodes (demand only) """
@@ -54,29 +58,30 @@ def test_networker_leona_run():
     results_file = "data/leona/expected/edges.shp"
 
     networker_run_compare(run_config, results_file)
-   
+
+
 def random_settlements(n):
 
     coords = np.random.uniform(size=(n, 2))
-    
+
     # get all perm's of points (repetitions are ok here)
     points_left = np.tile(coords, (len(coords), 1))
     points_right = np.repeat(coords, len(coords), axis=0)
-    point_pairs = np.concatenate((points_left[:,np.newaxis], 
+    point_pairs = np.concatenate((points_left[:,np.newaxis],
                                   points_right[:,np.newaxis]), axis=1)
     all_dists = gm.spherical_distance_haversine(point_pairs)
-    
+
     full_dist_matrix = all_dists.reshape(len(coords), len(coords))
     zero_indices = (np.array(range(len(coords))) * (len(coords) + 1))
     non_zero_dists = np.delete(all_dists, zero_indices).\
-        reshape((len(coords), len(coords) - 1)) 
+        reshape((len(coords), len(coords) - 1))
 
     # find all minimum distances
     # apply min over ranges of the dist array
     min_dists = np.min(non_zero_dists, axis=1)
 
     # assign same median budget to all nodes
-    # outside a really degenerate case (all edges in line in shortest 
+    # outside a really degenerate case (all edges in line in shortest
     # distance order...)
     # this should ensure some "dead" nodes
     budget_vals = np.repeat(np.median(min_dists), len(coords))
@@ -94,7 +99,7 @@ def test_msf_components():
 
     msf = mod_boruvka(grid)
 
-    msf_subgraph = lambda components: nx.subgraph(msf, components) 
+    msf_subgraph = lambda components: nx.subgraph(msf, components)
     component_graphs = map(msf_subgraph, nx.connected_components(msf))
 
     def full_graph(g):
@@ -103,9 +108,9 @@ def test_msf_components():
         if len(g.nodes()) < 2:
             return new_graph
 
-        new_graph.add_weighted_edges_from([(u, v, dist_matrix[u][v]) \
-                           for u, v in itertools.product(g.nodes(), g.nodes()) \
-                           if u != v ])
+        new_graph.add_weighted_edges_from([(u, v, dist_matrix[u][v])
+            for u, v in itertools.product(g.nodes(), g.nodes())
+            if u != v])
         return new_graph
 
     full_graphs = map(full_graph, component_graphs)
@@ -118,7 +123,8 @@ def test_msf_components():
         if not c_sets == mst_sets:
             diff_component_mst.append(i)
 
-    assert len(diff_component_mst) == 0, len(diff_component_mst) + " components are not MSTs"
+    assert len(diff_component_mst) == 0, len(diff_component_mst) + \
+        " components are not MSTs"
 
 
 def nodes_plus_existing_grid():
@@ -138,8 +144,9 @@ def nodes_plus_existing_grid():
 
     # setup grid
     grid_coords = np.array([[-5.0, 0.0], [5.0, 0.0]])
-    grid = GeoGraph(gm.PROJ4_FLAT_EARTH, {'grid-' + str(n): c for n, c in enumerate(grid_coords)})
-    nx.set_node_attributes(grid, 'budget', {n:0 for n in grid.nodes()})
+    grid = GeoGraph(gm.PROJ4_FLAT_EARTH, {'grid-' + str(n): c for n, c in
+                    enumerate(grid_coords)})
+    nx.set_node_attributes(grid, 'budget', {n: 0 for n in grid.nodes()})
     grid.add_edges_from([('grid-0', 'grid-1')])
 
     # setup input nodes
@@ -149,14 +156,14 @@ def nodes_plus_existing_grid():
     nx.set_node_attributes(nodes, 'budget', dict(enumerate(budget_values)))
 
     # setup resulting edges when creating msf through the sequence of nodes
-    #Note: Fake nodes integer label begins at the total number of nodes + 1
-    #Hence why the fake node in the test is incremented by one on each iteration
-    edges_at_iteration = [[(0, 1)], # 0 connects to fake_node
-                          [(0, 2)], # 0, 1 can't connect 
-                          [(0, 3), (2, 5), (1, 0)]]
-                          # 2 connects to grid providing budget for (0, 1)
+    # Note: Fake nodes integer label begins at the total number of nodes + 1
+    # Hence why the fake node in the test is incremented by one on each
+    # iteration
+    edges_at_iteration = [[(0, 1)],  # 0 connects to fake_node
+                          [(0, 2)],  # 0, 1 can't connect
+                          [(0, 3), (2, 5), (1, 0)]] # 2 connects grid
 
-    return grid, nodes, edges_at_iteration 
+    return grid, nodes, edges_at_iteration
 
 
 def test_msf_behavior():
@@ -170,4 +177,3 @@ def test_msf_behavior():
         msf_sets = set([frozenset(e) for e in msf.edges()])
         iter_edge_set = set([frozenset(e) for e in edges_at_iteration[n]])
         eq_(msf_sets, iter_edge_set)
- 
