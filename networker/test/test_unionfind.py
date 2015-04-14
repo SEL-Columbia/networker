@@ -22,7 +22,7 @@ def init_network(n):
     nx.set_node_attributes(graph,   'budget',   dict(enumerate(mv)))
     return graph
     
-def TestUnionBudget():
+def test_union_budget():
 
     net = init_network(5000)
     subgraphs = UnionFind()
@@ -44,7 +44,7 @@ def TestUnionBudget():
     eq_(np.allclose(subgraphs.budget[subgraphs[1]], mv), True)
 
 
-def TestComponentFunctions():
+def test_component_functions():
     """
     Tests whether UnionFind component/connected_component methods
     work as expected

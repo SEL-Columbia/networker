@@ -1,7 +1,7 @@
 from networker.classes.unionfind import PriorityQueue 
 from nose.tools import eq_
 
-def TestPushPop():
+def test_push_pop():
     """
     Tests that pushing a list of items 
     into a queue and then popping them out 
@@ -28,7 +28,7 @@ def TestPushPop():
     # make sure it lines up with expected result
     eq_(output, range(1, 10)[::-1])
 
-def TestPeekTop():
+def test_peek_top():
     """
     Tests that peeking at the top of the priortity queue
     leaves it unmodified
@@ -54,7 +54,7 @@ def TestPeekTop():
 
     eq_(state, q._queue)
 
-def TestMerge():
+def test_merge():
     """
     Tests that merging two priority queues 
     results in the expected behavior

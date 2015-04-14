@@ -15,7 +15,7 @@ def simple_coord_set():
     return coords
 
 
-def TestKDTree():
+def test_kdtree():
 
     simple_coords = simple_coord_set()
     proj_coords = ang_to_vec_coords(simple_coords)
@@ -24,7 +24,8 @@ def TestKDTree():
 
     coord_idx = np.arange(proj_coords.shape[0])
     kdt = KDTree(proj_coords)
-    kd_nn_idx = [kdt.query_subset(proj_coords[i], coord_idx[coord_idx != i])[0] for i in range(len(proj_coords))]
+    kd_nn_idx = [kdt.query_subset(proj_coords[i], \
+        coord_idx[coord_idx != i])[0] for i in range(len(proj_coords))]
 
     assert all(coord_nn_dists[1] == proj_nn_dists[1]), "spherical and cartesian adjacency do not match"
     assert all(kd_nn_idx == proj_nn_dists[1]), "kdtree and cartesian adjacency do not match"

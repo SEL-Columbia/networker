@@ -68,14 +68,16 @@ def random_settlements(n):
     
     full_dist_matrix = all_dists.reshape(len(coords), len(coords))
     zero_indices = (np.array(range(len(coords))) * (len(coords) + 1))
-    non_zero_dists = np.delete(all_dists, zero_indices).reshape((len(coords), len(coords) - 1)) 
+    non_zero_dists = np.delete(all_dists, zero_indices).\
+        reshape((len(coords), len(coords) - 1)) 
 
     # find all minimum distances
     # apply min over ranges of the dist array
     min_dists = np.min(non_zero_dists, axis=1)
 
     # assign same median budget to all nodes
-    # outside a really degenerate case (all edges in line in shortest distance order...)
+    # outside a really degenerate case (all edges in line in shortest 
+    # distance order...)
     # this should ensure some "dead" nodes
     budget_vals = np.repeat(np.median(min_dists), len(coords))
 
