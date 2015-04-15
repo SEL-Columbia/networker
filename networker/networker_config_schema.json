@@ -54,12 +54,7 @@
                     "default": 0
                 }
             }
-        },
-        "output_directory": {
-            "type": "string",
-            "description": "directory to write output network shapefile to"
         }
- 
     },
-    "required": ["demand_nodes", "network_algorithm", "output_directory"]
+    "required": ["demand_nodes", "network_algorithm"]
 }

@@ -4,6 +4,7 @@ import osr
 import networkx as nx
 import copy
 import networker.geomath as gm
+import pyproj as prj
 import numpy as np
 from rtree import Rtree
 
@@ -36,6 +37,16 @@ class GeoObject(object):
         sr = osr.SpatialReference()
         sr.ImportFromProj4(self.srs)
         return bool(sr.IsGeographic())
+
+    def transform_coords(self, to_srs):
+        """ use pyproj to transform coordinates to the srs projection """
+        
+        from_proj = prj.Proj(self.srs)
+        to_proj = prj.Proj(to_srs)
+        coords = {nd: prj.transform(from_proj, to_proj, 
+                            self.coords[nd][0], self.coords[nd][1]) 
+                    for nd in self.coords}               
+        return coords
 
 
 class GeoGraph(GeoObject, nx.Graph):

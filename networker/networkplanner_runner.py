@@ -31,8 +31,9 @@ class NetworkPlannerRunner(object):
 
     SCHEMA_FILE = "networkplanner_config_schema.json"
 
-    def __init__(self, config):
+    def __init__(self, config, output_directory="."):
         self.config = config
+        self.output_directory = output_directory
 
     def run(self):
         """
@@ -41,15 +42,14 @@ class NetworkPlannerRunner(object):
         """
 
         # make output dir if not exists
-        output_directory = self.config['output_directory']
-        if not os.path.exists(output_directory):
-            os.makedirs(output_directory)
+        if not os.path.exists(self.output_directory):
+            os.makedirs(self.output_directory)
 
         metric_config = json.load(open(
             self.config['metric_model_parameters_file']))
         # read in metrics and setup dataset_store
         demand_proj = csv_projection(self.config['demand_nodes_file'])
-        target_path = os.path.join(output_directory, "dataset.db")
+        target_path = os.path.join(self.output_directory, "dataset.db")
         self.store = dataset_store.create(target_path,
             self.config['demand_nodes_file'])
 
@@ -227,7 +227,7 @@ class NetworkPlannerRunner(object):
     def _save_output(self, metric_value_by_option_by_section, metric_config,
                     metric_model):
 
-        output_directory = self.config['output_directory']
+        output_directory = self.output_directory
         metric.saveMetricsConfigurationCSV(os.path.join(output_directory,
             'metrics-job-input'), metric_config)
         metric.saveMetricsCSV(os.path.join(output_directory,
@@ -255,7 +255,7 @@ class NetworkPlannerRunner(object):
         jsonschema.validate(self.config, schema)
 
 
-def dataset_store_to_nx_graph(dataset_store):
+def dataset_store_to_geograph(dataset_store):
     """
     convenience function for converting a network stored in a dataset_store
     into a GeoGraph
@@ -275,7 +275,7 @@ def dataset_store_to_nx_graph(dataset_store):
 
     coords = [node.getCommonCoordinates() for node in all_nodes]
     coords_dict = dict(enumerate(coords))
-    budget_dict = {i: node.budget for i, node in enumerate(all_nodes)}
+    budget_dict = {i: node.metric for i, node in enumerate(all_nodes)}
 
     G = GeoGraph(coords=coords_dict)
     nx.set_node_attributes(G, 'budget', budget_dict)

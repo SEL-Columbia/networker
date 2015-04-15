@@ -1,7 +1,9 @@
 # -*- coding: utf8 -*-
 
 import networkx as nx
-
+import networker.geomath as gm 
+import pyproj as prj
+from networkx.readwrite import json_graph
 
 # Utility functions
 def csv_projection(path):
@@ -26,20 +28,10 @@ def csv_projection(path):
 def draw_np_graph(g, node_color='r', edge_color='b', node_label_field='ix',
                     edge_label_field=None, node_size=300):
 
-    from mpl_toolkits.basemap import Basemap
-    m = Basemap(
-            projection='merc',
-            ellps='WGS84',
-            llcrnrlon=0,
-            llcrnrlat=0,
-            urcrnrlon=1,
-            urcrnrlat=1,
-            lat_ts=0,
-            resolution='i',
-            suppress_ticks=True)
+    # transform to projected if not done so
+    flat_coords = g.transform_coords(gm.PROJ4_FLAT_EARTH)
 
-    node_pos = {nd: m(g.node[nd]['coords'][0], g.node[nd]['coords'][1])
-                for nd in g.nodes()}
+    node_pos = {nd: flat_coords[nd] for nd in g.nodes()}
 
     # handle main graph rendering
     if node_label_field:
@@ -66,24 +58,14 @@ def draw_np_graph(g, node_color='r', edge_color='b', node_label_field='ix',
 
 
 # GeoGraph to js
-def network_to_json(g):
+def geograph_to_json(g):
 
-    from mpl_toolkits.basemap import Basemap
-    from networkx.readwrite import json_graph
-    m = Basemap(
-            projection='merc',
-            ellps='WGS84',
-            llcrnrlon=0,
-            llcrnrlat=0,
-            urcrnrlon=1,
-            urcrnrlat=1,
-            lat_ts=0,
-            resolution='i',
-            suppress_ticks=True)
+    # transform to projected if not done so
+    flat_coords = g.transform_coords(gm.PROJ4_FLAT_EARTH)
 
     g2 = g.copy()
     for nd in g.nodes():
-        g2.node[nd]['coords'] = m(g.coords[nd][0], g.coords[nd][1])
+        g2.node[nd]['coords'] = flat_coords[nd]
 
     js_g = json_graph.node_link_data(g2)
     return js_g

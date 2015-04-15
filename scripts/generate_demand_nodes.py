@@ -3,7 +3,7 @@ import numpy as np
 import sys
 from networker.classes.kdtree import KDTree
 from networker.geomath import ang_to_vec_coords,\
-                                spherical_distance
+                                spherical_distance_haversine
 
 selectors = {
     "min": np.min,
@@ -30,7 +30,7 @@ def generate_nodes(n, min_max, demand_selector="median"):
     nneigh_coords = coords[nneigh_inds]
     coord_pairs = np.concatenate((coords[:, np.newaxis],
                                   nneigh_coords[:, np.newaxis]), axis=1)
-    nn_dists = spherical_distance(coord_pairs)
+    nn_dists = spherical_distance_haversine(coord_pairs)
 
     # assign same demand value to all nodes based on nearest neighbor dists
     demand_vals = np.repeat(selectors[demand_selector](nn_dists), len(coords))
