@@ -19,7 +19,7 @@ args = parser.parse_args()
 cfg = json.load(open(args.config_filename))
 # switch working dir AFTER loading config
 os.chdir(args.working_directory)
-nwk = networker_runner.NetworkRunner(cfg, args.output_directory)
+nwk = networker_runner.NetworkerRunner(cfg, args.output_directory)
 
 try:
     nwk.validate()

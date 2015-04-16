@@ -128,7 +128,7 @@ class KDTree(object):
         """Recursively implements constrained nearest neighbor search"""
 
         # Dead end backtrack up the tree
-        if _is_node_none(self.node):
+        if self.node is None:
             return best
 
         # Initialize node vectors
@@ -143,7 +143,7 @@ class KDTree(object):
             # is_closer is a thunk to prevent '__getitem__' error
             is_closer = lambda: distance(self.node, point) < \
                                 distance(best[1], point)
-            if _is_node_none(best) or is_closer():
+            if best is None or is_closer():
                 best = (self.idx, self.node)
 
         near = self.near_branch(point)
@@ -171,12 +171,9 @@ class KDTree(object):
         # validate best, by ensuring closer point doesn't exist just beyond
         # partition if best still has yet to be found also look
         # into this further branch
-        if (not _is_node_none(best) and
+        if (not best is None and
             self.orthogonal_dist(point) < distance(best[1], point)) or \
-            _is_node_none(best):
+            best is None:
             best = far._query_subset(point, subset, best)
 
         return best
-
-def _is_node_none(node):
-    return node == None or np.all(node == [None] * len(node))

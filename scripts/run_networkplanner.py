@@ -17,6 +17,7 @@ parser.add_argument("--output_directory", "-o", \
 args = parser.parse_args()
 
 cfg = json.load(open(args.config_filename))
+# switch working dir AFTER loading config
 os.chdir(args.working_directory)
 nwk = networkplanner_runner.NetworkPlannerRunner(cfg, args.output_directory)
 
