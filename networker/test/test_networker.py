@@ -14,16 +14,16 @@ from networker.classes.geograph import GeoGraph
 from nose.tools import eq_
 
 
-def networker_run_compare(config_file, known_results_file):
+def networker_run_compare(config_file, known_results_file, output_dir):
     # get config and run
     cfg_path = os.path.join(os.path.dirname(
         os.path.abspath(__file__)), config_file)
     cfg = json.load(open(cfg_path))
-    nwk = networker_runner.NetworkerRunner(cfg)
+    nwk = networker_runner.NetworkerRunner(cfg, output_dir)
     nwk.run()
 
     # compare this run against existing results
-    test_geo = nio.load_shp(os.path.join(cfg['output_directory'],
+    test_geo = nio.load_shp(os.path.join(output_dir,
                             "edges.shp"))
     known_geo = nio.load_shp(known_results_file)
     # compare sets of edges
@@ -45,8 +45,9 @@ def test_networker_run():
 
     run_config = "networker_config_med100.json"
     results_file = "data/med_100/networks-proposed.shp"
+    output_dir = "data/tmp"
 
-    networker_run_compare(run_config, results_file)
+    networker_run_compare(run_config, results_file, output_dir)
 
 
 def test_networker_leona_run():
@@ -56,8 +57,9 @@ def test_networker_leona_run():
     # TODO:  Determine why this fails with networkplanner_results_file
     # results_file = "data/leona/expected/networks-proposed.shp"
     results_file = "data/leona/expected/edges.shp"
+    output_dir = "data/tmp"
 
-    networker_run_compare(run_config, results_file)
+    networker_run_compare(run_config, results_file, output_dir)
 
 
 def random_settlements(n):

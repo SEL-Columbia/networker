@@ -6,16 +6,16 @@ import networker.io as nio
 from networker import networkplanner_runner
 
 
-def networkplanner_run_compare(config_file, known_results_file):
+def networkplanner_run_compare(config_file, known_results_file, output_dir):
     # get config and run
     cfg_path = os.path.join(os.path.dirname(
         os.path.abspath(__file__)), config_file)
     cfg = json.load(open(cfg_path))
-    nwk_p = networkplanner_runner.NetworkPlannerRunner(cfg)
+    nwk_p = networkplanner_runner.NetworkPlannerRunner(cfg, output_dir)
     nwk_p.run()
 
     # compare this run against existing results
-    test_geo = nio.load_shp(os.path.join(cfg['output_directory'],
+    test_geo = nio.load_shp(os.path.join(output_dir,
                             "networks-proposed.shp"))
     known_geo = nio.load_shp(known_results_file)
     # compare sets of edges
@@ -37,8 +37,9 @@ def test_networkplanner_run():
 
     run_config = "networkplanner_config_pop100.json"
     results_file = "data/pop_100/networks-proposed.shp"
+    output_dir = "data/tmp"
 
-    networkplanner_run_compare(run_config, results_file)
+    networkplanner_run_compare(run_config, results_file, output_dir)
 
 
 def test_networkplanner_leona_run():
@@ -46,5 +47,6 @@ def test_networkplanner_leona_run():
 
     run_config = "networkplanner_config_leona_net.json"
     results_file = "data/leona/expected/networks-proposed.shp"
+    output_dir = "data/tmp"
 
-    networkplanner_run_compare(run_config, results_file)
+    networkplanner_run_compare(run_config, results_file, output_dir)

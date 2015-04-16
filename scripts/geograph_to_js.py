@@ -3,23 +3,23 @@ import sys
 import json
 from np.lib import dataset_store
 from networker import utils
-from networker import networkplanner
+from networker import networkplanner_runner
 
 
-def get_nx_graph(filename):
+def get_geograph(filename):
     ds = dataset_store.load(filename)
-    nxg = networkplanner.dataset_store_to_nx_graph(ds)
-    return nxg
+    g = networkplanner_runner.dataset_store_to_geograph(ds)
+    return g
 
 
 parser = argparse.ArgumentParser(description=
         "Output networkplanner dataset store as networkx based js graph")
-parser.add_argument("dataset_file", help="dataset file representing nx graph")
+parser.add_argument("dataset_file", help="dataset file representing geograph")
 
 args = parser.parse_args()
 
-g = get_nx_graph(args.dataset_file)
+g = get_geograph(args.dataset_file)
 
-js = utils.network_to_json(g)
+js = utils.geograph_to_json(g)
 
 json.dump(js, sys.stdout)

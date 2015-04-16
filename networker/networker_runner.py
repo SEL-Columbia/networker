@@ -35,14 +35,14 @@ class NetworkerRunner(object):
             network_algorithm: mod_boruvka, mod_kruskal
             network_parameters:
                 minimum_node_count:  min number of nodes in sub-network { 2 }
-            output_directory: { 'output' }
     """
 
     ALGOS = {'mod_boruvka': algo.mod_boruvka}
     SCHEMA_FILE = "networker_config_schema.json"
 
-    def __init__(self, config):
+    def __init__(self, config, output_directory="."):
         self.config = config
+        self.output_directory = output_directory
 
     def run(self):
         """
@@ -52,10 +52,10 @@ class NetworkerRunner(object):
         msf = self._build_network()
 
         # now save it
-        if not os.path.exists(self.config['output_directory']):
-            os.makedirs(self.config['output_directory'])
+        if not os.path.exists(self.output_directory):
+            os.makedirs(self.output_directory)
 
-        nio.write_shp(msf, self.config['output_directory'])
+        nio.write_shp(msf, self.output_directory)
 
     def _build_network(self):
         """

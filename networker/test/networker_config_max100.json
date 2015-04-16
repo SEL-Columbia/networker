@@ -8,6 +8,5 @@
     "network_algorithm": "mod_boruvka",
     "network_parameters": {
         "minimum_node_count": 2
-    },
-    "output_directory": "data/tmp" 
+    }
 }
