@@ -1,0 +1,17 @@
+numpy
+scipy
+networkx
+decorator
+cython
+nose
+numba
+llvmlite
+funcsigs
+pandas
+enum34
+dateutil
+pytz
+rtree
+jsonschema
+pyproj
+six
