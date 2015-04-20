@@ -57,7 +57,7 @@ class NetworkerRunner(object):
 
         nio.write_shp(msf, self.output_directory)
 
-    def _build_network(self):
+    def build_network(self):
         """
         project demand nodes onto optional existing supply network and
         network generation algorithm on it

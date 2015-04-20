@@ -5,5 +5,5 @@
         "minimum_node_count": 2
     },
     "metric_model": "mvMax5",
-    "metric_model_parameters_file": "networker/test/networkplanner_metric_params.json"
+    "metric_model_parameters_file": "test/networkplanner_metric_params.json"
 }

@@ -236,6 +236,12 @@ class GeoGraph(GeoObject, nx.Graph):
                 yield (hash(edge), box, (edge,
                             map(lambda ep: np.array(self.coords[ep]), edge)))
 
+        # something's not working right with latest version of rtree/spatial lib
+        # index where we need to insert the objects in a loop rather than
+        # via a generator to their constructor
         # Init rtree and store grid edges
-        rtree = Rtree(edge_generator())
+        rtree = Rtree()
+        for e in edge_generator():
+            rtree.insert(e[0], e[1], e[2])    
+
         return rtree

@@ -9,7 +9,7 @@ parser.add_argument("config_filename",
                     help="json config file for running networker")
 parser.add_argument("--working_directory", "-w", \
         default=".", \
-        help="base directory which all paths are relative to")
+        help="base directory which all input paths are relative to")
 parser.add_argument("--output_directory", "-o", \
         default=".", \
         help="directory where all output files will be written")
