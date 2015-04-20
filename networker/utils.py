@@ -25,8 +25,8 @@ def csv_projection(path):
 
 
 # plot maps
-def draw_np_graph(g, node_color='r', edge_color='b', node_label_field='ix',
-                    edge_label_field=None, node_size=300):
+def draw_geograph(g, node_color='r', edge_color='b', node_label_field=None,
+                    edge_label_field=None, node_size=200):
 
     # transform to projected if not done so
     flat_coords = g.transform_coords(gm.PROJ4_FLAT_EARTH)
