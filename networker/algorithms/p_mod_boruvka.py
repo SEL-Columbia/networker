@@ -101,7 +101,7 @@ def p_mod_boruvka(G, subgraphs=None, rtree=None):
         while Ep._queue:
             (um, vm, dm) = Ep.pop()
             # if doesn't create cycle and subgraph has enough MV
-            if subgraphs[um] != subgraphs[vm] and
+            if subgraphs[um] != subgraphs[vm] and \
                 (subgraphs.budget[subgraphs[um]] >= dm or is_fake(um)):
                 # test that the connecting subgraph can receive the MV
                 if subgraphs.budget[subgraphs[vm]] >= dm or is_fake(vm):

@@ -1,8 +1,6 @@
 # Modified Borůvka's
 
-This algorithm reduces the space complexity of the legacy NetworkPlanner algorithm (Modified Kruskal's) by utilizing the concepts behind Boruvka's Minimum Spanning Tree algorithm.  THis works was significantly influenced by Boruvka Meets Nearest Neighbors [1].
-
-[1] Mariano Tepper, Marta Mejail, Pablo Muse, Andres Almansa. Boruvka Meets Nearest Neighbors. 2011. <hal-00583120>
+This algorithm reduces the space complexity of the legacy NetworkPlanner algorithm (Modified Kruskal's) by utilizing the concepts behind Boruvka's Minimum Spanning Tree algorithm.  This works was significantly influenced by Boruvka Meets Nearest Neighbors [1].
 
 ## Background
 NetworkPlanner attempts to generate a least cost network via a constrained Minimum Spanning Tree algorithm. These contraints include the two-way MV test, and a line (cycle) intersection test. Due to these contraints, the result is more likely a spanning forest.  [Kruskal's Algorithm](http://en.wikipedia.org/wiki/Kruskal's_algorithm) was the original basis for this constrained Minimum Spanning algorithm.  
@@ -120,4 +118,7 @@ NetOpt(G) = G(V, Et)
 -- Shapely Line Interpolation -> Efficient Linear Algebra Projection
 - MV updates
 -- Disjoint Grids cause global update in NP, these are considered seperate entities in NetworkBuild
+
+[1] Mariano Tepper, Marta Mejail, Pablo Muse, Andres Almansa. Boruvka Meets Nearest Neighbors. 2011. <hal-00583120>
+
 
