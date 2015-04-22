@@ -49,7 +49,7 @@ class NetworkerRunner(object):
         run a minimum spanning forest algorithm on inputs and write output
         based on configuration
         """
-        msf = self._build_network()
+        msf = self.build_network()
 
         # now save it
         if not os.path.exists(self.output_directory):

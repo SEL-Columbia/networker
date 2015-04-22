@@ -73,6 +73,8 @@ configuration files are:
 
 ## Installation
 
+These instructions should work for linux-64 and osx-64 platforms.  
+
 The simplest method of installation is via [conda](http://www.continuum.io/blog/conda).  
 
 Once conda is installed ([guide here](http://docs.continuum.io/anaconda/install.html)), 
@@ -82,8 +84,10 @@ setup a new python 2.7 environment via:
 conda create -n networker python=2.7
 ```
 
-Once created, `source activate networker` to activate the environment and 
-install subsequent libraries in that environment.  
+and source it to subsequently install libraries in that environment:
+```
+source activate networker
+```
 
 To use the NetworkPlannerRunner, you will need the networkplanner library 
 installed in this environment:
@@ -94,11 +98,22 @@ conda config --add channels 'ioos'
 conda install -c sel networkplanner-metrics
 ```
 
-Now install the networker library:
+Now install the networker library
 
 ```
+# only need to add dougal channel on OSX
+conda config --add channels 'dougal'
 conda install -c sel networker
 ```
+
+On OSX, there appears to be an issue related to [this](https://github.com/conda/conda/issues/308) and [this](https://github.com/ioos/conda-recipes/issues/141) where the libspatialindex library cannot be found.  As a workaround, you can do the following from within your networker environment before running any scripts (this is not ideal...alternative approaches appreciated):  
+
+```
+# OSX Only
+export LD_LIBRARY_PATH=~/anaconda/envs/networker/lib
+# to unset when done do
+# unset LD_LIBRARY_PATH
+``` 
 
 For running scripts and doing development, you will need the source locally so
 just clone this repository.  
