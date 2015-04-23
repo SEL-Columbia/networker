@@ -1,0 +1,27 @@
+language: python
+python:
+  - "2.7"
+before_install:
+  - sudo apt-get update
+install:
+  - wget http://repo.continuum.io/miniconda/Miniconda-3.6.0-Linux-x86_64.sh -O miniconda.sh
+  - bash miniconda.sh -b -p $HOME/miniconda
+  - export PATH="$HOME/miniconda/bin:$PATH"
+  - hash -r
+  - conda config --set always_yes yes --set changeps1 no
+  - conda update -q conda
+  # Useful for debugging any issues with conda
+  - conda info -a
+  # setup model_runner
+  - conda create -n networker python=2.7
+  - conda config --add channels 'ioos'
+  - conda install --yes -c sel -n networker networkplanner-metrics
+  - conda install --yes -c sel -n networker networker
+before_script:
+  # setup primary, worker(s)
+  - source activate networker
+script:
+  - nosetests
+ 
+notifications:
+  irc: "irc.freenode.org#sel-columbia"

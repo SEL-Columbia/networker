@@ -2,6 +2,8 @@
 
 Networker contains tools for planning distribution networks from supply and demand data.  
 
+[![Build Status](https://travis-ci.org/SEL-Columbia/networker.svg?branch=master)](https://travis-ci.org/SEL-Columbia/networker.svg?branch=master)
+
 It relies on numpy, networkx and also utilizes several spatial indexes.  
 
 ## Overview 
@@ -115,10 +117,22 @@ export LD_LIBRARY_PATH=~/anaconda/envs/networker/lib
 # unset LD_LIBRARY_PATH
 ``` 
 
+Similar issues may occur on Ubuntu/Debian.  You can check whether libspatialindex can be found via the following:
+
+```
+ldconfig -p 2>/dev/null | grep spatial
+```
+
+The issue can be resolved by adding your conda lib directory to the ldconfig cache via:
+
+```
+ldconfig ~/anaconda/envs/networker/lib
+```
+
 For running scripts and doing development, you will need the source locally so
 just clone this repository.  
 
-For development you will need to set your PYTHONPATH to the source location.  
+For development you will need to set your PYTHONPATH to the source location which will override the code in your conda environment.  
 
 ## Testing
 
