@@ -12,14 +12,14 @@ install:
   - conda update -q conda
   # Useful for debugging any issues with conda
   - conda info -a
-  # setup model_runner
+  # setup networker in conda environment 
   - conda create -n networker python=2.7
   - conda config --add channels 'ioos'
   - conda install --yes -c sel -n networker networkplanner-metrics
   - conda install --yes -c sel -n networker networker
 before_script:
-  # setup primary, worker(s)
-  - ldconfig "$HOME/miniconda/envs/networker/lib"
+  # cache the lib dir and activate the conda environment
+  - sudo ldconfig "$HOME/miniconda/envs/networker/lib"
   - source activate networker
 script:
   - nosetests
