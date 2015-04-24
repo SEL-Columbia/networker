@@ -49,65 +49,28 @@ class NetworkerRunner(object):
         run a minimum spanning forest algorithm on inputs and write output
         based on configuration
         """
-        msf = self.build_network()
+
+        demand_nodes = load_node_metrics(**self.config['demand_nodes'])
+        existing_networks = None
+        if 'existing_networks' in self.config:
+            existing_networks = load_existing_networks(
+                prefix="grid-",
+                **self.config['existing_networks'])
+
+        min_node_count = self.config['network_parameters']\
+                                    ['minimum_node_count']
+        network_algorithm = self.config['network_algorithm']
+
+        msf, _ = build_network(demand_nodes, 
+                                existing=existing_networks,
+                                min_node_count=min_node_count,
+                                network_algorithm=network_algorithm)
 
         # now save it
         if not os.path.exists(self.output_directory):
             os.makedirs(self.output_directory)
 
         nio.write_shp(msf, self.output_directory)
-
-    def build_network(self):
-        """
-        project demand nodes onto optional existing supply network and
-        network generation algorithm on it
-
-        Returns:
-            GeoGraph  minimum spanning forest proposed by the chosen
-                network algorithm
-        """
-        geo_graph = subgraphs = rtree = None
-
-        demand_nodes = load_node_metrics(**self.config['demand_nodes'])
-        if 'existing_networks' in self.config:
-            existing = load_existing_networks(
-                **self.config['existing_networks'])
-            # rename existing nodes so that they don't intersect with metrics
-            nx.relabel_nodes(existing,
-                {n: 'grid-' + str(n) for n in existing.nodes()}, copy=False)
-            existing.coords = {'grid-' + str(n): c for n, c in
-                existing.coords.items()}
-            geo_graph, subgraphs, rtree = \
-                merge_network_and_nodes(existing, demand_nodes)
-        else:
-            geo_graph = demand_nodes
-
-        # now run the selected algorithm
-        network_algo = NetworkerRunner.ALGOS[self.config['network_algorithm']]
-        result_geo_graph = network_algo(geo_graph, subgraphs=subgraphs,
-                                        rtree=rtree)
-
-        # TODO: Remove unreferenced fake nodes?
-
-        # now filter out subnetworks via minimum node count
-        min_node_count = self.config['network_parameters']\
-                                    ['minimum_node_count']
-        # TODO:  update union_all to support GeoGraph?
-        filtered_graph = nx.union_all(filter(
-            lambda sub: len(sub.node) >= min_node_count,
-            nx.connected_component_subgraphs(result_geo_graph)))
-        # map coords back to geograph
-
-        # NOTE:  explicit relabel to int as somewhere in filtering above, some
-        # node ids are set to numpy types which screws up comparisons to tuples
-        # in write op
-        # TODO:  Google problem and report to networkx folks if needed
-        nx.relabel_nodes(filtered_graph, {i: int(i) for i in filtered_graph},
-            copy=False)
-        coords = {i: result_geo_graph.coords[i] for i in filtered_graph}
-        geo = GeoGraph(result_geo_graph.srs, coords=coords,\
-            data=filtered_graph)
-        return geo
 
 
     def validate(self):
@@ -121,6 +84,74 @@ class NetworkerRunner(object):
             os.path.abspath(__file__)), NetworkerRunner.SCHEMA_FILE)
         schema = json.load(open(schema_path))
         jsonschema.validate(self.config, schema)
+
+
+def build_network(demand_nodes, 
+                    existing=None, 
+                    min_node_count=2,
+                    network_algorithm='mod_boruvka',
+                    one_based=False 
+                    ):
+    """
+    project demand nodes onto optional existing supply network and
+    return the 'optimized' network
+
+    Args:
+        demand_nodes:  GeoGraph of demand nodes
+        existing:  GeoGraph of existing grid (assumes node ids
+            don't conflict with demand_nodes
+        min_node_count:  minimum number of nodes allowed in a subgraph
+            of the result
+        network_algorithm:  Algorithm from ALGOS to run
+        one_based:  Whether result GeoGraph's nodes should be one_based
+            (if not, they are 0 based)
+
+    Returns:
+        msf: GeoGraph of minimum spanning forest proposed by the chosen
+            network algorithm
+        existing: The existing grid GeoGraph (None if it doesn't exist) 
+        
+    """
+    geo_graph = subgraphs = rtree = None
+
+    if existing:
+        geo_graph, subgraphs, rtree = \
+            merge_network_and_nodes(existing, demand_nodes)
+    else:
+        geo_graph = demand_nodes
+
+    # now run the selected algorithm
+    network_algo = NetworkerRunner.ALGOS[network_algorithm]
+    result_geo_graph = network_algo(geo_graph, subgraphs=subgraphs,
+                                    rtree=rtree)
+
+    # TODO: Remove unreferenced fake nodes?
+
+    # now filter out subnetworks via minimum node count
+    # TODO:  update union_all to support GeoGraph?
+    filtered_graph = nx.union_all(filter(
+        lambda sub: len(sub.node) >= min_node_count,
+        nx.connected_component_subgraphs(result_geo_graph)))
+
+    # map coords back to geograph
+    # NOTE:  explicit relabel to int as somewhere in filtering above, some
+    # node ids are set to numpy types which screws up comparisons to tuples
+    # in write op
+    # NOTE:  relabeling nodes in-place here drops node attributes for some
+    #   reason so create a copy for now
+    def id_label(i): 
+        id = int(i+1) if one_based else int(i)
+        return id
+
+    msf = None
+    if filtered_graph:
+        coords = {id_label(i): result_geo_graph.coords[i]
+                    for i in filtered_graph}
+        relabeled = nx.relabel_nodes(filtered_graph, {i: id_label(i)
+            for i in filtered_graph}, copy=True)
+        msf = GeoGraph(result_geo_graph.srs, coords=coords, data=relabeled)
+
+    return msf, existing
 
 
 def merge_network_and_nodes(network, demand_nodes):
@@ -193,13 +224,15 @@ def merge_network_and_nodes(network, demand_nodes):
     return merged, subgraphs, rtree
 
 
-def load_existing_networks(filename="existing_networks.shp", budget_value=0):
+def load_existing_networks(filename="existing_networks.shp", budget_value=0,
+                           prefix=None):
     """
     load existing_networks shp into GeoGraph nodes, edges and assign budget
 
     Args:
         filename:  existing_networks shapefile
         budget_value:  default budget value for nodes in existing network
+        prefix: if not None, relabel node ids with the prefix
 
     Returns:
         GeoGraph of existing networks with budget attribute
@@ -219,6 +252,12 @@ def load_existing_networks(filename="existing_networks.shp", budget_value=0):
     nx.set_edge_attributes(geo_net, 'weight', {(u, v):
                    distance(map(geo_net.coords.get, [u, v]))
                    for u, v in geo_net.edges()})
+
+    if prefix:
+        nx.relabel_nodes(geo_net,
+            {n: prefix + str(n) for n in geo_net.nodes()}, copy=False)
+        geo_net.coords = {prefix + str(n): c for n, c in
+            geo_net.coords.items()}
 
     return geo_net
 

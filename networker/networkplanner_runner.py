@@ -56,7 +56,24 @@ class NetworkPlannerRunner(object):
         metric_model = metric.getModel(self.config['metric_model'])
         metric_vbobs = self._run_metric_model(metric_model, metric_config)
         demand_nodes = self._get_demand_nodes(input_proj=demand_proj)
-        existing, msf = self._build_network(demand_nodes)
+
+        existing_networks = None
+
+        if 'existing_networks' in self.config:
+            existing_networks = networker_runner.load_existing_networks(
+                prefix="grid-",
+                **self.config['existing_networks'])
+
+        min_node_count = self.config['network_parameters']\
+                                    ['minimum_node_count']
+        network_algorithm = self.config['network_algorithm']
+
+        msf, existing = networker_runner.build_network(demand_nodes, 
+                                existing=existing_networks,
+                                min_node_count=min_node_count,
+                                network_algorithm=network_algorithm,
+                                one_based=True)
+
         self._store_networks(msf, existing)
         metric_vbobs = self._update_metrics(metric_model, metric_vbobs)
         self._save_output(metric_vbobs, metric_config, metric_model)
@@ -149,6 +166,7 @@ class NetworkPlannerRunner(object):
         result_geo_graph = network_algo(geo_graph, subgraphs=subgraphs,\
                                         rtree=rtree)
 
+        import pdb; pdb.set_trace()
         # now filter out subnetworks via minimum node count
         min_node_count = self.config['network_parameters']\
                                     ['minimum_node_count']
@@ -165,10 +183,12 @@ class NetworkPlannerRunner(object):
         #   reason so create a copy for now
         # NOTE:  use i+1 as node id in graph because dataset_store node ids
         # start at 1 (this is the realignment noted in _get_demand_nodes)
-        coords = {i+1: result_geo_graph.coords[i] for i in filtered_graph}
-        relabeled = nx.relabel_nodes(filtered_graph, {i: int(i+1)
-            for i in filtered_graph}, copy=True)
-        msf = GeoGraph(result_geo_graph.srs, coords=coords, data=relabeled)
+        msf = None 
+        if filtered_graph:
+            coords = {i+1: result_geo_graph.coords[i] for i in filtered_graph}
+            relabeled = nx.relabel_nodes(filtered_graph, {i: int(i+1)
+                for i in filtered_graph}, copy=True)
+            msf = GeoGraph(result_geo_graph.srs, coords=coords, data=relabeled)
 
         return existing, msf
 
