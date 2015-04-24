@@ -56,8 +56,25 @@ class NetworkPlannerRunner(object):
         metric_model = metric.getModel(self.config['metric_model'])
         metric_vbobs = self._run_metric_model(metric_model, metric_config)
         demand_nodes = self._get_demand_nodes(input_proj=demand_proj)
-        existing, msf = self._build_network(demand_nodes)
-        self._store_networks(msf, existing)
+
+        existing_networks = None
+
+        if 'existing_networks' in self.config:
+            existing_networks = networker_runner.load_existing_networks(
+                prefix="grid-",
+                **self.config['existing_networks'])
+
+        min_node_count = self.config['network_parameters']\
+                                    ['minimum_node_count']
+        network_algorithm = self.config['network_algorithm']
+
+        msf = networker_runner.build_network(demand_nodes, 
+                                existing=existing_networks,
+                                min_node_count=min_node_count,
+                                network_algorithm=network_algorithm,
+                                one_based=True)
+
+        self._store_networks(msf, existing_networks)
         metric_vbobs = self._update_metrics(metric_model, metric_vbobs)
         self._save_output(metric_vbobs, metric_config, metric_model)
 
@@ -113,65 +130,6 @@ class NetworkPlannerRunner(object):
         nx.set_node_attributes(geo_nodes, 'budget', budget_dict)
         return geo_nodes
 
-    def _build_network(self, demand_nodes):
-        """
-        project demand nodes onto optional existing supply network and
-        network generation algorithm on it
-
-        Args:
-            demand_nodes:  GeoGraph of demand nodes
-
-        Returns:
-            GeoGraph  minimum spanning forest proposed by the chosen
-                network algorithm
-        """
-
-        geo_graph = subgraphs = rtree = None
-
-        existing = None
-        if 'existing_networks' in self.config:
-            existing = networker_runner.load_existing_networks(
-                **self.config['existing_networks'])
-            # rename existing nodes so that they don't intersect with metrics
-            nx.relabel_nodes(existing,
-                {n: 'grid-' + str(n) for n in existing.nodes()}, copy=False)
-            existing.coords = {'grid-' + str(n): c for n, c in
-                existing.coords.items()}
-            geo_graph, subgraphs, rtree = \
-                networker_runner.merge_network_and_nodes(existing, \
-                    demand_nodes)
-        else:
-            geo_graph = demand_nodes
-
-        # now run the selected algorithm
-        network_algo = networker_runner.NetworkerRunner.ALGOS[\
-                        self.config['network_algorithm']]
-        result_geo_graph = network_algo(geo_graph, subgraphs=subgraphs,\
-                                        rtree=rtree)
-
-        # now filter out subnetworks via minimum node count
-        min_node_count = self.config['network_parameters']\
-                                    ['minimum_node_count']
-        filtered_graph = nx.union_all(filter(
-            lambda sub: len(sub.node) >= min_node_count,
-            nx.connected_component_subgraphs(result_geo_graph)))
-
-        # map coords back to geograph
-        # NOTE:  explicit relabel to int as somewhere in filtering above, some
-        #   node ids are set to numpy types which screws up comparisons to
-        #   tuples in write op
-        # TODO:  Google problem and report to networkx folks if needed
-        # NOTE:  relabeling nodes in-place here drops node attributes for some
-        #   reason so create a copy for now
-        # NOTE:  use i+1 as node id in graph because dataset_store node ids
-        # start at 1 (this is the realignment noted in _get_demand_nodes)
-        coords = {i+1: result_geo_graph.coords[i] for i in filtered_graph}
-        relabeled = nx.relabel_nodes(filtered_graph, {i: int(i+1)
-            for i in filtered_graph}, copy=True)
-        msf = GeoGraph(result_geo_graph.srs, coords=coords, data=relabeled)
-
-        return existing, msf
-
     def _store_networks(self, msf, existing=None):
 
         # Add the existing grid to the dataset_store
@@ -185,33 +143,31 @@ class NetworkPlannerRunner(object):
                 self.store.session.add(segment)
 
         # Translate the NetworkX Graph to dataset_store objects
-        for subgraph in nx.connected_component_subgraphs(msf):
-            # Initialize the subgraph in the store
-            dataset_subnet = dataset_store.Subnet()
-            self.store.session.add(dataset_subnet)
-            self.store.session.commit()
+        if msf:
+            # add the fake nodes in the msf to the store
+            for fake in [n for n in msf if msf.node[n]['budget'] == np.inf]:
+                dataset_node = self.store.addNode(msf.coords[fake],
+                                                    is_fake=True)
+                dataset_node.id = fake
+                self.store.session.add(dataset_node)
+                self.store.session.commit()
 
-            # Extend the dstore subnet with its segments
-            for u, v, data in subgraph.edges(data=True):
-                edge = u, v
+            for subgraph in nx.connected_component_subgraphs(msf):
+                # Initialize the subgraph in the store
+                dataset_subnet = dataset_store.Subnet()
+                self.store.session.add(dataset_subnet)
+                self.store.session.commit()
 
-                # If any fake nodes in the edge, add to the dstore
-                for i, fake in enumerate([n for n in edge if
-                        msf.node[n]['budget'] == np.inf], 1):
-                    dataset_node = self.store.addNode(msf.coords[fake],
-                                                        is_fake=True)
-                    dataset_node.id = fake
-                    self.store.session.add(dataset_node)
-                    self.store.session.commit()
-                    # Edges should never be composed of two fake nodes
-                    assert i <= 1
+                # Extend the dstore subnet with its segments
+                for u, v, data in subgraph.edges(data=True):
+                    edge = u, v
 
-                # Add the edge to the subnet
-                segment = dataset_store.Segment(*edge)
-                segment.subnet_id = dataset_subnet.id
-                segment.is_existing = False
-                segment.weight = data['weight']
-                self.store.session.add(segment)
+                    # Add the edge to the subnet
+                    segment = dataset_store.Segment(*edge)
+                    segment.subnet_id = dataset_subnet.id
+                    segment.is_existing = False
+                    segment.weight = data['weight']
+                    self.store.session.add(segment)
 
         # Commit changes
         self.store.session.commit()
