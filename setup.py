@@ -5,7 +5,7 @@ with open('requirements.txt') as f:
 
 setup(
     name="networker",
-    version="0.0.3",
+    version="0.0.4",
     packages=find_packages(),
     description="Python library for planning distribution networks",
     long_description=open("README.md").read(),
