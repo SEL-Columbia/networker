@@ -130,68 +130,6 @@ class NetworkPlannerRunner(object):
         nx.set_node_attributes(geo_nodes, 'budget', budget_dict)
         return geo_nodes
 
-    def _build_network(self, demand_nodes):
-        """
-        project demand nodes onto optional existing supply network and
-        network generation algorithm on it
-
-        Args:
-            demand_nodes:  GeoGraph of demand nodes
-
-        Returns:
-            GeoGraph  minimum spanning forest proposed by the chosen
-                network algorithm
-        """
-
-        geo_graph = subgraphs = rtree = None
-
-        existing = None
-        if 'existing_networks' in self.config:
-            existing = networker_runner.load_existing_networks(
-                **self.config['existing_networks'])
-            # rename existing nodes so that they don't intersect with metrics
-            nx.relabel_nodes(existing,
-                {n: 'grid-' + str(n) for n in existing.nodes()}, copy=False)
-            existing.coords = {'grid-' + str(n): c for n, c in
-                existing.coords.items()}
-            geo_graph, subgraphs, rtree = \
-                networker_runner.merge_network_and_nodes(existing, \
-                    demand_nodes)
-        else:
-            geo_graph = demand_nodes
-
-        # now run the selected algorithm
-        network_algo = networker_runner.NetworkerRunner.ALGOS[\
-                        self.config['network_algorithm']]
-        result_geo_graph = network_algo(geo_graph, subgraphs=subgraphs,\
-                                        rtree=rtree)
-
-        import pdb; pdb.set_trace()
-        # now filter out subnetworks via minimum node count
-        min_node_count = self.config['network_parameters']\
-                                    ['minimum_node_count']
-        filtered_graph = nx.union_all(filter(
-            lambda sub: len(sub.node) >= min_node_count,
-            nx.connected_component_subgraphs(result_geo_graph)))
-
-        # map coords back to geograph
-        # NOTE:  explicit relabel to int as somewhere in filtering above, some
-        #   node ids are set to numpy types which screws up comparisons to
-        #   tuples in write op
-        # TODO:  Google problem and report to networkx folks if needed
-        # NOTE:  relabeling nodes in-place here drops node attributes for some
-        #   reason so create a copy for now
-        # NOTE:  use i+1 as node id in graph because dataset_store node ids
-        # start at 1 (this is the realignment noted in _get_demand_nodes)
-        msf = None 
-        if filtered_graph:
-            coords = {i+1: result_geo_graph.coords[i] for i in filtered_graph}
-            relabeled = nx.relabel_nodes(filtered_graph, {i: int(i+1)
-                for i in filtered_graph}, copy=True)
-            msf = GeoGraph(result_geo_graph.srs, coords=coords, data=relabeled)
-
-        return existing, msf
-
     def _store_networks(self, msf, existing=None):
 
         # Add the existing grid to the dataset_store
