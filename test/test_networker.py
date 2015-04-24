@@ -125,7 +125,7 @@ def test_msf_components():
         if not c_sets == mst_sets:
             diff_component_mst.append(i)
 
-    assert len(diff_component_mst) == 0, len(diff_component_mst) + \
+    assert len(diff_component_mst) == 0, str(len(diff_component_mst)) + \
         " components are not MSTs"
 
 
