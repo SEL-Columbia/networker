@@ -61,7 +61,7 @@ class NetworkerRunner(object):
                                     ['minimum_node_count']
         network_algorithm = self.config['network_algorithm']
 
-        msf, _ = build_network(demand_nodes, 
+        msf = build_network(demand_nodes, 
                                 existing=existing_networks,
                                 min_node_count=min_node_count,
                                 network_algorithm=network_algorithm)
@@ -71,7 +71,6 @@ class NetworkerRunner(object):
             os.makedirs(self.output_directory)
 
         nio.write_shp(msf, self.output_directory)
-
 
     def validate(self):
         """
@@ -151,7 +150,7 @@ def build_network(demand_nodes,
             for i in filtered_graph}, copy=True)
         msf = GeoGraph(result_geo_graph.srs, coords=coords, data=relabeled)
 
-    return msf, existing
+    return msf
 
 
 def merge_network_and_nodes(network, demand_nodes):

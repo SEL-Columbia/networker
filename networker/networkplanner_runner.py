@@ -68,13 +68,13 @@ class NetworkPlannerRunner(object):
                                     ['minimum_node_count']
         network_algorithm = self.config['network_algorithm']
 
-        msf, existing = networker_runner.build_network(demand_nodes, 
+        msf = networker_runner.build_network(demand_nodes, 
                                 existing=existing_networks,
                                 min_node_count=min_node_count,
                                 network_algorithm=network_algorithm,
                                 one_based=True)
 
-        self._store_networks(msf, existing)
+        self._store_networks(msf, existing_networks)
         metric_vbobs = self._update_metrics(metric_model, metric_vbobs)
         self._save_output(metric_vbobs, metric_config, metric_model)
 
@@ -143,33 +143,31 @@ class NetworkPlannerRunner(object):
                 self.store.session.add(segment)
 
         # Translate the NetworkX Graph to dataset_store objects
-        for subgraph in nx.connected_component_subgraphs(msf):
-            # Initialize the subgraph in the store
-            dataset_subnet = dataset_store.Subnet()
-            self.store.session.add(dataset_subnet)
-            self.store.session.commit()
+        if msf:
+            # add the fake nodes in the msf to the store
+            for fake in [n for n in msf if msf.node[n]['budget'] == np.inf]:
+                dataset_node = self.store.addNode(msf.coords[fake],
+                                                    is_fake=True)
+                dataset_node.id = fake
+                self.store.session.add(dataset_node)
+                self.store.session.commit()
 
-            # Extend the dstore subnet with its segments
-            for u, v, data in subgraph.edges(data=True):
-                edge = u, v
+            for subgraph in nx.connected_component_subgraphs(msf):
+                # Initialize the subgraph in the store
+                dataset_subnet = dataset_store.Subnet()
+                self.store.session.add(dataset_subnet)
+                self.store.session.commit()
 
-                # If any fake nodes in the edge, add to the dstore
-                for i, fake in enumerate([n for n in edge if
-                        msf.node[n]['budget'] == np.inf], 1):
-                    dataset_node = self.store.addNode(msf.coords[fake],
-                                                        is_fake=True)
-                    dataset_node.id = fake
-                    self.store.session.add(dataset_node)
-                    self.store.session.commit()
-                    # Edges should never be composed of two fake nodes
-                    assert i <= 1
+                # Extend the dstore subnet with its segments
+                for u, v, data in subgraph.edges(data=True):
+                    edge = u, v
 
-                # Add the edge to the subnet
-                segment = dataset_store.Segment(*edge)
-                segment.subnet_id = dataset_subnet.id
-                segment.is_existing = False
-                segment.weight = data['weight']
-                self.store.session.add(segment)
+                    # Add the edge to the subnet
+                    segment = dataset_store.Segment(*edge)
+                    segment.subnet_id = dataset_subnet.id
+                    segment.is_existing = False
+                    segment.weight = data['weight']
+                    self.store.session.add(segment)
 
         # Commit changes
         self.store.session.commit()
