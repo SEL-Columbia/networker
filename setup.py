@@ -5,12 +5,13 @@ with open('requirements.txt') as f:
 
 setup(
     name="networker",
-    version="0.0.4",
+    version="0.0.5",
     packages=find_packages(),
     description="Python library for planning distribution networks",
     long_description=open("README.md").read(),
     package_data={'networker': ['*.json']}, 
     include_package_data=True,
     url='https://github.com/SEL-Columbia/networker',
-    install_requires=required
+    install_requires=required, 
+    scripts = ['scripts/run_networker.py', 'scripts/run_networkplanner.py']
 )
