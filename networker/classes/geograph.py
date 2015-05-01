@@ -139,10 +139,14 @@ class GeoGraph(GeoObject, nx.Graph):
             # add 'real' node to 'fake' node edge
             geo.add_edge(node, new_node)
             # split edge with new node
+            # this is where overlap between self and other would be bad
+            # because we're adding nodes directly from self to new geograph
             geo.add_edge(edge[0], new_node)
             geo.add_edge(new_node, edge[1])
             # add coords
             geo.coords[new_node] = coords
+            geo.coords[edge[0]] = self.coords[edge[0]]
+            geo.coords[edge[1]] = self.coords[edge[1]]
 
         return geo
 
@@ -212,7 +216,8 @@ class GeoGraph(GeoObject, nx.Graph):
         assert np.shape(c0)[0] == np.shape(c1)[0] == space, \
             "coordinate space of nodes and coord must match"
 
-        project_fun = {2: gm.project_point_on_segment,
+        project_fun = {2: gm.project_geopoint_on_arc if self.is_geographic()\
+                                            else gm.project_point_on_segment,
                        3: gm.project_point_on_arc}
 
         proj_coord = project_fun[space](coord, c0, c1)

@@ -1,6 +1,7 @@
 # -*- coding: utf8 -*-
 
 import networkx as nx
+import numpy as np
 import networker.geomath as gm 
 import pyproj as prj
 from networkx.readwrite import json_graph
@@ -69,3 +70,31 @@ def geograph_to_json(g):
 
     js_g = json_graph.node_link_data(g2)
     return js_g
+
+# spherical drawing helpers
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+# globals for testing
+global ax
+def setup_3d_plot():
+    global ax
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+
+def draw_wireframe(color="r"):
+
+    global ax
+    u, v = np.mgrid[0:2*np.pi:100j, 0:np.pi:50j]
+    x=np.cos(u)*np.sin(v)
+    y=np.sin(u)*np.sin(v)
+    z=np.cos(v)
+    ax.plot_wireframe(x, y, z, color=color)
+
+def draw_arc(v1, v2, color="b", points_per_radian=100):
+    """
+    draw arc in 3d plot
+    """
+
+    global ax
+    arc_points = gm.get_arc_3D(v1, v2, points_per_radian=points_per_radian)
+    ax.plot(arc_points[:,0], arc_points[:,1], arc_points[:,2], color=color)

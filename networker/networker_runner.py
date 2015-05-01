@@ -119,6 +119,7 @@ def build_network(demand_nodes,
     else:
         geo_graph = demand_nodes
 
+
     # now run the selected algorithm
     network_algo = NetworkerRunner.ALGOS[network_algorithm]
     result_geo_graph = network_algo(geo_graph, subgraphs=subgraphs,
@@ -237,7 +238,7 @@ def load_existing_networks(filename="existing_networks.shp", budget_value=0,
         GeoGraph of existing networks with budget attribute
     """
 
-    geo_net = nio.load_shp(filename)
+    geo_net = nio.load_shp(filename, simplify=False)
 
     nx.set_node_attributes(geo_net, 'budget', {n: budget_value
         for n in geo_net.nodes()})

@@ -24,8 +24,8 @@ def networker_run_compare(config_file, known_results_file, output_dir):
 
     # compare this run against existing results
     test_geo = nio.load_shp(os.path.join(output_dir,
-                            "edges.shp"))
-    known_geo = nio.load_shp(known_results_file)
+                            "edges.shp"), simplify=False)
+    known_geo = nio.load_shp(known_results_file, simplify=False)
     # compare sets of edges
 
     test_edges = test_geo.get_coord_edge_set()
