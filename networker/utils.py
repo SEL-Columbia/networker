@@ -71,7 +71,9 @@ def geograph_to_json(g):
     js_g = json_graph.node_link_data(g2)
     return js_g
 
-# spherical drawing helpers
+
+""" 
+spherical drawing helpers
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 # globals for testing
@@ -91,10 +93,9 @@ def draw_wireframe(color="r"):
     ax.plot_wireframe(x, y, z, color=color)
 
 def draw_arc(v1, v2, color="b", points_per_radian=100):
-    """
     draw arc in 3d plot
-    """
 
     global ax
     arc_points = gm.get_arc_3D(v1, v2, points_per_radian=points_per_radian)
     ax.plot(arc_points[:,0], arc_points[:,1], arc_points[:,2], color=color)
+"""

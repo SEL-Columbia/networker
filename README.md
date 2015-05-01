@@ -96,16 +96,16 @@ installed in this environment:
 
 ```
 # the geojson library will be installed from the ioos channel so add it
-conda config --add channels 'ioos'
-conda install -c sel networkplanner-metrics
+conda install -c ioos -c sel networkplanner-metrics
 ```
 
 Now install the networker library
 
 ```
-# only need to add dougal channel on OSX
-conda config --add channels 'dougal'
-conda install -c sel networker
+# on OSX do this
+conda install -c dougal -c sel networker
+# on Linux do this
+conda install -c ioos -c sel networker
 ```
 
 On OSX, there appears to be an issue related to [this](https://github.com/conda/conda/issues/308) and [this](https://github.com/ioos/conda-recipes/issues/141) where the libspatialindex library cannot be found.  As a workaround, you can do the following from within your networker environment before running any scripts (this is not ideal...alternative approaches appreciated):  
