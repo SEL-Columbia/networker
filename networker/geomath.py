@@ -62,6 +62,40 @@ def ang_to_vec_coords(coords, radius=MEAN_EARTH_RADIUS_M):
     return np.array([x, y, z]).T * radius
 
 
+def vec_to_ang_coords(coords):
+    """
+    Transform vector (x, y, z) coordinates on a sphere to angular coordinates
+    with equatorial and polar axis
+
+    Args:
+        coords:  nx3 array of x, y, z  
+
+    Returns:
+        array:   nx2 array of angular coordinates
+
+      (z) |  /
+          | /.(λ,φ)
+          |/ |
+     -----+-------
+         /|\ |  (y)
+        / | \|
+    (x)/  |  (h)
+
+    """
+
+    assert np.shape(coords)[-1] == 3, "coords last dim must be 3 (x, y, z)"
+
+    # transpose to operate on easily and xform to degrees 
+    x, y, z = np.transpose(coords)
+
+    h = np.sqrt(x**2 + y**2)
+    lon_rad = np.arcsin(y / h)
+    lat_rad = np.arctan(z / h)
+
+    # transpose to nx2 and convert back to degrees
+    return np.array([lon_rad * (180.0 / np.pi), lat_rad * (180.0 / np.pi)]).T
+
+
 def spherical_distance_haversine(coord_pairs, radius=MEAN_EARTH_RADIUS_M):
     """
     Calculate distance on sphere between pairs of coordinates via
@@ -439,6 +473,20 @@ def arc_intersection(a1, a2, radius=MEAN_EARTH_RADIUS_M, on_arc_test=True):
     return p
 
 
+def project_geopoint_on_arc(p, v1, v2, radius=MEAN_EARTH_RADIUS_M):
+    """
+    EXPERIMENTAL 
+
+    Convert latlong to 3d point, project and convert back to latlong
+    """
+    p_3 = ang_to_vec_coords(p, radius=radius)
+    v1_3 = ang_to_vec_coords(v1, radius=radius)
+    v2_3 = ang_to_vec_coords(v2, radius=radius)
+    projected = project_point_on_arc(p_3, v1_3, v2_3, radius=radius)
+    lon, lat = vec_to_ang_coords(projected)
+    return lon, lat
+
+
 def project_point_on_arc(p, v1, v2, radius=MEAN_EARTH_RADIUS_M):
     """
     EXPERIMENTAL (needs more testing)
@@ -523,6 +571,23 @@ def all_dists(coords, spherical=True):
     return full_dist_matrix
 
 
+def all_pair_dists(a, b, spherical=True):
+
+    # get all perm's of coords
+    a_ = np.repeat(a, len(b), axis=0)
+    b_ = np.tile(b, (len(a), 1))
+
+    def sq_dist(c, d): return np.sum((c - d)**2, axis=1)
+
+    dists = np.sqrt(sq_dist(a_, b_))
+    if spherical:
+        coord_pairs = np.concatenate((a_[:,np.newaxis], b_[:,np.newaxis]),
+                                        axis=1)
+        dists = spherical_distance_haversine(coord_pairs)
+
+    return np.reshape(dists, (len(a), len(b)))
+
+
 def nn_dists(coords, spherical=True):
     """
     associate nearest neighbor coords by index
@@ -585,3 +650,36 @@ def coordinate_transform_proj4(proj1, proj2, coords):
     srs2.ImportFromProj4(proj2)
 
     return coordinate_transform(srs1, srs2, coords)
+
+
+def get_arc_3D(v1, v2, points_per_radian=100, radius=1):
+    """
+    Get 3D points along sphere from angular coordinates
+
+    Args:
+        v1, v2:  angular points defining arc
+        radius:  of sphere to compute arc on
+
+    Returns:
+        array:  num_points x 3 array of 3d points representing arc on sphere
+
+    From LCKurtz and Simon Bridge responses here:
+    https://www.physicsforums.com/threads/how-to-find-all-points-along-a\
+    -great-circle-given-two-points-on-circle.571535/
+
+    """
+
+    # v1 and w become the x, y axes of the great circle
+    v1_3D = ang_to_vec_coords(v1, radius=radius)
+    v2_3D = ang_to_vec_coords(v2, radius=radius)
+    w_axis_3D = np.cross(np.cross(v1_3D, v2_3D), v1_3D)
+    # make w a vector of proper radius
+    w_len = np.sqrt(square_distance([0,0,0], w_axis_3D))
+    w_3D = w_axis_3D * (radius / w_len) 
+    arc_len = np.arccos(np.dot(v1_3D, v2_3D))
+    num_points = arc_len * points_per_radian
+    t = np.linspace(0, arc_len, num_points)
+    u, cos_t = np.meshgrid(v1_3D, np.cos(t))
+    w, sin_t = np.meshgrid(w_3D, np.sin(t))
+    arc_points = u*cos_t + w*sin_t
+    return arc_points
