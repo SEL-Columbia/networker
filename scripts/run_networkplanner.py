@@ -4,7 +4,29 @@ import argparse
 import json
 import sys
 import os
+import networker
+import logging
 from networker import networkplanner_runner
+
+# setup log
+logger = logging.getLogger('networker')
+logger.setLevel(logging.INFO)
+
+ch = logging.StreamHandler()
+ch.setLevel(logging.INFO)
+
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+ch.setFormatter(formatter)
+
+logging.getLogger('networker').propagate = False
+
+logger.addHandler(ch)
+
+logger.info("networker %s (Python %s)" % (
+                networker.__version__,
+                '.'.join(map(str, sys.version_info[:3]))))
+
 
 parser = argparse.ArgumentParser(description="Run networkplanner")
 parser.add_argument("config_filename",
