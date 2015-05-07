@@ -64,19 +64,33 @@ class NetworkPlannerRunner(object):
                 prefix="grid-",
                 **self.config['existing_networks'])
 
-        min_node_count = self.config['network_parameters']\
-                                    ['minimum_node_count']
         network_algorithm = self.config['network_algorithm']
+
+        min_node_count = 0
+        single_network = True
+        if self.config.has_key('network_parameters'):
+            network_params = self.config['network_parameters']
+            min_node_count = network_params.get('minimum_node_count', 0)
+            single_network = network_params.get('single_network', True)
+
+        header_type = VS.HEADER_TYPE_SECTION_OPTION 
+        if self.config.has_key('output_parameters'):
+            output_params = self.config['output_parameters']
+            header_type = output_params.get('header_type',\
+                                            VS.HEADER_TYPE_SECTION_OPTION)
+
 
         msf = networker_runner.build_network(demand_nodes, 
                                 existing=existing_networks,
                                 min_node_count=min_node_count,
+                                single_network=single_network,
                                 network_algorithm=network_algorithm,
                                 one_based=True)
 
         self._store_networks(msf, existing_networks)
         metric_vbobs = self._update_metrics(metric_model, metric_vbobs)
-        self._save_output(metric_vbobs, metric_config, metric_model)
+        self._save_output(metric_vbobs, metric_config, metric_model, 
+                            header_type=header_type)
 
     def _run_metric_model(self, metric_model, metric_config):
 
@@ -181,7 +195,7 @@ class NetworkPlannerRunner(object):
                                         metric_value_by_option_by_section)
 
     def _save_output(self, metric_value_by_option_by_section, metric_config,
-                    metric_model):
+                    metric_model, header_type=VS.HEADER_TYPE_SECTION_OPTION):
 
         output_directory = self.output_directory
         metric.saveMetricsConfigurationCSV(os.path.join(output_directory,
@@ -193,7 +207,7 @@ class NetworkPlannerRunner(object):
         self.store.saveMetricsCSV(os.path.join(output_directory,
             'metrics-local'),
             metric_model,
-            VS.HEADER_TYPE_ALIAS)
+            header_type)
         # underlying library can't handle unicode strings so cast via str
         self.store.saveSegmentsSHP(os.path.join(str(output_directory),
             'networks-proposed'), is_existing=False)
