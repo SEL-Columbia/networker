@@ -93,7 +93,7 @@ def draw_wireframe(color="r"):
     ax.plot_wireframe(x, y, z, color=color)
 
 def draw_arc(v1, v2, color="b", points_per_radian=100):
-    draw arc in 3d plot
+    # draw arc in 3d plot
 
     global ax
     arc_points = gm.get_arc_3D(v1, v2, points_per_radian=points_per_radian)

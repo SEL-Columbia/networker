@@ -1,5 +1,10 @@
 # -*- coding: utf-8 -*-
 
+import os
+import logging
+import json
+import jsonschema
+
 import networkx as nx
 import numpy as np
 import pandas as pd
@@ -10,10 +15,8 @@ from networker.classes.geograph import GeoGraph
 import networker.io as nio
 import networker.geomath as gm
 import networker.algorithms as algo
-import os
-import json
-import jsonschema
 
+log = logging.getLogger('networker')
 
 class NetworkerRunner(object):
 
@@ -66,16 +69,18 @@ class NetworkerRunner(object):
             min_node_count = network_params.get('minimum_node_count', 0)
             single_network = network_params.get('single_network', True)
 
+        log.info("building network")
         msf = build_network(demand_nodes, 
                                 existing=existing_networks,
                                 min_node_count=min_node_count,
                                 single_network=single_network,
                                 network_algorithm=network_algorithm)
 
+        log.info("writing output")
         # now save it
         if not os.path.exists(self.output_directory):
             os.makedirs(self.output_directory)
-
+        
         nio.write_shp(msf, self.output_directory)
 
     def validate(self):
@@ -121,12 +126,15 @@ def build_network(demand_nodes,
     geo_graph = subgraphs = rtree = None
 
     if existing:
+        log.info("merging network and nodes")
         geo_graph, subgraphs, rtree = \
             merge_network_and_nodes(existing, demand_nodes, 
                 single_network=single_network)
     else:
         geo_graph = demand_nodes
 
+    log.info("running {} on {} demand nodes and {} total nodes".format(
+              network_algorithm, len(demand_nodes), len(geo_graph)))
 
     # now run the selected algorithm
     network_algo = NetworkerRunner.ALGOS[network_algorithm]
@@ -158,6 +166,9 @@ def build_network(demand_nodes,
         relabeled = nx.relabel_nodes(filtered_graph, {i: id_label(i)
             for i in filtered_graph}, copy=True)
         msf = GeoGraph(result_geo_graph.srs, coords=coords, data=relabeled)
+
+    log.info("filtered result has {} nodes and {} edges".format(
+              len(msf.nodes()), len(msf.edges())))
 
     return msf
 

@@ -3,6 +3,7 @@
 import json
 import jsonschema
 import os
+import logging
 import networkx as nx
 import numpy as np
 
@@ -13,6 +14,7 @@ from networker.classes.geograph import GeoGraph
 from networker import networker_runner
 from networker.utils import csv_projection
 
+log = logging.getLogger('networker')
 
 class NetworkPlannerRunner(object):
 
@@ -79,7 +81,7 @@ class NetworkPlannerRunner(object):
             header_type = output_params.get('header_type',\
                                             VS.HEADER_TYPE_SECTION_OPTION)
 
-
+        log.info("building network")
         msf = networker_runner.build_network(demand_nodes, 
                                 existing=existing_networks,
                                 min_node_count=min_node_count,
@@ -87,6 +89,7 @@ class NetworkPlannerRunner(object):
                                 network_algorithm=network_algorithm,
                                 one_based=True)
 
+        log.info("writing output")
         self._store_networks(msf, existing_networks)
         metric_vbobs = self._update_metrics(metric_model, metric_vbobs)
         self._save_output(metric_vbobs, metric_config, metric_model, 
