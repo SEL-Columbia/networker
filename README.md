@@ -2,7 +2,9 @@
 
 Networker contains tools for planning distribution networks from supply and demand data.  
 
-[![Build Status](https://travis-ci.org/SEL-Columbia/networker.svg?branch=master)](https://travis-ci.org/SEL-Columbia/networker.svg?branch=master)
+[![Build Status](https://travis-ci.org/SEL-Columbia/networker.svg?branch=master)](https://travis-ci.org/SEL-Columbia/networker)
+
+[![Coverage](https://coveralls.io/repos/SEL-Columbia/networker/badge.png)](https://coveralls.io/r/SEL-Columbia/networker)
 
 It relies on numpy, networkx and also utilizes several spatial indexes.  
 

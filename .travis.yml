@@ -18,6 +18,7 @@ install:
   - conda install --yes -c sel -n networker networkplanner-metrics
   - conda install --yes -c sel -n networker networker
   # setup coverage tools
+  - conda install coverage
   - conda install coveralls
 before_script:
   # cache the lib dir and activate the conda environment
