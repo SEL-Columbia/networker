@@ -1,5 +1,10 @@
 # -*- coding: utf-8 -*-
 
+import os
+import logging
+import json
+import jsonschema
+
 import networkx as nx
 import numpy as np
 import pandas as pd
@@ -10,10 +15,8 @@ from networker.classes.geograph import GeoGraph
 import networker.io as nio
 import networker.geomath as gm
 import networker.algorithms as algo
-import os
-import json
-import jsonschema
 
+log = logging.getLogger('networker')
 
 class NetworkerRunner(object):
 
@@ -57,19 +60,27 @@ class NetworkerRunner(object):
                 prefix="grid-",
                 **self.config['existing_networks'])
 
-        min_node_count = self.config['network_parameters']\
-                                    ['minimum_node_count']
         network_algorithm = self.config['network_algorithm']
+        
+        min_node_count = 0
+        single_network = True
+        if self.config.has_key('network_parameters'):
+            network_params = self.config['network_parameters']
+            min_node_count = network_params.get('minimum_node_count', 0)
+            single_network = network_params.get('single_network', True)
 
+        log.info("building network")
         msf = build_network(demand_nodes, 
                                 existing=existing_networks,
                                 min_node_count=min_node_count,
+                                single_network=single_network,
                                 network_algorithm=network_algorithm)
 
+        log.info("writing output")
         # now save it
         if not os.path.exists(self.output_directory):
             os.makedirs(self.output_directory)
-
+        
         nio.write_shp(msf, self.output_directory)
 
     def validate(self):
@@ -88,6 +99,7 @@ class NetworkerRunner(object):
 def build_network(demand_nodes, 
                     existing=None, 
                     min_node_count=2,
+                    single_network=True,
                     network_algorithm='mod_boruvka',
                     one_based=False 
                     ):
@@ -114,11 +126,15 @@ def build_network(demand_nodes,
     geo_graph = subgraphs = rtree = None
 
     if existing:
+        log.info("merging network and nodes")
         geo_graph, subgraphs, rtree = \
-            merge_network_and_nodes(existing, demand_nodes)
+            merge_network_and_nodes(existing, demand_nodes, 
+                single_network=single_network)
     else:
         geo_graph = demand_nodes
 
+    log.info("running {} on {} demand nodes and {} total nodes".format(
+              network_algorithm, len(demand_nodes), len(geo_graph)))
 
     # now run the selected algorithm
     network_algo = NetworkerRunner.ALGOS[network_algorithm]
@@ -151,10 +167,13 @@ def build_network(demand_nodes,
             for i in filtered_graph}, copy=True)
         msf = GeoGraph(result_geo_graph.srs, coords=coords, data=relabeled)
 
+    log.info("filtered result has {} nodes and {} edges".format(
+              len(msf.nodes()), len(msf.edges())))
+
     return msf
 
 
-def merge_network_and_nodes(network, demand_nodes):
+def merge_network_and_nodes(network, demand_nodes, single_network=True):
     """
     merge the network and nodes GeoGraphs to set up the Graph, UnionFind
     (DisjoinSet), and RTree datastructures for use in network algorithms
@@ -163,13 +182,15 @@ def merge_network_and_nodes(network, demand_nodes):
         network:  graph representing existing network
             (assumes node ids don't conflict with net (demand) nodes)
         demand_nodes:  graph of nodes representing demand
+        single_network:  whether subgraphs of network are unioned into
+            a single network 
 
     Returns:
         graph:  graph with demand nodes and their nearest nodes to the
             existing network (i.e. 'fake' nodes)
         subgraphs:  UnionFind datastructure populated with fake nodes and
-            associated with the appropriate connected component from the
-            network
+            associated with the appropriate connected component or the entire
+            subgraph (depending on ``single_subgraph`` param)
         rtree:  spatial index populated with the edges from the
             existing network
     """
@@ -189,21 +210,38 @@ def merge_network_and_nodes(network, demand_nodes):
 
     edge_fakes = [(get_fake_edge(fake), fake) for fake in fakes]
 
-    # Get the network components to init budget centers
-    subnets = nx.connected_components(network)
-
     # Init the DisjointSet
     subgraphs = UnionFind()
 
-    # Build the subnet components
-    for sub in subnets:
-        # Start subcomponent with first node
-        subgraphs.add_component(sub[0], budget=network.node[sub[0]]['budget'])
-        # Merge remaining nodes with component
-        for node in sub[1:]:
+    assert len(network.nodes()) > 1, \
+        "network must have more than 1 node"
+    
+    if single_network:
+        # just union all nodes to a single parent
+        nodes = network.nodes()
+        # add parent
+        parent = nodes[0]
+        subgraphs.add_component(parent, budget=network.node[parent]['budget'])
+        for node in nodes[1:]:
             subgraphs.add_component(node, budget=network.node[node]['budget'])
             # The existing grid nodes are on the grid (so distance is 0)
-            subgraphs.union(sub[0], node, 0)
+            subgraphs.union(parent, node, 0)
+    else:
+        # Build the subnet components
+        # Get the network components to init budget centers
+        subnets = nx.connected_components(network)
+
+        for sub in subnets:
+            # union all nodes to parent of subnet 
+            parent = sub[0]
+            subgraphs.add_component(parent, 
+                                    budget=network.node[parent]['budget'])
+            # Merge remaining nodes with component
+            for node in sub[1:]:
+                subgraphs.add_component(node, 
+                                        budget=network.node[node]['budget'])
+                # The existing grid nodes are on the grid (so distance is 0)
+                subgraphs.union(parent, node, 0)
 
     # setup merged graph to be populated with fake nodes
     merged = GeoGraph(demand_nodes.srs, demand_nodes.coords, data=demand_nodes)

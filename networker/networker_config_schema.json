@@ -52,9 +52,30 @@
                     "description": "Minimum number of nodes in a subnetwork",
                     "minimum": 0,
                     "default": 0
+                },
+                "single_network": {
+                    "type": "boolean", 
+                    "description": "Treat subgraphs of network as a single network",
+                    "default": true
+                }
+            }
+        },
+        "output": {
+            "type": "object", 
+            "description": "parameters related to output",
+            "properties": {
+                "header_type": {
+                    "type": "string", 
+                    "description": "header output specifier",
+                    "enum": [
+                        "alias",
+                        "section_option"
+                    ],
+                    "default": "section_option"
                 }
             }
         }
+
     },
     "required": ["demand_nodes", "network_algorithm"]
 }

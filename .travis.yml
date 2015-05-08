@@ -17,12 +17,15 @@ install:
   - conda config --add channels 'ioos'
   - conda install --yes -c sel -n networker networkplanner-metrics
   - conda install --yes -c sel -n networker networker
+  # setup coverage tools
+  - conda install coveralls
 before_script:
   # cache the lib dir and activate the conda environment
   - sudo ldconfig "$HOME/miniconda/envs/networker/lib"
   - source activate networker
 script:
-  - nosetests
+  - nosetests --with-coverage
+after_success: coveralls
  
 notifications:
   irc: "irc.freenode.org#sel-columbia"

@@ -37,6 +37,11 @@
                     "description": "minimum number of nodes in a subnetwork",
                     "minimum": 0,
                     "default": 0
+                },
+                "single_network": {
+                    "type": "boolean", 
+                    "description": "Treat subgraphs of network as a single network",
+                    "default": true
                 }
             }
         },
@@ -54,6 +59,21 @@
         "metric_model_parameters_file": {
             "type": "string", 
             "description": "json file of config params to be passed to networkplanner model (legacy)"
+        },
+        "output_parameters": {
+            "type": "object", 
+            "description": "parameters related to output",
+            "properties": {
+                "header_type": {
+                    "type": "string", 
+                    "description": "header output specifier",
+                    "enum": [
+                        "alias",
+                        "section_option"
+                    ],
+                    "default": "section_option"
+                }
+            }
         }
     },
     "required": ["demand_nodes_file", "metric_model", "network_algorithm"]

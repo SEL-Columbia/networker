@@ -179,3 +179,59 @@ def test_msf_behavior():
         msf_sets = set([frozenset(e) for e in msf.edges()])
         iter_edge_set = set([frozenset(e) for e in edges_at_iteration[n]])
         eq_(msf_sets, iter_edge_set)
+
+
+def simple_nodes_disjoint_grid():
+    """
+    return disjoint net plus nodes with fakes
+    fakes are associated with disjoint subnets
+
+    nodes by id (budget in parens)
+
+                
+           (5) 0-------1 (5)
+               |       |
+             +-+-+   +-+-+  <-- disjoint existing grid
+
+    Useful for testing treating existing grid as single grid
+    vs disjoint 
+
+    """
+    # setup grid
+    grid_coords = np.array([[-1.0, 0.0], [1.0, 0.0], [3.0, 0.0], [5.0, 0.0]])
+    grid = GeoGraph(gm.PROJ4_FLAT_EARTH, {'grid-' + str(n): c for n, c in
+                    enumerate(grid_coords)})
+    nx.set_node_attributes(grid, 'budget', {n: 0 for n in grid.nodes()})
+    grid.add_edges_from([('grid-0', 'grid-1'), ('grid-2', 'grid-3')])
+
+    # setup input nodes
+    node_coords = np.array([[0.0, 1.0], [4.0, 1.0]])
+    nodes = GeoGraph(gm.PROJ4_FLAT_EARTH, dict(enumerate(node_coords)))
+    budget_values = [5, 5]
+    nx.set_node_attributes(nodes, 'budget', dict(enumerate(budget_values)))
+
+    fakes = [2, 3]
+    return grid, nodes, fakes
+
+
+def test_merge_network_and_nodes():
+    
+    grid, nodes, fakes = simple_nodes_disjoint_grid()
+    # test disjoint merge 
+    G, DS, R = networker_runner.merge_network_and_nodes(grid, nodes, 
+                                                        single_network=False)
+    fake_parents = [DS[fake] for fake in fakes]
+    assert len(np.unique(fake_parents)) == len(fake_parents), \
+        "fake nodes should be associated with distinct parents"
+
+    msf = mod_boruvka(G, DS, R)
+    assert msf.has_edge(0, 1), "edge between nodes 0, 1 should exist"
+
+    G, DS, R = networker_runner.merge_network_and_nodes(grid, nodes, 
+                                                        single_network=True)
+    fake_parents = [DS[fake] for fake in fakes]
+    assert len(np.unique(fake_parents)) == 1, \
+        "fake nodes should be associated with single parent"
+
+    msf = mod_boruvka(G, DS, R)
+    assert not msf.has_edge(0, 1), "edge between nodes 0, 1 should not exist"

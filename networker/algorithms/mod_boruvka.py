@@ -192,43 +192,43 @@ def mod_boruvka(G, subgraphs=None, rtree=None):
         while Ep._queue:
             (um, vm, dm) = Ep.pop()
 
-            # if doesn't create cycle and subgraph has enough MV
+            # if doesn't create cycle 
+            # and subgraphs have enough MV
+            # and we're not connecting 2 fake nodes 
+            # then allow the connection
             if subgraphs[um] != subgraphs[vm] and \
-                (subgraphs.budget[subgraphs[um]] >= dm or is_fake(um)):
-                # test that the connecting subgraph can receive the MV AND
-                # that both nodes are not fake
-                # TODO:  Clean up this logic
-                if (subgraphs.budget[subgraphs[vm]] >= dm or is_fake(vm)) and \
-                   not (is_fake(um) and is_fake(vm)):
+                (subgraphs.budget[subgraphs[um]] >= dm or is_fake(um)) and \
+                (subgraphs.budget[subgraphs[vm]] >= dm or is_fake(vm)) and \
+                not (is_fake(um) and is_fake(vm)):
 
-                    # doesn't create cycles from line segment intersection
-                    invalid_edge, intersections = \
-                        line_subgraph_intersection(subgraphs, rtree,
-                            coords[um], coords[vm])
+                # doesn't create cycles from line segment intersection
+                invalid_edge, intersections = \
+                    line_subgraph_intersection(subgraphs, rtree,
+                        coords[um], coords[vm])
 
-                    if not invalid_edge:
-                        # edges should not intersect a subgraph more than once
-                        assert(filter(lambda n: n > 1,
-                            intersections.values()) == [])
+                if not invalid_edge:
+                    # edges should not intersect a subgraph more than once
+                    assert(filter(lambda n: n > 1,
+                        intersections.values()) == [])
 
-                        # merge the subgraphs
-                        subgraphs.union(um, vm, dm)
+                    # merge the subgraphs
+                    subgraphs.union(um, vm, dm)
 
-                        # For all intersected subgraphs update the mv to that
-                        # created by the edge intersecting them,
-                        # TODO: This should be updated in not such a naive method
-                        map(lambda (n, _): subgraphs.union(um, n, 0),
-                                filter(lambda (n, i): i == 1 and
-                                        subgraphs[n] != subgraphs[um],
-                                    intersections.iteritems()))
+                    # For all intersected subgraphs update the mv to that
+                    # created by the edge intersecting them,
+                    # TODO: This should be updated in not such a naive method
+                    map(lambda (n, _): subgraphs.union(um, n, 0),
+                            filter(lambda (n, i): i == 1 and
+                                    subgraphs[n] != subgraphs[um],
+                                intersections.iteritems()))
 
-                        # index the newly added edge
-                        box = make_bounding_box(coords[um], coords[vm])
+                    # index the newly added edge
+                    box = make_bounding_box(coords[um], coords[vm])
 
-                        # Object is (u.label, v.label), (u.coord, v.coord)
-                        rtree.insert(hash((um, vm)), box,
-                            obj=((um, vm), (coords[um], coords[vm])))
-                        Et += [(um, vm, {'weight': dm})]
+                    # Object is (u.label, v.label), (u.coord, v.coord)
+                    rtree.insert(hash((um, vm)), box,
+                        obj=((um, vm), (coords[um], coords[vm])))
+                    Et += [(um, vm, {'weight': dm})]
 
     # create new GeoGraph with results
     result = G.copy()

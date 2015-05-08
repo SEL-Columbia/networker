@@ -10,18 +10,6 @@ from networker import networker_runner
 
 # setup log
 logger = logging.getLogger('networker')
-logger.setLevel(logging.INFO)
-
-ch = logging.StreamHandler()
-ch.setLevel(logging.INFO)
-
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-
-ch.setFormatter(formatter)
-
-logging.getLogger('networker').propagate = False
-
-logger.addHandler(ch)
 
 logger.info("networker %s (Python %s)" % (
                 networker.__version__,
