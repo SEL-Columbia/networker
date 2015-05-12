@@ -3,7 +3,9 @@
 import numpy as np
 from networker.geomath import project_point_on_segment, \
                                   project_point_on_arc, \
-                                  ang_to_vec_coords
+                                  ang_to_vec_coords, \
+                                  spherical_distance_dot, \
+                                  spherical_distance_haversine
 
 
 def test_project_point_2D():
@@ -72,3 +74,16 @@ def test_project_point_3D():
     p = project_point_on_arc(p2, v1, v2, radius=1)
     assert np.sum((e - p) ** 2) < SQ_TOLERANCE, \
         "projected point not on arc does not match expected"
+
+def test_spherical_dists():
+    """
+    compare dot vs haversine methods for spherical dist
+    """
+
+    xys = np.reshape(np.random.rand(20), (5,2,2))
+    
+    sum_diffs = np.abs(np.sum(spherical_distance_dot(xys) - \
+                spherical_distance_haversine(xys)))
+
+    assert sum_diffs < 1e-6, "dot and haversine results don't match"
+    

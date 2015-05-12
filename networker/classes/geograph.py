@@ -156,15 +156,17 @@ class GeoGraph(GeoObject, nx.Graph):
         distance function
         """
 
-        node_pairs = set(nx.product.product(self.nodes()))
-        node_pairs = node_pairs - zip(self.nodes(), self.nodes())
+        node_pairs = set(nx.product.product(self.nodes(), self.nodes()))
+        node_pairs = node_pairs - set(zip(self.nodes(), self.nodes()))
+        # order does NOT matter here
+        node_pairs = set([frozenset(pair) for pair in node_pairs])
 
         dist_fun = gm.spherical_distance if self.is_geographic()\
                                             else gm.euclidean_distance
         
-        pairs_weights = [tuple(pair[0], pair[1], 
+        pairs_weights = [(pair[0], pair[1], 
                     dist_fun([self.coords[pair[0]], self.coords[pair[1]]])) 
-                    for pair in node_pairs]
+                    for pair in [tuple(pair_set) for pair_set in node_pairs]]
 
         geo = GeoGraph(self.srs, self.coords)
         geo.add_weighted_edges_from(pairs_weights)

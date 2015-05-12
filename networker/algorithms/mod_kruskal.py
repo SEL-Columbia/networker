@@ -31,10 +31,16 @@ def mod_kruskal(G, subgraphs=None, rtree=None):
     Args:
         G:  GeoGraph of nodes to be connected if appropriate
             Nodes should have 'budget' attribute
+
         subgraphs:  UnionFind data structure representing existing network's
             connected components AND the 'fake' nodes projected onto it.  This
             is the basis for the agglomerative nearest neighbor approach in
             this algorithm.
+
+            NOTE:  ONLY the existing networks components are represented in
+            the subgraphs argument.  The nodes in G will be added within 
+            this function 
+
         rtree:  RTree based index of existing network
 
     Returns:
@@ -61,16 +67,23 @@ def mod_kruskal(G, subgraphs=None, rtree=None):
         # modified to handle queues, children, mv
         subgraphs = UnionFind()
 
+    # add nodes and budgets from G to subgraphs as components
+    for node in G.nodes():
+        subgraphs.add_component(node, budget=G.node[node]['budget'])
+
     # get fully connected graph and sort edges by weight
     g = G.get_connected_weighted_graph()
 
     # edges in MSF
     Et = [] 
-    for u, v, w in sorted(g.edges(data=True, key=lambda x: x[2]['weight'])):
+    # connect the shortest safe edge until all edges have been tested
+    # at which point, we have made all possible connections
+    for u, v, w in sorted(g.edges(data=True), key=lambda x: x[2]['weight']):
         # if doesn't create cycle 
         # and subgraphs have enough MV
         # and we're not connecting 2 fake nodes 
         # then allow the connection
+        w = w['weight']
         if subgraphs[u] != subgraphs[v] and \
             (subgraphs.budget[subgraphs[u]] >= w or is_fake(u)) and \
             (subgraphs.budget[subgraphs[v]] >= w or is_fake(v)) and \
@@ -103,7 +116,7 @@ def mod_kruskal(G, subgraphs=None, rtree=None):
                 # Object is (u.label, v.label), (u.coord, v.coord)
                 rtree.insert(hash((u, v)), box,
                     obj=((u, v), (coords[u], coords[v])))
-                Et += [(u, v, {'weight': dm})]
+                Et += [(u, v, {'weight': w})]
 
     # create new GeoGraph with results
     result = G.copy()

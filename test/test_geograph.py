@@ -1,4 +1,5 @@
 import networkx as nx
+import numpy as np
 
 from networker.classes.geograph import GeoGraph
 import networker.geomath as gm
@@ -49,3 +50,26 @@ def test_project_onto():
         [list(c) for c in new_net.coords.values()] == \
         [list(c) for c in new_net_rt.coords.values()], \
         "project_onto with and without rtree inputs don't match"
+
+def test_connected_graph():
+    g, _, _ = network_nodes_projections()
+
+    g_conn = g.get_connected_weighted_graph()
+
+    nodes = g.nodes()
+    edges = set(zip(np.tile(nodes, len(nodes)), np.repeat(nodes, len(nodes))))
+    diagonal = set(zip(nodes, nodes))
+    edges = edges - diagonal 
+    # order does NOT matter
+    edges = set([frozenset(edge) for edge in edges])
+    def dist_for_edge(edge):
+        return gm.euclidean_distance([g.coords[edge[0]], g.coords[edge[1]]])
+
+    weights = {edge: dist_for_edge(edge) for edge in \
+                [tuple(set_edge) for set_edge in edges]}
+
+    g_conn_weights = {(e[0],e[1]): e[2]['weight'] 
+                        for e in g_conn.edges(data=True)}
+    
+    assert weights == g_conn_weights,\
+        "fully connected edges/weights are not correct"

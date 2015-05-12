@@ -25,6 +25,23 @@ def csv_projection(path):
         return header
 
 
+
+# GeoGraph to js
+def geograph_to_json(g):
+
+    # transform to projected if not done so
+    flat_coords = g.transform_coords(gm.PROJ4_FLAT_EARTH)
+
+    g2 = g.copy()
+    for nd in g.nodes():
+        g2.node[nd]['coords'] = flat_coords[nd]
+
+    js_g = json_graph.node_link_data(g2)
+    return js_g
+
+
+""" 
+# spherical drawing helpers
 # plot maps
 def draw_geograph(g, node_color='r', edge_color='b', node_label_field=None,
                     edge_label_field=None, node_size=200):
@@ -58,22 +75,6 @@ def draw_geograph(g, node_color='r', edge_color='b', node_label_field=None,
         nx.draw_networkx_edge_labels(g, pos=node_pos, edge_labels=edge_labels)
 
 
-# GeoGraph to js
-def geograph_to_json(g):
-
-    # transform to projected if not done so
-    flat_coords = g.transform_coords(gm.PROJ4_FLAT_EARTH)
-
-    g2 = g.copy()
-    for nd in g.nodes():
-        g2.node[nd]['coords'] = flat_coords[nd]
-
-    js_g = json_graph.node_link_data(g2)
-    return js_g
-
-
-""" 
-spherical drawing helpers
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 # globals for testing
