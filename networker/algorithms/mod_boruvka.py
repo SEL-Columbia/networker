@@ -24,6 +24,8 @@ def mod_boruvka(G, subgraphs=None, rtree=None):
     algorithm to calculate the minimum spanning forest of nodes in GeoGraph G
     with 'budget' based restrictions on edges.
 
+    Uses a modified version of Boruvka's algorithm
+
     NOTE:  subgraphs is modified as a side-effect...may remove in future
         (useful for testing right now)
 

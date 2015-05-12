@@ -9,6 +9,7 @@ import networker.io as nio
 from networker import networker_runner
 from networker import geomath as gm
 from networker.algorithms import mod_boruvka
+from networker.algorithms import mod_kruskal
 from networker.classes.geograph import GeoGraph
 
 from nose.tools import eq_
@@ -20,6 +21,7 @@ def networker_run_compare(config_file, known_results_file, output_dir):
         os.path.abspath(__file__)), config_file)
     cfg = json.load(open(cfg_path))
     nwk = networker_runner.NetworkerRunner(cfg, output_dir)
+    nwk.validate()
     nwk.run()
 
     # compare this run against existing results
@@ -168,19 +170,25 @@ def nodes_plus_existing_grid():
     return grid, nodes, edges_at_iteration
 
 
-def test_msf_behavior():
+def run_network_algo_iteratively(algorithm):
     grid, nodes, edges_at_iteration = nodes_plus_existing_grid()
 
     for n, _ in enumerate(nodes.node):
         sub = nodes.subgraph(range(n+1))
         sub.coords = {i: nodes.coords[i] for i in range(n+1)}
         G, DS, R = networker_runner.merge_network_and_nodes(grid, sub)
-        msf = mod_boruvka(G, DS, R)
+        msf = algorithm(G, DS, R)
         msf_sets = set([frozenset(e) for e in msf.edges()])
         iter_edge_set = set([frozenset(e) for e in edges_at_iteration[n]])
         eq_(msf_sets, iter_edge_set)
 
 
+def test_algos_iteratively():
+    
+    run_network_algo_iteratively(mod_boruvka)
+    run_network_algo_iteratively(mod_kruskal)
+
+    
 def simple_nodes_disjoint_grid():
     """
     return disjoint net plus nodes with fakes

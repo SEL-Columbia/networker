@@ -3,6 +3,7 @@
 import os
 import json
 import networker.io as nio
+from np.lib import dataset_store
 from networker import networkplanner_runner
 
 
@@ -12,6 +13,7 @@ def networkplanner_run_compare(config_file, known_results_file, output_dir):
         os.path.abspath(__file__)), config_file)
     cfg = json.load(open(cfg_path))
     nwk_p = networkplanner_runner.NetworkPlannerRunner(cfg, output_dir)
+    nwk_p.validate()
     nwk_p.run()
 
     # compare this run against existing results
@@ -51,3 +53,20 @@ def test_networkplanner_leona_run():
     output_dir = "data/tmp"
 
     networkplanner_run_compare(run_config, results_file, output_dir)
+
+def test_dataset_store_to_geograph():
+    """ 
+    make sure we can go from shp to geograph to dataset_store
+    """
+    data_dir = "data/pop_100"
+    test_geo = nio.load_shp(os.path.join(data_dir,
+                            "networks-proposed.shp"), 
+                            simplify=False)
+    dataset = dataset_store.load(os.path.join(data_dir, "dataset.db"))
+    dataset_geo = networkplanner_runner.dataset_store_to_geograph(dataset)
+
+    test_edges = test_geo.get_coord_edge_set()
+    dataset_edges = dataset_geo.get_coord_edge_set()
+
+    assert test_edges == dataset_edges, \
+        "edges in test do not match dataset results"

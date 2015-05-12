@@ -150,6 +150,29 @@ class GeoGraph(GeoObject, nx.Graph):
 
         return geo
 
+    def get_connected_weighted_graph(self):
+        """
+        Get fully connected graph with edge weights defined by appropriate
+        distance function
+        """
+
+        node_pairs = set(nx.product.product(self.nodes(), self.nodes()))
+        node_pairs = node_pairs - set(zip(self.nodes(), self.nodes()))
+        # order does NOT matter here
+        node_pairs = set([frozenset(pair) for pair in node_pairs])
+
+        dist_fun = gm.spherical_distance if self.is_geographic()\
+                                            else gm.euclidean_distance
+        
+        pairs_weights = [(pair[0], pair[1], 
+                    dist_fun([self.coords[pair[0]], self.coords[pair[1]]])) 
+                    for pair in [tuple(pair_set) for pair_set in node_pairs]]
+
+        geo = GeoGraph(self.srs, self.coords)
+        geo.add_weighted_edges_from(pairs_weights)
+
+        return geo
+
     def find_nearest_edge(self, coord, rtree_index=None):
         """
         Find the nearest edge to the coordinate in space

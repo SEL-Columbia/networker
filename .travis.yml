@@ -24,6 +24,7 @@ before_script:
   # cache the lib dir and activate the conda environment
   - sudo ldconfig "$HOME/miniconda/envs/networker/lib"
   - source activate networker
+  - find -name '*.py' | xargs sed -i 's/@jit/# @jit/'
 script:
   - nosetests --with-coverage
 after_success: coveralls
