@@ -1,16 +1,17 @@
 # Comparitive Analysis
 
-Below is a comparitive analysis of the modKruskal based NetworkPlanner algorithm
- vs the new modBoruvka based NetworkBuild algorithm.
+Below is a comparitive analysis of the modKruskal algorithm vs the new 
+modBoruvka algorithm for network planning.  
 
-The latter is being developed in effort to address performance issues and modularize the former.  
+The latter has been developed to address performance issues and to better 
+modularize the former.  
 
 ## Methodology
 
-The results are based on running NetworkPlanner and NetworkBuild on 
+The results are based on running modKruskal and modBoruvka on 
 identical inputs and capturing performance statistics (run time, 
 maximum memory, etc).  The outputs were then compared to determine 
-correctness (assuming NetworkPlanner results are "correct").  
+correctness (assuming the existing modKruskal results are "correct").  
 
 Scenarios were run with the following numbers of nodes:
 100, 200, 400, 800, 1600, 3200, 6400, 12800, 25600, 51200
@@ -36,16 +37,17 @@ The results are broken down into correctness and performance metrics.
 ### Correctness
 
 The following tables compare the metrics of running identical inputs
-through NetworkPlanner (np) and NetworkBuild (nb).  
+through modKruskal (mk) and modBoruvka (mb).  
 
-The resulting networks are *almost* identical.  Note that NetworkPlanner scenarios
-failed with > 6400 Medium Demand nodes and > 3200 High Demand nodes.  
+The resulting networks are *almost* identical.  Note that modKruskal scenarios
+failed with > 6400 Medium Demand nodes and > 3200 High Demand nodes due to the
+large amount of memory it consumes.  
 
 Edge lengths are in meters.
 
 #### Medium Demand
 
-| num_nodes | num_edges (np) | num_edges (nb) | sum_edge_lens (np) | sum_edge_lens (nb) |
+| num_nodes | num_edges (mk) | num_edges (mb) | sum_edge_lens (mk) | sum_edge_lens (mb) |
 |-----------|----------------|----------------|--------------------|--------------------|
 | 100       | 32             | 32             | 119816             | 119816             |
 | 200       | 64             | 64             | 175145             | 175145             |
@@ -58,7 +60,7 @@ Edge lengths are in meters.
 
 #### High Demand
 
-| num_nodes | num_edges (np) | num_edges (nb) | sum_edge_lens (np) | sum_edge_lens (nb) |
+| num_nodes | num_edges (mk) | num_edges (mb) | sum_edge_lens (mk) | sum_edge_lens (mb) |
 |-----------|----------------|----------------|--------------------|--------------------|
 | 100       | 98             | 98             | 722015             | 722015             |
 | 200       | 198            | 198            | 1030542            | 1030542            |
@@ -70,45 +72,45 @@ Edge lengths are in meters.
 
 ### Performance
 
-The following graphs compare the performance of NetworkPlanner (np) and 
-NetworkBuild (nb) in terms of run time and memory usage.  
+The following graphs compare the performance of modKruskal (mk) and 
+modBoruvka (mb) in terms of run time and memory usage.  
 
 The results contrast and show: 
 
-- The quadratic memory usage of NetworkPlanner vs the linear memory usage of 
-NetworkBuild.  
+- The quadratic memory usage of modKruskal vs the linear memory usage of 
+modBoruvka.  
 
-- The cubic(?) run time of NetworkPlanner vs the more linear (N*logN?) run time 
-of 
-NetworkBuild.
+- The cubic(?) run time of modKruskal vs the more linear (N*logN?) run time 
+of modBoruvka.
 
-- The fact that runs beyond 6400 nodes were not possible via NetworkPlanner due
+- The fact that runs beyond 6400 nodes were not possible via modKruskal due
 to the high memory usage.  
 
-Run times are in seconds, memory is in GB.  Blue represents the existing NetworkPlanner modKruskal based algorith.  Green represents the new NetworkBuild modBoruvka based algorithm.  
+Run times are in seconds, memory is in GB.  Blue represents the existing 
+modKruskal algorithm.  Green represents the new modBoruvka algorithm.  
 
 #### Medium Demand Run Time
 
-![med_dmd_runtime](http://i.imgur.com/16Ausud.png)
+![med_dmd_runtime](http://i.imgur.com/h8DD01H.png)
 
 #### High Demand Run Time
 
-![high_dmd_runtime](http://i.imgur.com/SgZdbdf.png)
+![high_dmd_runtime](http://i.imgur.com/3CHJN3V.png)
 
 #### Medium Demand Memory 
 
-![med_dmd_mem](http://i.imgur.com/TCeGe5H.png)
+![med_dmd_mem](http://i.imgur.com/32wrzBX.png)
 
 #### High Demand Memory 
 
-![high_dmd_mem](http://i.imgur.com/qWB2v7a.png)
+![high_dmd_mem](http://i.imgur.com/o2lnSnH.png)
 
 The following are tabular performance comparisons of the Medium Demand and 
 High demand scenarios.  
 
 #### Medium Demand
 
-| num_nodes | run_time (np) | run_time (nb) | max_mem (np) | nb_max_mem (nb) |
+| num_nodes | run_time (mk) | run_time (mb) | max_mem (mk) | mb_max_mem (mb) |
 |-----------|---------------|---------------|--------------|-----------------|
 | 100       | 3.08          | 4.53          | 70148        | 125908          |
 | 200       | 3.44          | 7.67          | 76608        | 124504          |
@@ -123,7 +125,7 @@ High demand scenarios.
 
 #### High Demand
 
-| num_nodes | run_time (np) | run_time (nb) | max_mem (np) | nb_max_mem (nb) |
+| num_nodes | run_time (mk) | run_time (mb) | max_mem (mk) | mb_max_mem (mb) |
 |-----------|---------------|---------------|--------------|-----------------|
 | 100       | 7.42          | 4.54          | 69284        | 125348          |
 | 200       | 29.45         | 7.56          | 82728        | 124268          |

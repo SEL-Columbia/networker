@@ -40,7 +40,9 @@ class NetworkerRunner(object):
                 minimum_node_count:  min number of nodes in sub-network { 2 }
     """
 
-    ALGOS = {'mod_boruvka': algo.mod_boruvka}
+    ALGOS = {'mod_boruvka': algo.mod_boruvka,
+             'mod_kruskal': algo.mod_kruskal}
+
     SCHEMA_FILE = "networker_config_schema.json"
 
     def __init__(self, config, output_directory="."):

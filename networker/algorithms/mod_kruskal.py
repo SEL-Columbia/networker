@@ -71,7 +71,7 @@ def mod_kruskal(G, subgraphs=None, rtree=None):
     for node in G.nodes():
         subgraphs.add_component(node, budget=G.node[node]['budget'])
 
-    # get fully connected graph and sort edges by weight
+    # get fully connected graph
     g = G.get_connected_weighted_graph()
 
     # edges in MSF
@@ -103,8 +103,7 @@ def mod_kruskal(G, subgraphs=None, rtree=None):
                 subgraphs.union(u, v, w)
 
                 # For all intersected subgraphs update the mv to that
-                # created by the edge intersecting them,
-                # TODO: This should be updated in not such a naive method
+                # created by the edge intersecting them
                 map(lambda (n, _): subgraphs.union(u, n, 0),
                         filter(lambda (n, i): i == 1 and
                                 subgraphs[n] != subgraphs[u],
