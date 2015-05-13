@@ -314,7 +314,7 @@ def line_subgraph_intersection(subgraphs, rtree, p1, p2):
             overlapping = (((p3[0]-p1[0]) < 0) != ((p3[0]-p2[0]) < 0) != (
                             (p4[0]-p1[0]) < 0) != ((p4[0]-p2[0]) < 0)) or ((
                             (p3[1]-p1[1]) < 0) != ((p3[1]-p2[1]) < 0) != (
-                            (p4[1]-p1[1]) < 0) != ((p4[1] - p2[1]) < 0))
+                            (p4[1]-p1[1]) < 0) != ((p4[1]-p2[1]) < 0))
             if overlapping:
                 # allow intersection if lines share an endpoint
                 if (np.array_equal(p1, p3) and not np.array_equal(p2, p4)) or (
@@ -349,6 +349,7 @@ def line_subgraph_intersection(subgraphs, rtree, p1, p2):
         if intersecting:
             # allow intersection if lines share an endpoint
             if (np.array_equal(p1, p4) and not np.array_equal(p2, p3)) or (
+                np.array_equal(p1, p3) and not np.array_equal(p2, p4)) or (
                 np.array_equal(p2, p3) and not np.array_equal(p1, p4)) or (
                 np.array_equal(p2, p4) and not np.array_equal(p1, p3)):
                 continue

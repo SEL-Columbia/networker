@@ -32,12 +32,5 @@ os.chdir(args.working_directory)
 cfg = json.load(open(args.config_filename))
 nwk = networker_runner.NetworkerRunner(cfg, args.output_directory)
 
-try:
-    nwk.validate()
-except Exception as e:
-    sys.exit("validation failed: {}".format(str(e)))
-
-try:
-    nwk.run()
-except Exception as e:
-    sys.exit("run failed: {}".format(str(e)))
+nwk.validate()
+nwk.run()
