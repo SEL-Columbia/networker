@@ -10,7 +10,7 @@ RUN \
   git 
 
 RUN \
-  wget http://repo.continuum.io/miniconda/Miniconda-3.6.0-Linux-x86_64.sh -O miniconda.sh && \
+  wget https://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh && \
   /bin/bash miniconda.sh -b -p $HOME/anaconda/
  
 ENV PATH /root/anaconda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
