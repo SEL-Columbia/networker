@@ -143,13 +143,8 @@ def build_network(demand_nodes,
     result_geo_graph = network_algo(geo_graph, subgraphs=subgraphs,
                                     rtree=rtree)
 
-    # TODO: Remove unreferenced fake nodes?
-
-    # now filter out subnetworks via minimum node count
-    # TODO:  update union_all to support GeoGraph?
-    filtered_graph = nx.union_all(filter(
-        lambda sub: len(sub.node) >= min_node_count,
-        nx.connected_component_subgraphs(result_geo_graph)))
+    filtered_graph = filter_min_node_subnetworks(result_geo_graph, 
+                                                 min_node_count) 
 
     # map coords back to geograph
     # NOTE:  explicit relabel to int as somewhere in filtering above, some
@@ -174,6 +169,58 @@ def build_network(demand_nodes,
 
     return msf
 
+
+def has_grid_conn(g):
+    """
+    Whether graph has grid connection
+    (assumes "fake" nodes connecting graph to grid have budget == inf)
+
+    Args:
+        g (GeoGraph):  a networkplan GeoGraph
+    """
+    for node in g.nodes(data=True):
+        if node[1]['budget'] == np.inf:
+            return True
+
+    return False
+
+
+def filter_min_node_subnetworks(g, min_node_count):
+    """
+    remove "non-grid connected" connected components from the networkplan GeoGraph
+
+    Args:
+        g (GeoGraph):  networkplan as GeoGraph
+        min_node_count:  min number of nodes in non-grid connected component
+
+    Returns:
+        networkx graph with appropriate subnetworks removed
+
+    Note:  If you need a GeoGraph from result, you'll need to convert it 
+    """
+
+    grid_connected = filter(lambda sub: has_grid_conn(sub), 
+                            nx.connected_component_subgraphs(g))
+    non_grid_connected = filter(lambda sub: not has_grid_conn(sub), 
+                                nx.connected_component_subgraphs(g))
+
+    def union_all_wrap(graph_list):
+        """ handle empty list so that union_all returns empty graph """
+        if len(graph_list) == 0:
+            return nx.Graph()
+        else:
+            return nx.union_all(graph_list)
+ 
+    # now filter out non-grid subnetworks via minimum node count
+    filtered_non_grid = union_all_wrap(filter(
+        lambda sub: len(sub.node) >= min_node_count, non_grid_connected))
+
+    grid = union_all_wrap(grid_connected)
+
+    # finally, merge back grid_connected
+    filtered_graph = nx.union(grid, filtered_non_grid)
+    return filtered_graph
+ 
 
 def merge_network_and_nodes(network, demand_nodes, single_network=True):
     """
@@ -254,6 +301,7 @@ def merge_network_and_nodes(network, demand_nodes, single_network=True):
         assert(subgraphs[u] == subgraphs[v])
 
         # Add the fake node to the big net
+        # NOTE:  fake nodes always have np.inf budget
         merged.add_node(fake, budget=np.inf)
         merged.coords[fake] = grid_with_fakes.coords[fake]
 
