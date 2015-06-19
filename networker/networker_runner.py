@@ -37,7 +37,7 @@ class NetworkerRunner(object):
                 budget_column:  column for nodal budget { 'metric' }
             network_algorithm: mod_boruvka, mod_kruskal
             network_parameters:
-                minimum_node_count:  min number of nodes in sub-network { 2 }
+                minimum_node_count:  min number of nodes in non-grid sub-network { 2 }
     """
 
     ALGOS = {'mod_boruvka': algo.mod_boruvka,

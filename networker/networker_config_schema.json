@@ -49,7 +49,7 @@
             "properties": {
                 "minimum_node_count": {
                     "type": "number", 
-                    "description": "Minimum number of nodes in a subnetwork",
+                    "description": "Minimum number of nodes in a non-grid connected subnetwork",
                     "minimum": 0,
                     "default": 0
                 },
