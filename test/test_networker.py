@@ -14,12 +14,14 @@ from networker.classes.geograph import GeoGraph
 
 from nose.tools import eq_
 
-
-def networker_run_compare(config_file, known_results_file, output_dir):
-    # get config and run
+def get_config(config_file):
+    """ return cfg as dict from json cfg_file """
     cfg_path = os.path.join(os.path.dirname(
         os.path.abspath(__file__)), config_file)
-    cfg = json.load(open(cfg_path))
+    return json.load(open(cfg_path))
+
+
+def networker_run_compare(cfg, known_results_file, output_dir):
     nwk = networker_runner.NetworkerRunner(cfg, output_dir)
     nwk.validate()
     nwk.run()
@@ -49,7 +51,8 @@ def test_networker_run():
     results_file = "data/med_100/networks-proposed.shp"
     output_dir = "data/tmp"
 
-    networker_run_compare(run_config, results_file, output_dir)
+    cfg = get_config(run_config)
+    networker_run_compare(cfg, results_file, output_dir)
 
 
 def test_networker_leona_run():
@@ -61,7 +64,8 @@ def test_networker_leona_run():
     results_file = "data/leona/expected/edges.shp"
     output_dir = "data/tmp"
 
-    networker_run_compare(run_config, results_file, output_dir)
+    cfg = get_config(run_config)
+    networker_run_compare(cfg, results_file, output_dir)
 
 
 def random_settlements(n):
@@ -243,3 +247,70 @@ def test_merge_network_and_nodes():
 
     msf = mod_boruvka(G, DS, R)
     assert not msf.has_edge(0, 1), "edge between nodes 0, 1 should not exist"
+
+def grid_and_non_grid():
+    """
+    return networkplan GeoGraph with grid and non-grid components
+                
+               0       2 
+               |       |
+             +-6-+     1   3-4-5
+              (inf)
+
+    where node 3 is a fake node connecting node 0 to the grid
+
+    """
+    node_coords = np.array([[0.0, 1.0], 
+                            [4.0, 0.0], 
+                            [4.0, 1.0], 
+                            [5.0, 0.0], 
+                            [6.0, 0.0], 
+                            [7.0, 0.0], 
+                            [0.0, 0.0]])
+
+    grid = GeoGraph(gm.PROJ4_FLAT_EARTH, dict(enumerate(node_coords)))
+    budget_values = [5, 5, 5, 5, 5, 5, np.inf]
+    nx.set_node_attributes(grid, 'budget', dict(enumerate(budget_values)))
+    grid.add_edges_from([(0, 6), (1, 2), (3, 4), (4, 5)])
+
+    return grid
+
+
+def test_min_node_filter():
+    """
+    Test whether min node filter is applied properly
+    """
+
+    grid = grid_and_non_grid()
+    min_node_count = 3
+
+    grid_connected = filter(lambda sub: networker_runner.has_grid_conn(sub),
+                            nx.connected_component_subgraphs(grid))
+
+    non_grid_connected = filter(lambda sub: 
+                                not networker_runner.has_grid_conn(sub),
+                                nx.connected_component_subgraphs(grid))
+ 
+    filtered = networker_runner.filter_min_node_subnetworks(grid, min_node_count)
+    
+    grid_filtered = filter(lambda sub: networker_runner.has_grid_conn(sub),
+                         nx.connected_component_subgraphs(filtered))
+
+    non_grid_filtered = filter(lambda sub: 
+                               not networker_runner.has_grid_conn(sub),
+                               nx.connected_component_subgraphs(filtered))
+ 
+    assert len(grid_connected) == len(grid_filtered),\
+           "number grid connected subnets should not change"
+
+    assert min([len(g) for g in non_grid_filtered]) >= min_node_count,\
+           "non-grid networks should have >= {} nodes".format(min_node_count)
+
+    # make sure it works without existing grid 
+    filtered_non_grid = networker_runner.filter_min_node_subnetworks(
+        nx.union_all(non_grid_connected), min_node_count)
+
+    subnet_lens = [len(g) for g in 
+                   nx.connected_component_subgraphs(filtered_non_grid)]
+    assert min(subnet_lens) >= min_node_count,\
+           "non-grid networks should have >= {} nodes".format(min_node_count)

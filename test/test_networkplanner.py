@@ -6,12 +6,14 @@ import networker.io as nio
 from np.lib import dataset_store
 from networker import networkplanner_runner
 
-
-def networkplanner_run_compare(config_file, known_results_file, output_dir):
-    # get config and run
+def get_config(config_file):
+    """ return cfg as dict from json cfg_file """
     cfg_path = os.path.join(os.path.dirname(
         os.path.abspath(__file__)), config_file)
-    cfg = json.load(open(cfg_path))
+    return json.load(open(cfg_path))
+
+
+def networkplanner_run_compare(cfg, known_results_file, output_dir):
     nwk_p = networkplanner_runner.NetworkPlannerRunner(cfg, output_dir)
     nwk_p.validate()
     nwk_p.run()
@@ -42,7 +44,9 @@ def test_networkplanner_run():
     results_file = "data/pop_100/networks-proposed.shp"
     output_dir = "data/tmp"
 
-    networkplanner_run_compare(run_config, results_file, output_dir)
+    cfg = get_config(run_config)
+
+    networkplanner_run_compare(cfg, results_file, output_dir)
 
 
 def test_networkplanner_leona_run():
@@ -52,7 +56,11 @@ def test_networkplanner_leona_run():
     results_file = "data/leona/expected/networks-proposed.shp"
     output_dir = "data/tmp"
 
-    networkplanner_run_compare(run_config, results_file, output_dir)
+    cfg = get_config(run_config)
+
+    # get config in case we want to modify
+    networkplanner_run_compare(cfg, results_file, output_dir)
+   
 
 def test_dataset_store_to_geograph():
     """ 
