@@ -131,10 +131,25 @@ The issue can be resolved by adding your conda lib directory to the ldconfig cac
 ldconfig ~/anaconda/envs/networker/lib
 ```
 
-For running scripts and doing development, you will need the source locally so
-just clone this repository.  
+## Development Setup
 
-For development you will need to set your PYTHONPATH to the source location which will override the code in your conda environment.  
+To setup a development environment, in addition to the above installation steps...
+
+clone this repository or fork to your own repo and then clone:
+```
+cd <src_dir>
+git clone <repo_name>/networker.git 
+```
+
+In order to develop/test against the source directory, you'll need to remove networker from the conda environment and
+use setup tools to link you source to the conda environment. 
+``` 
+source activate networker
+cd <src_dir>/networker
+conda remove networker
+# links local source directory to python path
+python setup.py develop 
+```
 
 ## Testing
 
