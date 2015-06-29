@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import networkx as nx
 import numpy as np
 
@@ -50,6 +52,7 @@ def test_project_onto():
         [list(c) for c in new_net.coords.values()] == \
         [list(c) for c in new_net_rt.coords.values()], \
         "project_onto with and without rtree inputs don't match"
+
 
 def test_connected_graph():
     g, _, _ = network_nodes_projections()

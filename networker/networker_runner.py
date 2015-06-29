@@ -10,7 +10,6 @@ import numpy as np
 import pandas as pd
 
 from networker.classes.unionfind import UnionFind
-from networker.utils import csv_projection
 from networker.classes.geograph import GeoGraph
 import networker.io as nio
 import networker.geomath as gm
@@ -353,7 +352,7 @@ def load_existing_networks(filename="existing_networks.shp", budget_value=0,
 def load_node_metrics(filename="metrics.csv", x_column="X", y_column="Y",
                         budget_column="metric", budget_value=1000):
     """
-    load node_metrics csv into GeoGraph (nodes only)
+    load node_metrics csv into GeoGraph (nodes and x,y,budget attributes only)
 
     Args:
         filename:  nodal metrics csv file
@@ -362,42 +361,18 @@ def load_node_metrics(filename="metrics.csv", x_column="X", y_column="Y",
         budget_value: default value for nodal budget
 
     Returns:
-        GeoGraph of nodes only with budget attribute
+        GeoGraph of nodes with only the budget attribute
     """
 
-    input_proj = csv_projection(filename)
-    header_row = 1 if input_proj else 0
+    # nodes loaded with all attributes
+    geo_nodes = nio.load_nodes(filename, x_column, y_column)
 
-    # read in the csv
-    # NOTE:  Convert x,y via float cast to preserve precision of input
-    metrics = pd.read_csv(filename, header=header_row,
-        converters={x_column: float, y_column: float})
-
-    coord_cols = [x_column, y_column]
-    assert all([hasattr(metrics, col) for col in coord_cols]), \
-        "metrics file does not contain coordinate columns {}, {}".\
-        format(x_column, y_column)
-
-    # default budget
-    budget = len(metrics) * [budget_value]
-    # try to get nodal budgets
-    if hasattr(metrics, budget_column):
-        budget = metrics[budget_column].fillna(budget_value)
-
-    # Stack the coords and get the budget
-    coords = np.column_stack(map(metrics.get, coord_cols))
-
-    # set default projection
-    if not input_proj:
-        if gm.is_in_lon_lat(coords):
-            input_proj = gm.PROJ4_LATLONG
+    # ensure nodes only have budget attribute
+    for node in geo_nodes.nodes_iter():
+        if geo_nodes.node[node].has_key(budget_column):
+            geo_nodes.node[node] = {'budget': 
+                                    geo_nodes.node[node][budget_column]}
         else:
-            input_proj = gm.PROJ4_FLAT_EARTH
+            geo_nodes.node[node] = {'budget': budget_value}
 
-    coords_dict = dict(enumerate(coords))
-    budget_dict = dict(enumerate(budget))
-
-    geo_nodes = GeoGraph(input_proj, coords_dict)
-
-    nx.set_node_attributes(geo_nodes, 'budget', budget_dict)
     return geo_nodes
