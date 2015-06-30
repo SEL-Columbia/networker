@@ -12,15 +12,35 @@ def network_nodes_projections():
     """
     Create a network and node graph to be merged, and
     the expected result of project_onto for testing
+
+    rough picture of this test
+
+              4
+             /
+            /
+           /
+          /
+         /
+        /      2
+       /       |
+      /     6  | 8 
+     /   5 0---1
+    3            7
+ 
+    nodes 5,6,7,8 should be projected onto graph path (0,1,2)
+    graph path (3,4) is meant to test whether a long segment whose
+    bbox overlaps all nodes interferes with the projection 
+    (it had in the past)
     """
 
-    net_coords = [[0.0, 0.0], [3.0, 0.0], [3.0, 3.0]]
-    net_edges = [(0, 1), (1, 2)]
-    node_coords = {3: [-2.0, 0.0], 4: [1.0, 1.0],
-                   5: [4.0, -1.0], 6: [4.0, 1.0]}
+    net_coords = [[0.0, 0.0], [3.0, 0.0], [3.0, 3.0],
+                  [-6.0, -1.0], [6.0, 11.0]]
+    net_edges = [(0, 1), (1, 2), (3, 4)]
+    node_coords = {5: [-1.0, 0.0], 6: [1.0, 1.0],
+                   7: [4.0, -1.0], 8: [4.0, 1.0]}
 
-    projected_coords = {3: [0.0, 0.0], 4: [1.0, 0.0],
-                        5: [3.0, 0.0], 6: [3.0, 1.0]}
+    projected_coords = {5: [0.0, 0.0], 6: [1.0, 0.0],
+                        7: [3.0, 0.0], 8: [3.0, 1.0]}
 
     g_net = GeoGraph(gm.PROJ4_FLAT_EARTH, dict(enumerate(net_coords)), data=net_edges)
     g_nodes = GeoGraph(gm.PROJ4_FLAT_EARTH, node_coords)
@@ -29,6 +49,9 @@ def network_nodes_projections():
 
 
 def test_project_onto():
+    """
+    test the project_onto function of geograph
+    """
 
     net, nodes, projections = network_nodes_projections()
 
@@ -55,6 +78,9 @@ def test_project_onto():
 
 
 def test_connected_graph():
+    """
+    test get_connected_weighted_graph function of geograph
+    """
     g, _, _ = network_nodes_projections()
 
     g_conn = g.get_connected_weighted_graph()
