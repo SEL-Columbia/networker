@@ -151,6 +151,10 @@ conda remove networker
 python setup.py develop 
 ```
 
+At this point, you should be ready to develop against local source.  
+
+See [our style guide](https://github.com/SEL-Columbia/StyleGuides) for how we develop.
+
 ## Testing
 
 Once setup for development, run nosetests from the top level repo directory. 
