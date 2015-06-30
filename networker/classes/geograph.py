@@ -190,7 +190,53 @@ class GeoGraph(GeoObject, nx.Graph):
             nearest_segment = rtree_index.nearest(np.ravel((coord, coord)),
                                                     objects=True).next()
             near_edge, coords = nearest_segment.object
-            sq_dist, near_coords = self._sq_dist_to_edge(near_edge, coord)
+            cur_sq_dist, near_coords = self._sq_dist_to_edge(near_edge, coord)
+            cur_dist = np.sqrt(cur_sq_dist)
+
+            """
+            Because the rtree's nearest function searches based on bounding boxes
+            we need to continue looking through tree for closer segments.  
+            
+            Here's the problem
+           
+            0
+             \      2
+              \  p. |
+               \    3
+                \
+                 \
+                  \
+                   1
+            
+            We're looking for the nearest edge to point p.
+            In this case, the bounding box for edge (0,1) encompasses point p
+            whereas the bbox for edge (2,3) does not.  Therefore, edge (0,1)
+            will be returned by nearest.  
+
+            To find the *actual* nearest segment, we find the distance from p
+            to the *bbox based* nearest, we create a new bbox centered at p 
+            with length and width of this distance and use rtree's intersection
+            function to find all edges within this new bbox.  If there's a
+            closer edge than the *bbox based* nearest, we're guaranteed to 
+            find it within this new bbox.  
+            """
+
+            # use nearest as a bound on intersection search to find
+            # actual nearest segment (since nearest works on bbox)
+            new_bbox = (coord[0] - cur_dist, coord[1] - cur_dist, 
+                    coord[0] + cur_dist, coord[1] + cur_dist)
+            # iterate over candidates intersecting bbox finding nearest
+            # to coord as actual nearest must be within bbox of current
+            # nearest
+            candidates = rtree_index.intersection(new_bbox, objects=True)
+            for candidate in candidates:
+                c_edge, c_coords = candidate.object
+                c_sq_dist, p_coords = self._sq_dist_to_edge(c_edge, coord)
+                if c_sq_dist < cur_sq_dist:
+                    cur_sq_dist = c_sq_dist
+                    near_edge = c_edge
+                    near_coords = p_coords
+                
             return near_edge, near_coords
 
         else:

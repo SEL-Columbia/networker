@@ -2,8 +2,11 @@
 
 import ogr
 import osr
+import numpy as np
+import pandas as pd
 import networkx as nx
 import networker.geomath as gm
+from networker.utils import csv_projection
 from networker.classes.geograph import GeoGraph
 import warnings
 import os
@@ -122,6 +125,55 @@ def load_shp(shp_path, simplify=True):
     g = nx.convert_node_labels_to_integers(g)
 
     return GeoGraph(srs=proj4, coords=coords, data=g)
+
+
+def load_nodes(filename="metrics.csv", x_column="X", y_column="Y"):
+    """
+    load nodes csv into GeoGraph (nodes only)
+
+    Args:
+        filename:  nodal metrics csv file
+        x_column, y_column:  col names to take x, y from
+
+    Returns:
+        GeoGraph of nodes including all attributes from input csv
+    """
+
+    input_proj = csv_projection(filename)
+    header_row = 1 if input_proj else 0
+
+    # read in the csv
+    # NOTE:  Convert x,y via float cast to preserve precision of input
+    metrics = pd.read_csv(filename, header=header_row,
+        converters={x_column: float, y_column: float})
+
+    coord_cols = [x_column, y_column]
+    assert all([hasattr(metrics, col) for col in coord_cols]), \
+        "metrics file does not contain coordinate columns {}, {}".\
+        format(x_column, y_column)
+
+    # Stack the coords
+    coords = np.column_stack(map(metrics.get, coord_cols))
+
+    # set default projection
+    if not input_proj:
+        if gm.is_in_lon_lat(coords):
+            input_proj = gm.PROJ4_LATLONG
+        else:
+            input_proj = gm.PROJ4_FLAT_EARTH
+
+    coords_dict = dict(enumerate(coords))
+
+    geo_nodes = GeoGraph(input_proj, coords_dict)
+
+    # populate the rest of the attributes
+    metrics_no_coords = metrics[metrics.columns.difference(coord_cols)]
+    for row in metrics_no_coords.iterrows():
+        index = row[0]
+        attrs = row[1].to_dict()
+        geo_nodes.node[index] = attrs
+
+    return geo_nodes
 
 
 def write_shp(geograph, shp_dir):
