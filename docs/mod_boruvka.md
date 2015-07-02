@@ -110,14 +110,6 @@ while Et != state
            Et += (u, v)
 NetOpt(G) = G(V, Et)
 ```
-### Other Optimizations and Changes
-
-- Line Intersection Test
--- Shapely Intersection Test -> Efficient Linear Algebra Test
-- Fake Node Projection
--- Shapely Line Interpolation -> Efficient Linear Algebra Projection
-- MV updates
--- Disjoint Grids cause global update in NP, these are considered seperate entities in NetworkBuild
 
 [1] Mariano Tepper, Marta Mejail, Pablo Muse, Andres Almansa. Boruvka Meets Nearest Neighbors. 2011. <hal-00583120>
 
