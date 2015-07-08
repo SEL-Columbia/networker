@@ -1,11 +1,16 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
+import networkx as nx
+import networker.io as nio
+from networker.classes.unionfind import UnionFind
 from networker.geomath import project_point_on_segment, \
-                                  project_point_on_arc, \
-                                  ang_to_vec_coords, \
-                                  spherical_distance_dot, \
-                                  spherical_distance_haversine
+                              project_point_on_arc, \
+                              segments_intersect, \
+                              line_subgraph_intersection_refactored, \
+                              ang_to_vec_coords, \
+                              spherical_distance_dot, \
+                              spherical_distance_haversine
 
 
 def test_project_point_2D():
@@ -41,6 +46,40 @@ def test_project_point_2D():
     p = project_point_on_segment(p1, l1[0], -l1[1][[1, 0]])
     assert np.sum((e - p) ** 2) < SQ_TOLERANCE, \
         "projected point does not match expected"
+
+
+def test_segments_intersect():
+    """
+    Test various cases of intersection
+    """
+
+    def np_seg(seg):
+        return map(np.array, seg)
+
+    s1 = np_seg([[0.0, 0.0], [1.0, 0.0]])
+    s2 = np_seg([[2.0, 0.0], [3.0, 0.0]])
+    assert segments_intersect(s1[0], s1[1], s2[0], s2[1]) == False,\
+        "segments {}, {} should not intersect".format(s1, s2)
+
+    s1 = np_seg([[0.0, 0.0], [1.0, 1.0]])
+    s2 = np_seg([[2.0, 0.0], [3.0, 0.0]])
+    assert segments_intersect(s1[0], s1[1], s2[0], s2[1]) == False,\
+        "segments {}, {} should not intersect".format(s1, s2)
+
+    s1 = np_seg([[0.0, 0.0], [1.0, 0.0]])
+    s2 = np_seg([[1.0, 0.0], [2.0, 0.0]])
+    assert segments_intersect(s1[0], s1[1], s2[0], s2[1]) == True,\
+        "segments {}, {} should intersect".format(s1, s2)
+
+    s1 = np_seg([[0.0, 0.0], [1.0, 0.0]])
+    s2 = np_seg([[0.5, 0.0], [2.0, 0.0]])
+    assert segments_intersect(s1[0], s1[1], s2[0], s2[1]) == True,\
+        "segments {}, {} should intersect".format(s1, s2)
+
+    s1 = np_seg([[0.0, 0.0], [1.0, 0.0]])
+    s2 = np_seg([[-1.0, 0.0], [2.0, 0.0]])
+    assert segments_intersect(s1[0], s1[1], s2[0], s2[1]) == True,\
+        "segments {}, {} should intersect".format(s1, s2)
 
 
 def test_project_point_3D():
@@ -87,3 +126,42 @@ def test_spherical_dists():
 
     assert sum_diffs < 1e-6, "dot and haversine results don't match"
     
+
+def test_line_subgraph_intersection():
+    """
+    Test case where precision and odd geometry issues occur
+    """
+    # initialize network, nodes
+    network = nio.load_shp("data/katsina/existing.shp", simplify=False)
+    network.coords = {"g-" + str(n): network.coords[n] for n in network.nodes()}
+    new_labels = ["g-" + str(n) for n in network.nodes()]
+    nx.relabel_nodes(network, 
+                     dict(zip(network.nodes(), new_labels)),
+                     copy=False)
+    nodes = nio.load_nodes("data/katsina/metrics.csv", "x", "y")
+     
+    # populate disjoint set of subgraphs
+    subgraphs = UnionFind()
+    # only one connected component, so just add all nodes associated
+    # with first node
+    net_nodes = network.nodes()
+    parent = net_nodes[0]
+    for node in net_nodes[1:]:
+        subgraphs.add_component(node, budget=0)
+        subgraphs.union(parent, node, 0)
+
+    # now find projections onto grid
+    rtree = network.get_rtree_index()
+    projected = network.project_onto(nodes, rtree_index=rtree)
+    projected.remove_nodes_from(network)
+
+    assert len(projected.edges()) == 1, "should only be 1 projected edge"
+
+    edge = projected.edges()[0]
+    p1, p2 = projected.coords[edge[0]], projected.coords[edge[1]]
+
+    invalid, subgraphs = line_subgraph_intersection_refactored(subgraphs,
+                                                    rtree,
+                                                    p1, p2)
+
+    assert not invalid, "edge should intersect network only once"

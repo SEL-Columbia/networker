@@ -21,6 +21,11 @@ PROJ4_FLAT_EARTH = "+proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0
 #  not an ellipsoid as in WGS84)
 PROJ4_GEOCENTRIC = "+proj=geocent +datum=WGS84 +units=m +no_defs"
 
+# Tolerance to determine coordinate matches...this naively applies
+# to all points regardless of coordinate system, but for lat/lon
+# coordinates, the affect can be gauged via the table here:
+# https://en.wikipedia.org/wiki/Decimal_degrees 
+POINT_MATCH_TOLERANCE = 1e-8
 
 def ang_to_vec_coords(coords, radius=MEAN_EARTH_RADIUS_M):
     """
@@ -269,7 +274,164 @@ def make_bounding_box(coord1, coord2):
     return bbox[0][0], bbox[0][1], bbox[1][0], bbox[1][1]
 
 
+def segments_share_one_endpoint(p1, p2, p3, p4):
+    """
+    Determine whether segments share an endpoint (but are not equal)
+
+    Args:
+        p1, p2:  points comprising segment 1
+        p3, p4:  points comprising segment 2
+
+    Returns:
+        True if there's a single pair of shared points between segments
+    """
+    # NOTE:  This will return False if segments share ALL points (i.e. are ==)
+    return (np.allclose(p1, p3, atol=POINT_MATCH_TOLERANCE, rtol=0) and not
+            np.allclose(p2, p4, atol=POINT_MATCH_TOLERANCE, rtol=0)) or (
+            np.allclose(p1, p4, atol=POINT_MATCH_TOLERANCE, rtol=0) and not 
+            np.allclose(p2, p3, atol=POINT_MATCH_TOLERANCE, rtol=0)) or (
+            np.allclose(p2, p3, atol=POINT_MATCH_TOLERANCE, rtol=0) and not 
+            np.allclose(p1, p4, atol=POINT_MATCH_TOLERANCE, rtol=0)) or (
+            np.allclose(p2, p4, atol=POINT_MATCH_TOLERANCE, rtol=0) and not 
+            np.allclose(p1, p3, atol=POINT_MATCH_TOLERANCE, rtol=0))
+
+
+def segments_share_endpoint(p1, p2, p3, p4):
+    """
+    Determine whether segments share an endpoint
+
+    Args:
+        p1, p2:  points comprising segment 1
+        p3, p4:  points comprising segment 2
+
+    Returns:
+        True if there are any shared points between segments
+    """
+    # NOTE:  This will return False if segments share ALL points (i.e. are ==)
+    return (np.allclose(p1, p3, atol=POINT_MATCH_TOLERANCE, rtol=0)) or (
+            np.allclose(p1, p4, atol=POINT_MATCH_TOLERANCE, rtol=0)) or (
+            np.allclose(p2, p3, atol=POINT_MATCH_TOLERANCE, rtol=0)) or (
+            np.allclose(p2, p4, atol=POINT_MATCH_TOLERANCE, rtol=0))
+
+
+def segments_intersect(p1, p2, p3, p4):
+    """
+    Do 2 2D segments intersect in Euclidean space?
+
+    http://stackoverflow.com/questions/563198/how-do-you-detect-where-two-line-segments-intersect
+
+    Args:
+        p1, p2:  points comprising segment 1
+        p3, p4:  points comprising segment 2
+
+    Returns:
+        True if segments intersect
+    """
+
+    # make vectors from segments
+    v1 = p2 - p1 
+    v2 = p4 - p3     
+    numerator = np.cross((p3 - p1), v1)
+    denominator = np.cross(v1, v2)
+
+    if numerator == 0 and denominator == 0:
+        # lines are collinear, test if overlapping
+        # TODO:  Test this...looks wrong
+        """ OLD and WRONG 
+        overlapping = (((((p3[0]-p1[0]) < 0) != ((p3[0]-p2[0]) < 0)) and 
+                        (((p3[1]-p1[1]) < 0) != ((p3[1]-p2[1]) < 0))) or
+                       ((((p4[0]-p1[0]) < 0) != ((p4[0]-p2[0]) < 0)) and 
+                        (((p4[1]-p1[1]) < 0) != ((p4[1]-p2[1]) < 0))))
+        """
+
+        def on_segment_collinear(s_p1, s_p2, p):
+            """
+            Test whether a point collinear with a segment is ON it
+            """
+
+            # The sign of the product of differences in x,y coords indicates
+            # whether the point is on one side or other of the segment
+            p_x_in_s = (p[0]-s_p1[0])*(p[0]-s_p2[0])
+            p_y_in_s = (p[1]-s_p1[1])*(p[1]-s_p2[1])
+            return p_x_in_s <= 0 and p_y_in_s <= 0
+
+        # at least one of the points must be on the other segment
+        overlapping = (on_segment_collinear(p1, p2, p3) or
+                       on_segment_collinear(p1, p2, p4) or
+                       on_segment_collinear(p3, p4, p1) or
+                       on_segment_collinear(p3, p4, p2))
+
+        return overlapping
+
+    if denominator == 0:
+        # lines are parallel
+        return False
+
+    u = numerator / denominator
+    t = np.cross((p3 - p1), v2) / denominator
+
+    intersecting = (0 <= t <= 1) and (0 <= u <= 1)
+    return intersecting
+
+
 @jit
+def line_subgraph_intersection_refactored(subgraphs, rtree, p1, p2):
+    """
+    test for line segment intersection
+    http://stackoverflow.com/questions/563198/how-do-you-detect-where-two-line-segments-intersect
+
+    TODO: Should compare this methodology to the dot product
+    method to see which is more performant
+
+    Args:
+        subgraphs:  UnionFind structure representing subgraphs of a forest
+        rtree:  libspatialindex rtree structure containing segments
+            of subgraphs
+        p1, p2:  points representing segment to test for intersection with
+            subgraphs
+
+    Returns:
+        invalid_edge:  whether the edge is invalid due to > 1 intersection
+            point with any subgraph
+        intersecting_subnets: dict of subnet ids to number of intersections
+
+    """
+
+    box = make_bounding_box(p1, p2)
+
+    # query for overlapping rectangles
+    intersecting_bounds = rtree.intersection(box, objects=True)
+    intersecting_subnets = defaultdict(int)
+
+    # go through the possible intersections to validate
+    for possible in intersecting_bounds:
+
+        # Query object is in form of (u.label, v.label), (u.coord, v.coord)
+        (up, vp), (p3, p4) = possible.object
+
+        if segments_intersect(p1, p2, p3, p4):
+            if segments_share_endpoint(p1, p2, p3, p4):
+                continue
+            else:
+                # Make sure something didn't go awry such that this edge
+                # doesn't represent a single subnet
+                assert(subgraphs[up] == subgraphs[vp])
+
+                # Get the subgraph the segment intersects
+                subgraph_parent = subgraphs[up]
+                intersecting_subnets[subgraph_parent] += 1
+
+                # If the subgraph is intersected in more than a single location
+                # this results in a 'cycle' and the segment is rejected
+                if intersecting_subnets[subgraph_parent] > 1:
+                    return True, intersecting_subnets
+
+    # TODO: If this edge is valid, we need to update
+    # the mv for all intersecting subnets
+    return False, intersecting_subnets
+               
+
+# @jit
 def line_subgraph_intersection(subgraphs, rtree, p1, p2):
     """
     test for line segment intersection
@@ -304,8 +466,10 @@ def line_subgraph_intersection(subgraphs, rtree, p1, p2):
         # Query object is in form of (u.label, v.label), (u.coord, v.coord)
         (up, vp), (p3, p4) = possible.object
 
-        r = p2 - p1
-        s = p4 - p3
+               
+
+        r = p2 - p1 # offset of p2 from p1 (i.e. input vector)
+        s = p4 - p3 # offset of p4 from p3 (i.e. "possible" vector)
         numerator = np.cross((p3 - p1), r)
         denominator = np.cross(r, s)
 
@@ -508,7 +672,7 @@ def project_point_on_arc(p, v1, v2, radius=MEAN_EARTH_RADIUS_M):
 
     """
 
-    # create arc on the plane made by the orthognal to v1, v2 and p
+    # create arc on the plane made by the orthogonal to v1, v2 and p
     o = np.cross(v1, v2)
     p_i = arc_intersection(np.array([o, p]), np.array([v1, v2]),
         on_arc_test=False, radius=radius)
