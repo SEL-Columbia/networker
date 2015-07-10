@@ -24,7 +24,7 @@ def graph_with_dead_node():
     coords_dict = dict(enumerate(coords))
     graph = GeoGraph(coords=coords_dict)
 
-    nx.set_node_attributes(graph,   'budget',   dict(enumerate(mv_max_values)))
+    nx.set_node_attributes(graph, 'budget', dict(enumerate(mv_max_values)))
 
     return graph
 

@@ -145,6 +145,7 @@ def test_line_subgraph_intersection():
     # with first node
     net_nodes = network.nodes()
     parent = net_nodes[0]
+    subgraphs.add_component(parent, budget=0)
     for node in net_nodes[1:]:
         subgraphs.add_component(node, budget=0)
         subgraphs.union(parent, node, 0)
