@@ -165,3 +165,37 @@ def test_line_subgraph_intersection():
                                                     p1, p2)
 
     assert not invalid, "edge should intersect network only once"
+
+
+def test_point_projections():
+    """
+    Test some canonical cases and 
+    Ensure that spherical projections are more accurate than euclidean for
+    spherical coordinates
+    """
+
+    # from below, the euclidean projection will result in a shorter arc
+    p1 = np.array([5.0, 25.0])
+    l1 = np.array([[0.0, 30.0], [10.0, 30.0]])
+    proj_pt1 = gm.project_geopoint_on_arc(p1, *l1)
+    proj_pt2 = gm.project_point_on_segment(p1, *l1)
+
+    dist1 = gm.spherical_distance([p1, proj_pt1])
+    dist2 = gm.spherical_distance([p1, proj_pt2])
+
+    assert dist2 < dist1,\
+        "euclidean projection should be shorter than spherical"
+
+    # from above, the euclidean projection will result in a longer arc
+    p1 = np.array([5.0, 35.0])
+    proj_pt1 = gm.project_geopoint_on_arc(p1, *l1)
+    proj_pt2 = gm.project_point_on_segment(p1, *l1)
+
+    dist1 = gm.spherical_distance([p1, proj_pt1])
+    dist2 = gm.spherical_distance([p1, proj_pt2])
+
+    assert dist1 < dist2,\
+        "spherical projection should be shorter than euclidean"
+
+    # the euclidean projection will not normally be on the arc
+    # TODO:  Test this case
