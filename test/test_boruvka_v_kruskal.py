@@ -33,7 +33,7 @@ def nodes_plus_grid():
   
 
     In this case, all nodes will be connected via either algorithm, 
-    but the graph produced by mod_kruskal will have edge (2,5) whereas
+    but the graph produced by mod_kruskal will have edge (4,1) whereas
     mod_boruvka will produce a graph with edge (0,1).  
 
     Therefore, the mod_boruvka graph is more optimal.  
