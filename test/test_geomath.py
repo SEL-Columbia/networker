@@ -119,12 +119,12 @@ def test_spherical_dists():
     """
 
     xys = np.reshape(np.random.rand(20), (5,2,2))
-    
+
     sum_diffs = np.abs(np.sum(gm.spherical_distance_dot(xys) - \
                 gm.spherical_distance_haversine(xys)))
 
     assert sum_diffs < 1e-6, "dot and haversine results don't match"
-    
+
 
 def test_line_subgraph_intersection():
     """
@@ -134,11 +134,11 @@ def test_line_subgraph_intersection():
     network = nio.load_shp("data/katsina/existing.shp", simplify=False)
     network.coords = {"g-" + str(n): network.coords[n] for n in network.nodes()}
     new_labels = ["g-" + str(n) for n in network.nodes()]
-    nx.relabel_nodes(network, 
+    nx.relabel_nodes(network,
                      dict(zip(network.nodes(), new_labels)),
                      copy=False)
     nodes = nio.load_nodes("data/katsina/metrics.csv", "x", "y")
-     
+
     # populate disjoint set of subgraphs
     subgraphs = UnionFind()
     # only one connected component, so just add all nodes associated
@@ -169,7 +169,7 @@ def test_line_subgraph_intersection():
 
 def test_point_projections():
     """
-    Test some canonical cases and 
+    Test some canonical cases and
     Ensure that spherical projections are more accurate than euclidean for
     spherical coordinates
     """

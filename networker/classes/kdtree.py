@@ -1,7 +1,4 @@
 # -*- coding: utf-8 -*-
-
-__author__ = 'Brandon Ogle'
-
 import numpy as np
 from numba import jit
 
@@ -64,7 +61,7 @@ class KDTree(object):
             # and the midpoint in which to partition
             idx_data = np.column_stack((data[index], index))
             sort_ax = idx_data[np.argsort(idx_data[:, self.axis]), -1].\
-                                astype(int)
+                      astype(int)
             partition = sort_ax.size / 2
 
             # Node index and data
@@ -171,9 +168,9 @@ class KDTree(object):
         # validate best, by ensuring closer point doesn't exist just beyond
         # partition if best still has yet to be found also look
         # into this further branch
-        if (not best is None and
+        if (best is not None and
             self.orthogonal_dist(point) < distance(best[1], point)) or \
-            best is None:
+           best is None:
             best = far._query_subset(point, subset, best)
 
         return best

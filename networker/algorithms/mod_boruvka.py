@@ -56,7 +56,8 @@ def mod_boruvka(G, subgraphs=None, rtree=None):
     D = set()
 
     if subgraphs is None:
-        if rtree is not None: raise ValueError('RTree passed without UnionFind')
+        if rtree is not None:
+            raise ValueError('RTree passed without UnionFind')
 
         rtree = Rtree()
         # modified to handle queues, children, mv
@@ -96,8 +97,11 @@ def mod_boruvka(G, subgraphs=None, rtree=None):
 
         return (v, vm)
 
-    # Tests whether the node is a projection on the existing grid, using its MV
-    is_fake = lambda n: subgraphs.budget[n] == np.inf
+    def is_fake(node):
+        """
+        Tests whether the node is a projection on the existing grid, using its MV
+        """
+        return subgraphs.budget[node] == np.inf
 
     # Test whether the component is dead
     # i.e. can never connect to another node
@@ -129,7 +133,8 @@ def mod_boruvka(G, subgraphs=None, rtree=None):
         if is_dead(v, nn_dist):
             # here components are single nodes
             # so no need to worry about adding children to dead set
-            if v not in D: D.add(v)
+            if v not in D:
+                D.add(v)
 
     Et = []  # Initialize MST edges to empty list
     last_state = None
@@ -158,7 +163,8 @@ def mod_boruvka(G, subgraphs=None, rtree=None):
                 # add all dead components to the dead set D
                 # (note that fake nodes can never be dead)
                 for c in subgraphs.component_set(C):
-                    if c not in D and not is_fake(c):  D.add(c)
+                    if c not in D and not is_fake(c):
+                        D.add(c)
 
         # One more round to root out connections to dead components
         # found in above iteration.
@@ -194,24 +200,24 @@ def mod_boruvka(G, subgraphs=None, rtree=None):
         while Ep._queue:
             (um, vm, dm) = Ep.pop()
 
-            # if doesn't create cycle 
+            # if doesn't create cycle
             # and subgraphs have enough MV
-            # and we're not connecting 2 fake nodes 
+            # and we're not connecting 2 fake nodes
             # then allow the connection
             if subgraphs[um] != subgraphs[vm] and \
-                (subgraphs.budget[subgraphs[um]] >= dm or is_fake(um)) and \
-                (subgraphs.budget[subgraphs[vm]] >= dm or is_fake(vm)) and \
-                not (is_fake(um) and is_fake(vm)):
+               (subgraphs.budget[subgraphs[um]] >= dm or is_fake(um)) and \
+               (subgraphs.budget[subgraphs[vm]] >= dm or is_fake(vm)) and \
+               not (is_fake(um) and is_fake(vm)):
 
                 # doesn't create cycles from line segment intersection
                 invalid_edge, intersections = \
                     line_subgraph_intersection(subgraphs, rtree,
-                        coords[um], coords[vm])
+                                               coords[um], coords[vm])
 
                 if not invalid_edge:
                     # edges should not intersect a subgraph more than once
                     assert(filter(lambda n: n > 1,
-                        intersections.values()) == [])
+                                  intersections.values()) == [])
 
                     # merge the subgraphs
                     subgraphs.union(um, vm, dm)
@@ -220,16 +226,16 @@ def mod_boruvka(G, subgraphs=None, rtree=None):
                     # created by the edge intersecting them,
                     # TODO: This should be updated in not such a naive method
                     map(lambda (n, _): subgraphs.union(um, n, 0),
-                            filter(lambda (n, i): i == 1 and
-                                    subgraphs[n] != subgraphs[um],
-                                intersections.iteritems()))
+                                       filter(lambda (n, i): i == 1 and
+                                              subgraphs[n] != subgraphs[um],
+                                              intersections.iteritems()))
 
                     # index the newly added edge
                     box = make_bounding_box(coords[um], coords[vm])
 
                     # Object is (u.label, v.label), (u.coord, v.coord)
                     rtree.insert(hash((um, vm)), box,
-                        obj=((um, vm), (coords[um], coords[vm])))
+                                 obj=((um, vm), (coords[um], coords[vm])))
                     Et += [(um, vm, {'weight': dm})]
 
     # create new GeoGraph with results

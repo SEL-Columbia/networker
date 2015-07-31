@@ -16,8 +16,9 @@ Package for reading/writing networkx based GeoGraphs
 Note:  these wrap existing networkx functions for custom behavior
 """
 
+
 # TEMPORARY FIX:
-# Copied from networkx library and modified, but I have a PR 
+# Copied from networkx library and modified, but I have a PR
 # for this to be included in networkx lib
 # https://github.com/networkx/networkx/pull/1491
 def read_shp(path, simplify=True):
@@ -36,7 +37,7 @@ def read_shp(path, simplify=True):
        File, directory, or filename to read.
 
     simplify:  Simplify line geometries to start and end coordinates
-        If False, and line feature geometry has multiple segments, the 
+        If False, and line feature geometry has multiple segments, the
         attributes for that feature will be repeated for each edge comprising
         that feature
 
@@ -72,17 +73,22 @@ def read_shp(path, simplify=True):
             if g.GetGeometryType() == 1:  # point
                 net.add_node((g.GetPoint_2D(0)), attributes)
             if g.GetGeometryType() == 2:  # linestring
-                attributes["Wkb"] = g.ExportToWkb()
-                attributes["Wkt"] = g.ExportToWkt()
-                attributes["Json"] = g.ExportToJson()
                 if simplify:
                     last = g.GetPointCount() - 1
-                    net.add_edge(g.GetPoint_2D(0), g.GetPoint_2D(last), attributes)
+                    attributes["Wkb"] = g.ExportToWkb()
+                    attributes["Wkt"] = g.ExportToWkt()
+                    attributes["Json"] = g.ExportToJson()
+                    net.add_edge(g.GetPoint_2D(0), g.GetPoint_2D(last),
+                                 attributes)
                 else:
+                    # NOTE: we do NOT add the geometry attributes (WKB...) here
+                    # since they are not necessarily 1-1 with edges (and
+                    # therefore can easily get out of sync on graph
+                    # manipulation)
                     for i in range(0, g.GetPointCount() - 1):
-                        net.add_edge(g.GetPoint_2D(i), g.GetPoint_2D(i+1), attributes)
+                        net.add_edge(g.GetPoint_2D(i), g.GetPoint_2D(i+1),
+                                     attributes)
     return net
-
 
 
 def load_shp(shp_path, simplify=True):
@@ -100,7 +106,7 @@ def load_shp(shp_path, simplify=True):
 
     # NOTE:  if shp_path is unicode io doesn't work for some reason
     shp_path = shp_path.encode('ascii', 'ignore')
-    # TODO:  Call from networkx lib once PR has been 
+    # TODO:  Call from networkx lib once PR has been
     # accepted and released
     # g = nx.read_shp(shp_path, simplify=simplify)
     g = read_shp(shp_path, simplify=simplify)
@@ -117,7 +123,7 @@ def load_shp(shp_path, simplify=True):
             proj4 = gm.PROJ4_LATLONG
         else:
             warnings.warn("Spatial Reference could not be set for {}".
-                format(shp_path))
+                          format(shp_path))
 
     else:
         proj4 = spatial_ref.ExportToProj4()
@@ -145,7 +151,7 @@ def load_nodes(filename="metrics.csv", x_column="X", y_column="Y"):
     # read in the csv
     # NOTE:  Convert x,y via float cast to preserve precision of input
     metrics = pd.read_csv(filename, header=header_row,
-        converters={x_column: float, y_column: float})
+                          converters={x_column: float, y_column: float})
 
     coord_cols = [x_column, y_column]
     assert all([hasattr(metrics, col) for col in coord_cols]), \

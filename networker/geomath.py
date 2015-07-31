@@ -14,7 +14,9 @@ MEAN_EARTH_RADIUS_M = 6371010
 PROJ4_LATLONG = "+proj=latlong +datum=WGS84"
 
 # aka EPSG:3587 or 'tiling' projection
-PROJ4_FLAT_EARTH = "+proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0 +k=1.0 +units=m +nadgrids=@null +wktext  +no_defs"
+PROJ4_FLAT_EARTH = "+proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 \
+                    +x_0=0.0 +y_0=0 +k=1.0 +units=m +nadgrids=@null +wktext \
+                    +no_defs"
 
 # meant to represent xyz based coordinates from center of earth
 # (in this implementation we simplify earth into a sphere,
@@ -24,8 +26,9 @@ PROJ4_GEOCENTRIC = "+proj=geocent +datum=WGS84 +units=m +no_defs"
 # Tolerance to determine coordinate matches...this naively applies
 # to all points regardless of coordinate system, but for lat/lon
 # coordinates, the affect can be gauged via the table here:
-# https://en.wikipedia.org/wiki/Decimal_degrees 
+# https://en.wikipedia.org/wiki/Decimal_degrees
 POINT_MATCH_TOLERANCE = 1e-8
+
 
 def ang_to_vec_coords(coords, radius=MEAN_EARTH_RADIUS_M):
     """
@@ -73,7 +76,7 @@ def vec_to_ang_coords(coords):
     with equatorial and polar axis
 
     Args:
-        coords:  nx3 array of x, y, z  
+        coords:  nx3 array of x, y, z
 
     Returns:
         array:   nx2 array of angular coordinates
@@ -90,7 +93,7 @@ def vec_to_ang_coords(coords):
 
     assert np.shape(coords)[-1] == 3, "coords last dim must be 3 (x, y, z)"
 
-    # transpose to operate on easily and xform to degrees 
+    # transpose to operate on easily and xform to degrees
     x, y, z = np.transpose(coords)
 
     h = np.sqrt(x**2 + y**2)
@@ -196,7 +199,7 @@ def euclidean_distance(coord_pair):
     """
 
     return np.sqrt(np.sum((np.asarray(coord_pair[0]) -
-                    np.asarray(coord_pair[1]))**2))
+                   np.asarray(coord_pair[1]))**2))
 
 
 def square_distance(a, b):
@@ -276,47 +279,47 @@ def make_bounding_box(coord1, coord2):
 
 def direction(p, p1, p2):
     """
-    Determine the orientation of a point relative to a segment 
+    Determine the orientation of a point relative to a segment
 
     Args:
-        p:  point to compare to segment 
-        p1, p2:  points of segment to compare 
+        p:  point to compare to segment
+        p1, p2:  points of segment to compare
 
     Returns:
         orientation:  + if point is right of segment
                       - if point is left of segment
-    
+
     Uses cross product...recall that if:
-    A=vector(p1, p); B=vector(p1, p2) 
+    A=vector(p1, p); B=vector(p1, p2)
 
     then
 
-    AXB > 0 if A is clockwise from B and 
+    AXB > 0 if A is clockwise from B and
     AXB < 0 if A is counterclockwise from B
 
      p1               p1
      |\               |\
-     | \              | \ 
+     | \              | \
     A|+ \B           B|- \A
      |   \            |   \
      p    p2          p2   p
 
     From this, we can say that point p is to the right or left of (p1,p2)
-        
+
     """
     return np.cross((p - p1), (p2 - p1))
-       
+
 
 def on_segment_collinear(p, p1, p2):
     """
     Test whether a point collinear with a segment is ON it
 
-    Args:  
-        p:  point 
+    Args:
+        p:  point
         p1, p2: segment points 1 and 2
 
     Returns:
-        on_segment:  True if point is ON segment else False 
+        on_segment:  True if point is ON segment else False
     """
 
     # if the sign of the product of differences in one coord to
@@ -334,7 +337,7 @@ def segments_intersect_simple(p1, p2, p3, p4):
     """
     Do 2 2D segments intersect in Euclidean space?
 
-    Taken from Intro to Algorithms 2nd Ed, p 937 
+    Taken from Intro to Algorithms 2nd Ed, p 937
 
     Args:
         p1, p2:  points comprising segment 1
@@ -351,7 +354,7 @@ def segments_intersect_simple(p1, p2, p3, p4):
     d4 = direction(p4, p1, p2)
 
     # determine whether segments straddle eachother
-    # use multiplication to simplify test...this ensures that 
+    # use multiplication to simplify test...this ensures that
     # p1 & p2 are on opposite sides of p3, p4 AND
     # p3 & p4 are on opposite sides of p1, p2
     if d1*d2 < 0 and d3*d4 < 0:
@@ -384,15 +387,15 @@ def segments_share_one_endpoint(p1, p2, p3, p4):
     Returns:
         True if there's a single pair of shared points between segments
     """
-    # NOTE:  This will return False if segments share ALL points 
+    # NOTE:  This will return False if segments share ALL points
     #        (i.e. are approximately equal)
     return (np.allclose(p1, p3, atol=POINT_MATCH_TOLERANCE, rtol=0) and not
             np.allclose(p2, p4, atol=POINT_MATCH_TOLERANCE, rtol=0)) or (
-            np.allclose(p1, p4, atol=POINT_MATCH_TOLERANCE, rtol=0) and not 
+            np.allclose(p1, p4, atol=POINT_MATCH_TOLERANCE, rtol=0) and not
             np.allclose(p2, p3, atol=POINT_MATCH_TOLERANCE, rtol=0)) or (
-            np.allclose(p2, p3, atol=POINT_MATCH_TOLERANCE, rtol=0) and not 
+            np.allclose(p2, p3, atol=POINT_MATCH_TOLERANCE, rtol=0) and not
             np.allclose(p1, p4, atol=POINT_MATCH_TOLERANCE, rtol=0)) or (
-            np.allclose(p2, p4, atol=POINT_MATCH_TOLERANCE, rtol=0) and not 
+            np.allclose(p2, p4, atol=POINT_MATCH_TOLERANCE, rtol=0) and not
             np.allclose(p1, p3, atol=POINT_MATCH_TOLERANCE, rtol=0))
 
 
@@ -429,14 +432,14 @@ def segments_intersect(p1, p2, p3, p4):
     """
 
     # make vectors from segments
-    v1 = p2 - p1 
-    v2 = p4 - p3     
+    v1 = p2 - p1
+    v2 = p4 - p3
     numerator = np.cross((p3 - p1), v1)
     denominator = np.cross(v1, v2)
 
     if numerator == 0 and denominator == 0:
         # lines are collinear, test if overlapping
-    
+
         # at least one of the points must be on the other segment
         overlapping = (on_segment_collinear(p3, p1, p2) or
                        on_segment_collinear(p4, p1, p2) or
@@ -574,7 +577,8 @@ def arc_intersection(a1, a2, radius=MEAN_EARTH_RADIUS_M, on_arc_test=True):
     Args:
         a1, a2:  arcs, each represented by 2 points in R^3
         radius:  the radius to project the intersecting vector by
-        on_arc_test:  whether to return
+        on_arc_test:  if True, will return None if intersecting point not ON
+                      both arcs
 
     Returns:
         point:  projected point in R^3 (or None if no intersection and \
@@ -617,7 +621,7 @@ def arc_intersection(a1, a2, radius=MEAN_EARTH_RADIUS_M, on_arc_test=True):
 
 def project_geopoint_on_arc(p, v1, v2, radius=MEAN_EARTH_RADIUS_M):
     """
-    EXPERIMENTAL 
+    EXPERIMENTAL
 
     Convert latlong to 3d point, project and convert back to latlong
     """
@@ -649,10 +653,16 @@ def project_point_on_arc(p, v1, v2, radius=MEAN_EARTH_RADIUS_M):
 
     """
 
+    # check if arc is 0 length (i.e. it's a point)
+    # if so, then we're just projecting a point onto another point
+    # which IS that other point
+    if all(v1 == v2):
+        return v1
+
     # create arc on the plane made by the orthogonal to v1, v2 and p
     o = np.cross(v1, v2)
     p_i = arc_intersection(np.array([o, p]), np.array([v1, v2]),
-        on_arc_test=False, radius=radius)
+                           on_arc_test=False, radius=radius)
 
     # if p_i is further from any arc endpoint than the
     # length of arc, then return the closest endpoint to
@@ -702,7 +712,7 @@ def all_dists(coords, spherical=True):
     dists = np.sqrt(sq_dist(a, b))
     if spherical:
         coord_pairs = np.concatenate((a[:,np.newaxis], b[:,np.newaxis]),
-                                        axis=1)
+                                     axis=1)
         dists = spherical_distance_haversine(coord_pairs)
 
     zero_indices = np.array(range(len(coords))) * (len(coords) + 1)
@@ -817,7 +827,7 @@ def get_arc_3D(v1, v2, points_per_radian=100, radius=1):
     w_axis_3D = np.cross(np.cross(v1_3D, v2_3D), v1_3D)
     # make w a vector of proper radius
     w_len = np.sqrt(square_distance([0,0,0], w_axis_3D))
-    w_3D = w_axis_3D * (radius / w_len) 
+    w_3D = w_axis_3D * (radius / w_len)
     arc_len = np.arccos(np.dot(v1_3D, v2_3D))
     num_points = arc_len * points_per_radian
     t = np.linspace(0, arc_len, num_points)

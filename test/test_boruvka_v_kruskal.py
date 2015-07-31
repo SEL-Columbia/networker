@@ -18,25 +18,25 @@ def nodes_plus_grid():
     """
     Return:  nodes as graph and grid as UnionFind/Rtree combo
 
-    This example input demonstrates the "more" optimal nature 
-    of mod_boruvka vs mod_kruskal.  
+    This example input demonstrates the "more" optimal nature
+    of mod_boruvka vs mod_kruskal.
 
                           2(10)
                            |
             1(4)           |
-  sqrt(5){ /|              | 
+  sqrt(5){ /|              |
           / |              |
          /  | }3           | } 5
      (2)0   |              |
       1{|   |              |
     +-+-3-+-4-+-+-+-+-+-+-+5-+-+-+  <-- existing grid
-  
 
-    In this case, all nodes will be connected via either algorithm, 
+
+    In this case, all nodes will be connected via either algorithm,
     but the graph produced by mod_kruskal will have edge (4,1) whereas
-    mod_boruvka will produce a graph with edge (0,1).  
+    mod_boruvka will produce a graph with edge (0,1).
 
-    Therefore, the mod_boruvka graph is more optimal.  
+    Therefore, the mod_boruvka graph is more optimal.
     """
 
     mv_max_values = [2, 4, 10]
@@ -60,7 +60,7 @@ def nodes_plus_grid():
 
     # populate disjoint set of subgraphs
     subgraphs = UnionFind()
-    # only one connected component, so just associate all nodes 
+    # only one connected component, so just associate all nodes
     # with first node of grid
     parent = grid.nodes()[0]
     subgraphs.add_component(parent, budget=grid.node[parent]['budget'])
@@ -78,20 +78,20 @@ def nodes_plus_grid():
     # merge coords
     nodes.coords = dict(nodes.coords, **projected.coords)
 
-    return nodes, subgraphs, rtree 
+    return nodes, subgraphs, rtree
 
-# TODO:  Write test_optimality 
+# TODO:  Write test_optimality
 def test_optimality():
 
-    # get test inputs, run mod_boruvka and mod_kruskal on them and 
+    # get test inputs, run mod_boruvka and mod_kruskal on them and
     # ensure that mod_boruvka is more optimal
 
     # need copies of subgraphs, rtree because they are modified
     # by mod algos
     nodes1, subgraphs1, rtree1 = nodes_plus_grid()
     nodes2, subgraphs2, rtree2 = nodes_plus_grid()
-    mod_b_result = mod_boruvka(nodes1, subgraphs1, rtree1) 
-    mod_k_result = mod_kruskal(nodes2, subgraphs2, rtree2) 
+    mod_b_result = mod_boruvka(nodes1, subgraphs1, rtree1)
+    mod_k_result = mod_kruskal(nodes2, subgraphs2, rtree2)
 
     assert ((0, 1) in mod_b_result.edges() and
            (1, 4) not in mod_b_result.edges() and

@@ -23,13 +23,13 @@ def network_nodes_projections():
          /
         /      2
        /       |
-      /     6  | 8 
+      /     6  | 8
      /   5 0---1
     3            7
- 
+
     nodes 5,6,7,8 should be projected onto graph path (0,1,2)
     graph path (3,4) is meant to test whether a long segment whose
-    bbox overlaps all nodes interferes with the projection 
+    bbox overlaps all nodes interferes with the projection
     (it had in the past)
     """
 
@@ -88,7 +88,7 @@ def test_connected_graph():
     nodes = g.nodes()
     edges = set(zip(np.tile(nodes, len(nodes)), np.repeat(nodes, len(nodes))))
     diagonal = set(zip(nodes, nodes))
-    edges = edges - diagonal 
+    edges = edges - diagonal
     # order does NOT matter
     edges = set([frozenset(edge) for edge in edges])
     def dist_for_edge(edge):
@@ -97,8 +97,8 @@ def test_connected_graph():
     weights = {edge: dist_for_edge(edge) for edge in \
                 [tuple(set_edge) for set_edge in edges]}
 
-    g_conn_weights = {(e[0],e[1]): e[2]['weight'] 
+    g_conn_weights = {(e[0],e[1]): e[2]['weight']
                         for e in g_conn.edges(data=True)}
-    
+
     assert weights == g_conn_weights,\
         "fully connected edges/weights are not correct"

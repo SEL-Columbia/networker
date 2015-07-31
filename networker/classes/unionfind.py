@@ -48,7 +48,8 @@ class UnionFind:
         self.weights = {}
         self.budget = {}
         self.parents = {}
-        # This was previously used such that modifying it changed all refs pointing here
+        # This was previously used such that modifying it changed all refs
+        # pointing here
         self.children = Dict()
         self.queues = {}
 
@@ -164,7 +165,7 @@ class UnionFind:
         """
         if component_subset:
             return set([self[r] for r in self if
-                any(c in component_subset for c in self.children[self[r]])])
+                   any(c in component_subset for c in self.children[self[r]])])
         else:
             return set([self[r] for r in self])
 

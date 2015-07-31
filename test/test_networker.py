@@ -188,11 +188,11 @@ def run_network_algo_iteratively(algorithm):
 
 
 def test_algos_iteratively():
-    
+
     run_network_algo_iteratively(mod_boruvka)
     run_network_algo_iteratively(mod_kruskal)
 
-    
+
 def simple_nodes_disjoint_grid():
     """
     return disjoint net plus nodes with fakes
@@ -200,13 +200,13 @@ def simple_nodes_disjoint_grid():
 
     nodes by id (budget in parens)
 
-                
+
            (5) 0-------1 (5)
                |       |
              +-+-+   +-+-+  <-- disjoint existing grid
 
     Useful for testing treating existing grid as single grid
-    vs disjoint 
+    vs disjoint
 
     """
     # setup grid
@@ -227,10 +227,10 @@ def simple_nodes_disjoint_grid():
 
 
 def test_merge_network_and_nodes():
-    
+
     grid, nodes, fakes = simple_nodes_disjoint_grid()
-    # test disjoint merge 
-    G, DS, R = networker_runner.merge_network_and_nodes(grid, nodes, 
+    # test disjoint merge
+    G, DS, R = networker_runner.merge_network_and_nodes(grid, nodes,
                                                         single_network=False)
     fake_parents = [DS[fake] for fake in fakes]
     assert len(np.unique(fake_parents)) == len(fake_parents), \
@@ -239,7 +239,7 @@ def test_merge_network_and_nodes():
     msf = mod_boruvka(G, DS, R)
     assert msf.has_edge(0, 1), "edge between nodes 0, 1 should exist"
 
-    G, DS, R = networker_runner.merge_network_and_nodes(grid, nodes, 
+    G, DS, R = networker_runner.merge_network_and_nodes(grid, nodes,
                                                         single_network=True)
     fake_parents = [DS[fake] for fake in fakes]
     assert len(np.unique(fake_parents)) == 1, \
@@ -251,8 +251,8 @@ def test_merge_network_and_nodes():
 def grid_and_non_grid():
     """
     return networkplan GeoGraph with grid and non-grid components
-                
-               0       2 
+
+               0       2
                |       |
              +-6-+     1   3-4-5
               (inf)
@@ -260,12 +260,12 @@ def grid_and_non_grid():
     where node 3 is a fake node connecting node 0 to the grid
 
     """
-    node_coords = np.array([[0.0, 1.0], 
-                            [4.0, 0.0], 
-                            [4.0, 1.0], 
-                            [5.0, 0.0], 
-                            [6.0, 0.0], 
-                            [7.0, 0.0], 
+    node_coords = np.array([[0.0, 1.0],
+                            [4.0, 0.0],
+                            [4.0, 1.0],
+                            [5.0, 0.0],
+                            [6.0, 0.0],
+                            [7.0, 0.0],
                             [0.0, 0.0]])
 
     grid = GeoGraph(gm.PROJ4_FLAT_EARTH, dict(enumerate(node_coords)))
@@ -287,30 +287,30 @@ def test_min_node_filter():
     grid_connected = filter(lambda sub: networker_runner.has_grid_conn(sub),
                             nx.connected_component_subgraphs(grid))
 
-    non_grid_connected = filter(lambda sub: 
+    non_grid_connected = filter(lambda sub:
                                 not networker_runner.has_grid_conn(sub),
                                 nx.connected_component_subgraphs(grid))
- 
+
     filtered = networker_runner.filter_min_node_subnetworks(grid, min_node_count)
-    
+
     grid_filtered = filter(lambda sub: networker_runner.has_grid_conn(sub),
                          nx.connected_component_subgraphs(filtered))
 
-    non_grid_filtered = filter(lambda sub: 
+    non_grid_filtered = filter(lambda sub:
                                not networker_runner.has_grid_conn(sub),
                                nx.connected_component_subgraphs(filtered))
- 
+
     assert len(grid_connected) == len(grid_filtered),\
            "number grid connected subnets should not change"
 
     assert min([len(g) for g in non_grid_filtered]) >= min_node_count,\
            "non-grid networks should have >= {} nodes".format(min_node_count)
 
-    # make sure it works without existing grid 
+    # make sure it works without existing grid
     filtered_non_grid = networker_runner.filter_min_node_subnetworks(
         nx.union_all(non_grid_connected), min_node_count)
 
-    subnet_lens = [len(g) for g in 
+    subnet_lens = [len(g) for g in
                    nx.connected_component_subgraphs(filtered_non_grid)]
     assert min(subnet_lens) >= min_node_count,\
            "non-grid networks should have >= {} nodes".format(min_node_count)
