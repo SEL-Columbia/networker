@@ -1,10 +1,8 @@
 # -*- coding: utf8 -*-
 
-import networkx as nx
-import numpy as np
-import networker.geomath as gm 
-import pyproj as prj
+import networker.geomath as gm
 from networkx.readwrite import json_graph
+
 
 # Utility functions
 def csv_projection(path):
@@ -25,7 +23,6 @@ def csv_projection(path):
         return header
 
 
-
 # GeoGraph to js
 def geograph_to_json(g):
 
@@ -40,7 +37,7 @@ def geograph_to_json(g):
     return js_g
 
 
-""" 
+"""
 # spherical drawing helpers
 # plot maps
 def draw_geograph(g, node_color='r', edge_color='b', node_label_field=None,

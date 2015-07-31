@@ -18,9 +18,9 @@ setup(
     packages=find_packages(),
     description="Python library for planning distribution networks",
     long_description=open("README.md").read(),
-    package_data={'networker': ['*.json']}, 
+    package_data={'networker': ['*.json']},
     include_package_data=True,
     url='https://github.com/SEL-Columbia/networker',
-    install_requires=required, 
+    install_requires=required,
     scripts = ['scripts/run_networker.py', 'scripts/run_networkplanner.py']
 )

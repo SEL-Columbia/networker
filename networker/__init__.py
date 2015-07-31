@@ -1,12 +1,12 @@
-__version__ = "0.2.2"
+import logging
 
-# initialize logging
-import logging 
+__version__ = "0.2.2"
 
 logger = logging.getLogger('networker')
 logger.setLevel(logging.INFO)
 ch = logging.StreamHandler()
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+formatter = \
+logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 ch.setFormatter(formatter)
 logger.addHandler(ch)
 

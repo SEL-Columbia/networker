@@ -20,7 +20,7 @@ def networkplanner_run_compare(cfg, known_results_file, output_dir):
 
     # compare this run against existing results
     test_geo = nio.load_shp(os.path.join(output_dir,
-                            "networks-proposed.shp"), 
+                            "networks-proposed.shp"),
                             simplify=False)
     known_geo = nio.load_shp(known_results_file, simplify=False)
     # compare sets of edges
@@ -60,15 +60,15 @@ def test_networkplanner_leona_run():
 
     # get config in case we want to modify
     networkplanner_run_compare(cfg, results_file, output_dir)
-   
+
 
 def test_dataset_store_to_geograph():
-    """ 
+    """
     make sure we can go from shp to geograph to dataset_store
     """
     data_dir = "data/pop_100"
     test_geo = nio.load_shp(os.path.join(data_dir,
-                            "networks-proposed.shp"), 
+                            "networks-proposed.shp"),
                             simplify=False)
     dataset = dataset_store.load(os.path.join(data_dir, "dataset.db"))
     dataset_geo = networkplanner_runner.dataset_store_to_geograph(dataset)

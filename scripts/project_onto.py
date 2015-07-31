@@ -29,10 +29,10 @@ parser.add_argument("--y_column", "-y", \
         default="y", \
         help="column name for x value in node csv")
 parser.add_argument("--rtree", "-r", \
-        dest="rtree", action="store_true", 
+        dest="rtree", action="store_true",
         help="use rtree for segment lookup")
 parser.add_argument("--no-rtree", "-n", \
-        dest="rtree", action="store_false", 
+        dest="rtree", action="store_false",
         help="do not use rtree for segment lookup")
 parser.add_argument("--output_directory", "-o", \
         default=".", \
@@ -41,8 +41,8 @@ parser.set_defaults(rtree=True)
 
 args = parser.parse_args()
 
-nodes = nio.load_nodes(args.node_filename, 
-                                    args.x_column, 
+nodes = nio.load_nodes(args.node_filename,
+                                    args.x_column,
                                     args.y_column)
 
 net = nio.load_shp(args.network_filename, simplify=False)
@@ -60,7 +60,7 @@ def project_helper(use_rtree):
         return net.project_onto(nodes, rtree_index=rtree)
     else:
         return net.project_onto(nodes)
-     
+
 # project_onto returns geograph with projected nodes PLUS
 # the network edges they were projected onto
 projected = project_helper(args.rtree)

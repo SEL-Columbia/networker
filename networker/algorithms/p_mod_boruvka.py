@@ -1,7 +1,4 @@
 # -*- coding: utf-8 -*-
-
-__author__ = 'Brandon Ogle'
-
 from copy import deepcopy
 
 import numpy as np
