@@ -7,7 +7,6 @@ import jsonschema
 
 import networkx as nx
 import numpy as np
-import pandas as pd
 
 from networker.classes.unionfind import UnionFind
 from networker.classes.geograph import GeoGraph
@@ -16,6 +15,7 @@ import networker.geomath as gm
 import networker.algorithms as algo
 
 log = logging.getLogger('networker')
+
 
 class NetworkerRunner(object):
 
@@ -36,7 +36,8 @@ class NetworkerRunner(object):
                 budget_column:  column for nodal budget { 'metric' }
             network_algorithm: mod_boruvka, mod_kruskal
             network_parameters:
-                minimum_node_count:  min number of nodes in non-grid sub-network { 2 }
+                minimum_node_count:  min number of nodes in non-grid
+                                     sub-network { 2 }
     """
 
     ALGOS = {'mod_boruvka': algo.mod_boruvka,
@@ -62,26 +63,26 @@ class NetworkerRunner(object):
                 **self.config['existing_networks'])
 
         network_algorithm = self.config['network_algorithm']
-        
+
         min_node_count = 0
         single_network = True
-        if self.config.has_key('network_parameters'):
+        if 'network_parameters' in self.config:
             network_params = self.config['network_parameters']
             min_node_count = network_params.get('minimum_node_count', 0)
             single_network = network_params.get('single_network', True)
 
         log.info("building network")
-        msf = build_network(demand_nodes, 
-                                existing=existing_networks,
-                                min_node_count=min_node_count,
-                                single_network=single_network,
-                                network_algorithm=network_algorithm)
+        msf = build_network(demand_nodes,
+                            existing=existing_networks,
+                            min_node_count=min_node_count,
+                            single_network=single_network,
+                            network_algorithm=network_algorithm)
 
         log.info("writing output")
         # now save it
         if not os.path.exists(self.output_directory):
             os.makedirs(self.output_directory)
-        
+
         nio.write_shp(msf, self.output_directory)
 
     def validate(self):
@@ -97,13 +98,12 @@ class NetworkerRunner(object):
         jsonschema.validate(self.config, schema)
 
 
-def build_network(demand_nodes, 
-                    existing=None, 
-                    min_node_count=2,
-                    single_network=True,
-                    network_algorithm='mod_boruvka',
-                    one_based=False 
-                    ):
+def build_network(demand_nodes,
+                  existing=None,
+                  min_node_count=2,
+                  single_network=True,
+                  network_algorithm='mod_boruvka',
+                  one_based=False):
     """
     project demand nodes onto optional existing supply network and
     return the 'optimized' network
@@ -121,16 +121,16 @@ def build_network(demand_nodes,
     Returns:
         msf: GeoGraph of minimum spanning forest proposed by the chosen
             network algorithm
-        existing: The existing grid GeoGraph (None if it doesn't exist) 
-        
+        existing: The existing grid GeoGraph (None if it doesn't exist)
+
     """
     geo_graph = subgraphs = rtree = None
 
     if existing:
         log.info("merging network and nodes")
         geo_graph, subgraphs, rtree = \
-            merge_network_and_nodes(existing, demand_nodes, 
-                single_network=single_network)
+            merge_network_and_nodes(existing, demand_nodes,
+                                    single_network=single_network)
     else:
         geo_graph = demand_nodes
 
@@ -142,8 +142,8 @@ def build_network(demand_nodes,
     result_geo_graph = network_algo(geo_graph, subgraphs=subgraphs,
                                     rtree=rtree)
 
-    filtered_graph = filter_min_node_subnetworks(result_geo_graph, 
-                                                 min_node_count) 
+    filtered_graph = filter_min_node_subnetworks(result_geo_graph,
+                                                 min_node_count)
 
     # map coords back to geograph
     # NOTE:  explicit relabel to int as somewhere in filtering above, some
@@ -151,16 +151,17 @@ def build_network(demand_nodes,
     # in write op
     # NOTE:  relabeling nodes in-place here drops node attributes for some
     #   reason so create a copy for now
-    def id_label(i): 
+    def id_label(i):
         id = int(i+1) if one_based else int(i)
         return id
 
     msf = None
     if filtered_graph:
         coords = {id_label(i): result_geo_graph.coords[i]
-                    for i in filtered_graph}
+                  for i in filtered_graph}
         relabeled = nx.relabel_nodes(filtered_graph, {i: id_label(i)
-            for i in filtered_graph}, copy=True)
+                                                      for i in filtered_graph},
+                                     copy=True)
         msf = GeoGraph(result_geo_graph.srs, coords=coords, data=relabeled)
 
     log.info("filtered result has {} nodes and {} edges".format(
@@ -186,7 +187,8 @@ def has_grid_conn(g):
 
 def filter_min_node_subnetworks(g, min_node_count):
     """
-    remove "non-grid connected" connected components from the networkplan GeoGraph
+    remove "non-grid connected" connected components from the networkplan
+    GeoGraph
 
     Args:
         g (GeoGraph):  networkplan as GeoGraph
@@ -195,12 +197,12 @@ def filter_min_node_subnetworks(g, min_node_count):
     Returns:
         networkx graph with appropriate subnetworks removed
 
-    Note:  If you need a GeoGraph from result, you'll need to convert it 
+    Note:  If you need a GeoGraph from result, you'll need to convert it
     """
 
-    grid_connected = filter(lambda sub: has_grid_conn(sub), 
+    grid_connected = filter(lambda sub: has_grid_conn(sub),
                             nx.connected_component_subgraphs(g))
-    non_grid_connected = filter(lambda sub: not has_grid_conn(sub), 
+    non_grid_connected = filter(lambda sub: not has_grid_conn(sub),
                                 nx.connected_component_subgraphs(g))
 
     def union_all_wrap(graph_list):
@@ -209,7 +211,7 @@ def filter_min_node_subnetworks(g, min_node_count):
             return nx.Graph()
         else:
             return nx.union_all(graph_list)
- 
+
     # now filter out non-grid subnetworks via minimum node count
     filtered_non_grid = union_all_wrap(filter(
         lambda sub: len(sub.node) >= min_node_count, non_grid_connected))
@@ -219,7 +221,7 @@ def filter_min_node_subnetworks(g, min_node_count):
     # finally, merge back grid_connected
     filtered_graph = nx.union(grid, filtered_non_grid)
     return filtered_graph
- 
+
 
 def merge_network_and_nodes(network, demand_nodes, single_network=True):
     """
@@ -231,7 +233,7 @@ def merge_network_and_nodes(network, demand_nodes, single_network=True):
             (assumes node ids don't conflict with net (demand) nodes)
         demand_nodes:  graph of nodes representing demand
         single_network:  whether subgraphs of network are unioned into
-            a single network 
+            a single network
 
     Returns:
         graph:  graph with demand nodes and their nearest nodes to the
@@ -251,10 +253,13 @@ def merge_network_and_nodes(network, demand_nodes, single_network=True):
     demand_node_set = set(demand_nodes.nodes())
     net_plus_demand = set(network.nodes()).union(demand_node_set)
     fakes = set(grid_with_fakes.nodes()) - net_plus_demand
-    # fake node should only have 2 neighbors from the existing network
-    # that is the nearest edge
-    def get_fake_edge(node): return tuple(set(
-        grid_with_fakes.neighbors(node)) - demand_node_set)
+
+    def get_fake_edge(node):
+        """
+        fake node should only have 2 neighbors from the existing network
+        that is the nearest edge
+        """
+        return tuple(set(grid_with_fakes.neighbors(node)) - demand_node_set)
 
     edge_fakes = [(get_fake_edge(fake), fake) for fake in fakes]
 
@@ -263,7 +268,7 @@ def merge_network_and_nodes(network, demand_nodes, single_network=True):
 
     assert len(network.nodes()) > 1, \
         "network must have more than 1 node"
-    
+
     if single_network:
         # just union all nodes to a single parent
         nodes = network.nodes()
@@ -280,13 +285,13 @@ def merge_network_and_nodes(network, demand_nodes, single_network=True):
         subnets = nx.connected_components(network)
 
         for sub in subnets:
-            # union all nodes to parent of subnet 
+            # union all nodes to parent of subnet
             parent = sub[0]
-            subgraphs.add_component(parent, 
+            subgraphs.add_component(parent,
                                     budget=network.node[parent]['budget'])
             # Merge remaining nodes with component
             for node in sub[1:]:
-                subgraphs.add_component(node, 
+                subgraphs.add_component(node,
                                         budget=network.node[node]['budget'])
                 # The existing grid nodes are on the grid (so distance is 0)
                 subgraphs.union(parent, node, 0)
@@ -311,6 +316,24 @@ def merge_network_and_nodes(network, demand_nodes, single_network=True):
     return merged, subgraphs, rtree
 
 
+def _clean_geograph(network):
+    """
+    Checks geograph network for duplicate nodes and removes them
+
+    INTERNAL USE ONLY (modifies network in place)
+    """
+    num_found = 0
+    for zero_len_edge in network.find_zero_len_edges():
+        node0 = zero_len_edge[0]
+        node1 = zero_len_edge[1]
+        num_found += 1
+        log.warn("removing zero length edge ({},{}), with coords ({},{})".
+                 format(node0, node1, network.coords[node0],
+                        network.coords[node1]))
+
+        network.remove_edge(node0, node1)
+
+
 def load_existing_networks(filename="existing_networks.shp", budget_value=0,
                            prefix=None):
     """
@@ -328,7 +351,7 @@ def load_existing_networks(filename="existing_networks.shp", budget_value=0,
     geo_net = nio.load_shp(filename, simplify=False)
 
     nx.set_node_attributes(geo_net, 'budget', {n: budget_value
-        for n in geo_net.nodes()})
+                                               for n in geo_net.nodes()})
 
     # determine edge weight/distance function by whether they're geocentric
     # (assuming coordinates are not in 3-space here)
@@ -337,20 +360,24 @@ def load_existing_networks(filename="existing_networks.shp", budget_value=0,
         gm.euclidean_distance
 
     nx.set_edge_attributes(geo_net, 'weight', {(u, v):
-                   distance(map(geo_net.coords.get, [u, v]))
-                   for u, v in geo_net.edges()})
+                           distance(map(geo_net.coords.get, [u, v]))
+                           for u, v in geo_net.edges()})
 
     if prefix:
         nx.relabel_nodes(geo_net,
-            {n: prefix + str(n) for n in geo_net.nodes()}, copy=False)
+                         {n: prefix + str(n) for n in geo_net.nodes()},
+                         copy=False)
         geo_net.coords = {prefix + str(n): c for n, c in
-            geo_net.coords.items()}
+                          geo_net.coords.items()}
+
+    # check and clean
+    _clean_geograph(geo_net)
 
     return geo_net
 
 
 def load_node_metrics(filename="metrics.csv", x_column="X", y_column="Y",
-                        budget_column="metric", budget_value=1000):
+                      budget_column="metric", budget_value=1000):
     """
     load node_metrics csv into GeoGraph (nodes and x,y,budget attributes only)
 
@@ -369,8 +396,8 @@ def load_node_metrics(filename="metrics.csv", x_column="X", y_column="Y",
 
     # ensure nodes only have budget attribute
     for node in geo_nodes.nodes_iter():
-        if geo_nodes.node[node].has_key(budget_column):
-            geo_nodes.node[node] = {'budget': 
+        if budget_column in geo_nodes.node[node]:
+            geo_nodes.node[node] = {'budget':
                                     geo_nodes.node[node][budget_column]}
         else:
             geo_nodes.node[node] = {'budget': budget_value}

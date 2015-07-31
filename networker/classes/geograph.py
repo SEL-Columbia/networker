@@ -40,12 +40,12 @@ class GeoObject(object):
 
     def transform_coords(self, to_srs):
         """ use pyproj to transform coordinates to the srs projection """
-        
+
         from_proj = prj.Proj(self.srs)
         to_proj = prj.Proj(to_srs)
-        coords = {nd: prj.transform(from_proj, to_proj, 
-                            self.coords[nd][0], self.coords[nd][1]) 
-                    for nd in self.coords}               
+        coords = {nd: prj.transform(from_proj, to_proj,
+                                    self.coords[nd][0], self.coords[nd][1])
+                  for nd in self.coords}
         return coords
 
 
@@ -123,7 +123,7 @@ class GeoGraph(GeoObject, nx.Graph):
         projections = {}
         for node in other.nodes():
             edge, coords = self.find_nearest_edge(other.coords[node],
-                                                    rtree_index=rtree_index)
+                                                  rtree_index=rtree_index)
             projections[node] = (edge, coords)
 
         # create new GeoGraph with others coords
@@ -162,11 +162,13 @@ class GeoGraph(GeoObject, nx.Graph):
         node_pairs = set([frozenset(pair) for pair in node_pairs])
 
         dist_fun = gm.spherical_distance if self.is_geographic()\
-                                            else gm.euclidean_distance
-        
-        pairs_weights = [(pair[0], pair[1], 
-                    dist_fun([self.coords[pair[0]], self.coords[pair[1]]])) 
-                    for pair in [tuple(pair_set) for pair_set in node_pairs]]
+                                         else gm.euclidean_distance
+
+        pairs_weights = [(pair[0], pair[1],
+                         dist_fun([self.coords[pair[0]],
+                                   self.coords[pair[1]]]))
+                         for pair in [tuple(pair_set)
+                                      for pair_set in node_pairs]]
 
         geo = GeoGraph(self.srs, self.coords)
         geo.add_weighted_edges_from(pairs_weights)
@@ -188,17 +190,17 @@ class GeoGraph(GeoObject, nx.Graph):
         """
         if rtree_index:
             nearest_segment = rtree_index.nearest(np.ravel((coord, coord)),
-                                                    objects=True).next()
+                                                  objects=True).next()
             near_edge, coords = nearest_segment.object
             cur_sq_dist, near_coords = self._sq_dist_to_edge(near_edge, coord)
             cur_dist = np.sqrt(cur_sq_dist)
 
             """
-            Because the rtree's nearest function searches based on bounding boxes
-            we need to continue looking through tree for closer segments.  
-            
+            Because the rtree's nearest function searches based on bounding
+            boxes we need to continue looking through tree for closer segments.
+
             Here's the problem
-           
+
             0
              \      2
               \  p. |
@@ -207,24 +209,25 @@ class GeoGraph(GeoObject, nx.Graph):
                  \
                   \
                    1
-            
+
             We're looking for the nearest edge to point p.
             In this case, the bounding box for edge (0,1) encompasses point p
             whereas the bbox for edge (2,3) does not.  Therefore, edge (0,1)
-            will be returned by nearest.  
+            will be returned by nearest.
 
             To find the *actual* nearest segment, we find the distance from p
-            to the *bbox based* nearest, we create a new bbox centered at p 
+            to the *bbox based* nearest, we create a new bbox centered at p
             with length and width of this distance and use rtree's intersection
             function to find all edges within this new bbox.  If there's a
-            closer edge than the *bbox based* nearest, we're guaranteed to 
-            find it within this new bbox.  
+            closer edge than the *bbox based* nearest, we're guaranteed to
+            find it within this new bbox.
             """
 
             # use nearest as a bound on intersection search to find
             # actual nearest segment (since nearest works on bbox)
-            new_bbox = (coord[0] - cur_dist, coord[1] - cur_dist, 
-                    coord[0] + cur_dist, coord[1] + cur_dist)
+            new_bbox = (coord[0] - cur_dist, coord[1] - cur_dist,
+                        coord[0] + cur_dist, coord[1] + cur_dist)
+
             # iterate over candidates intersecting bbox finding nearest
             # to coord as actual nearest must be within bbox of current
             # nearest
@@ -236,7 +239,7 @@ class GeoGraph(GeoObject, nx.Graph):
                     cur_sq_dist = c_sq_dist
                     near_edge = c_edge
                     near_coords = p_coords
-                
+
             return near_edge, near_coords
 
         else:
@@ -285,11 +288,11 @@ class GeoGraph(GeoObject, nx.Graph):
         assert np.shape(c0)[0] == np.shape(c1)[0] == space, \
             "coordinate space of nodes and coord must match"
 
-        project_fun = {2: gm.project_geopoint_on_arc if self.is_geographic()\
-                                            else gm.project_point_on_segment,
-                       3: gm.project_point_on_arc}
+        proj_fun = {2: gm.project_geopoint_on_arc if self.is_geographic()
+                                              else gm.project_point_on_segment,
+                    3: gm.project_point_on_arc}
 
-        proj_coord = project_fun[space](coord, c0, c1)
+        proj_coord = proj_fun[space](coord, c0, c1)
 
         return np.sum((proj_coord - np.array(coord)) ** 2), proj_coord
 
@@ -310,12 +313,25 @@ class GeoGraph(GeoObject, nx.Graph):
                 yield (hash(edge), box, (edge,
                             map(lambda ep: np.array(self.coords[ep]), edge)))
 
-        # something's not working right with latest version of rtree/spatial lib
+        # something's not working right with latest version of rtree/spatialib
         # index where we need to insert the objects in a loop rather than
         # via a generator to their constructor
         # Init rtree and store grid edges
         rtree = Rtree()
         for e in edge_generator():
-            rtree.insert(e[0], e[1], e[2])    
+            # takes id, bbox, and segment/edge
+            rtree.insert(e[0], e[1], e[2])
 
         return rtree
+
+    def find_zero_len_edges(self):
+        """
+        Find edges whose coordinates match (i.e. have length of 0)
+
+        Returns:
+            edges:  generator of zero length edges
+        """
+
+        for edge in self.edges():
+            if self.coords[edge[0]] == self.coords[edge[1]]:
+                yield edge

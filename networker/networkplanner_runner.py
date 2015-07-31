@@ -16,6 +16,7 @@ from networker.utils import csv_projection
 
 log = logging.getLogger('networker')
 
+
 class NetworkPlannerRunner(object):
 
     """
@@ -53,8 +54,9 @@ class NetworkPlannerRunner(object):
         demand_proj = csv_projection(self.config['demand_nodes_file'])
         target_path = os.path.join(self.output_directory, "dataset.db")
         self.store = dataset_store.create(target_path,
-            self.config['demand_nodes_file'])
+                                          self.config['demand_nodes_file'])
 
+        log.info("running metric model {}".format(self.config['metric_model']))
         metric_model = metric.getModel(self.config['metric_model'])
         metric_vbobs = self._run_metric_model(metric_model, metric_config)
         demand_nodes = self._get_demand_nodes(input_proj=demand_proj)
@@ -70,30 +72,31 @@ class NetworkPlannerRunner(object):
 
         min_node_count = 0
         single_network = True
-        if self.config.has_key('network_parameters'):
+        if 'network_parameters' in self.config:
             network_params = self.config['network_parameters']
             min_node_count = network_params.get('minimum_node_count', 0)
             single_network = network_params.get('single_network', True)
 
-        header_type = VS.HEADER_TYPE_SECTION_OPTION 
-        if self.config.has_key('output_parameters'):
+        header_type = VS.HEADER_TYPE_SECTION_OPTION
+        if 'output_parameters' in self.config:
             output_params = self.config['output_parameters']
-            header_type = output_params.get('header_type',\
+            header_type = output_params.get('header_type',
                                             VS.HEADER_TYPE_SECTION_OPTION)
 
         log.info("building network")
-        msf = networker_runner.build_network(demand_nodes, 
-                                existing=existing_networks,
-                                min_node_count=min_node_count,
-                                single_network=single_network,
-                                network_algorithm=network_algorithm,
-                                one_based=True)
+        msf = networker_runner.build_network(
+            demand_nodes,
+            existing=existing_networks,
+            min_node_count=min_node_count,
+            single_network=single_network,
+            network_algorithm=network_algorithm,
+            one_based=True)
 
         log.info("writing output")
         self._store_networks(msf, existing_networks)
         metric_vbobs = self._update_metrics(metric_model, metric_vbobs)
-        self._save_output(metric_vbobs, metric_config, metric_model, 
-                            header_type=header_type)
+        self._save_output(metric_vbobs, metric_config, metric_model,
+                          header_type=header_type)
 
     def _run_metric_model(self, metric_model, metric_config):
 
@@ -129,7 +132,7 @@ class NetworkPlannerRunner(object):
         """
 
         coords = [node.getCommonCoordinates() for node in
-                    self.store.cycleNodes()]
+                  self.store.cycleNodes()]
 
         # set default projection
         if not input_proj:
@@ -141,7 +144,7 @@ class NetworkPlannerRunner(object):
         # This will be realigned later
         coords_dict = {i: coord for i, coord in enumerate(coords)}
         budget_dict = {i: node.metric for i, node in
-                        enumerate(self.store.cycleNodes())}
+                       enumerate(self.store.cycleNodes())}
 
         geo_nodes = GeoGraph(input_proj, coords_dict)
         nx.set_node_attributes(geo_nodes, 'budget', budget_dict)
@@ -164,7 +167,7 @@ class NetworkPlannerRunner(object):
             # add the fake nodes in the msf to the store
             for fake in [n for n in msf if msf.node[n]['budget'] == np.inf]:
                 dataset_node = self.store.addNode(msf.coords[fake],
-                                                    is_fake=True)
+                                                  is_fake=True)
                 dataset_node.id = fake
                 self.store.session.add(dataset_node)
                 self.store.session.commit()
@@ -195,25 +198,27 @@ class NetworkPlannerRunner(object):
         determined and stored
         """
         return self.store.updateMetric(metric_model,
-                                        metric_value_by_option_by_section)
+                                       metric_value_by_option_by_section)
 
     def _save_output(self, metric_value_by_option_by_section, metric_config,
-                    metric_model, header_type=VS.HEADER_TYPE_SECTION_OPTION):
+                     metric_model, header_type=VS.HEADER_TYPE_SECTION_OPTION):
 
         output_directory = self.output_directory
         metric.saveMetricsConfigurationCSV(os.path.join(output_directory,
-            'metrics-job-input'), metric_config)
+                                                        'metrics-job-input'),
+                                           metric_config)
         metric.saveMetricsCSV(os.path.join(output_directory,
-            'metrics-global'),
-            metric_model,
-            metric_value_by_option_by_section)
+                                           'metrics-global'),
+                              metric_model,
+                              metric_value_by_option_by_section)
         self.store.saveMetricsCSV(os.path.join(output_directory,
-            'metrics-local'),
-            metric_model,
-            header_type)
+                                               'metrics-local'),
+                                  metric_model,
+                                  header_type)
         # underlying library can't handle unicode strings so cast via str
         self.store.saveSegmentsSHP(os.path.join(str(output_directory),
-            'networks-proposed'), is_existing=False)
+                                                    'networks-proposed'),
+                                   is_existing=False)
 
     def validate(self):
         """
@@ -253,16 +258,21 @@ def dataset_store_to_geograph(dataset_store):
     G = GeoGraph(coords=coords_dict)
     nx.set_node_attributes(G, 'budget', budget_dict)
 
-    seg_to_nx_ids = lambda seg:  (np_to_nx_id[seg.node1_id],
-        np_to_nx_id[seg.node2_id])
+    def seg_to_nx_ids(seg):
+        """
+        Return the networkx segment ids
+        """
+        return (np_to_nx_id[seg.node1_id],
+                np_to_nx_id[seg.node2_id])
+
     edges = [seg_to_nx_ids(s) for s in
-        dataset_store.cycleSegments(is_existing=False)]
+             dataset_store.cycleSegments(is_existing=False)]
     edge_weights = {seg_to_nx_ids(s): s.weight for s in
-        dataset_store.cycleSegments(is_existing=False)}
+                    dataset_store.cycleSegments(is_existing=False)}
     edge_is_existing = {seg_to_nx_ids(s): s.is_existing for s in
-        dataset_store.cycleSegments(is_existing=False)}
+                        dataset_store.cycleSegments(is_existing=False)}
     edge_subnet_id = {seg_to_nx_ids(s): s.subnet_id for s in
-        dataset_store.cycleSegments(is_existing=False)}
+                      dataset_store.cycleSegments(is_existing=False)}
     G.add_edges_from(edges)
     nx.set_edge_attributes(G, 'weight', edge_weights)
     nx.set_edge_attributes(G, 'is_existing', edge_is_existing)
