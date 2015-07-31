@@ -4,5 +4,5 @@
   (via removal and warning messages)
 - Add clean_network script to remove these edges from any shapefile
 - pep8 compliance changes (still not perfect)
-- Bugs fixed:
+- Issues addressed:
     #67
