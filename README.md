@@ -104,8 +104,8 @@ conda install -c ioos -c sel networkplanner-metrics
 Now install the networker library
 
 ```
-# on OSX do this
-conda install -c dougal -c sel networker
+# on OSX do this (asmeurer is owner for osx version of pyproj)
+conda install -c asmeurer -c ioos -c sel networker
 # on Linux do this
 conda install -c ioos -c sel networker
 ```
