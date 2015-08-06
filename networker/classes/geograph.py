@@ -188,6 +188,8 @@ class GeoGraph(GeoObject, nx.Graph):
             coords:  coordinates of nearest point on edge
 
         """
+        assert len(self.edges()) > 0, "GeoGraph must have edges"
+
         if rtree_index:
             nearest_segment = rtree_index.nearest(np.ravel((coord, coord)),
                                                   objects=True).next()

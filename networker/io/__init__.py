@@ -61,6 +61,7 @@ def read_shp(path, simplify=True):
     if not isinstance(path, str):
         return
 
+        
     net = nx.DiGraph()
     shp = ogr.Open(path)
     for lyr in shp:
@@ -70,25 +71,50 @@ def read_shp(path, simplify=True):
             g = f.geometry()
             attributes = dict(zip(fields, flddata))
             attributes["ShpName"] = lyr.GetName()
-            if g.GetGeometryType() == 1:  # point
+            # Note:  Using layer level geometry type
+            if g.GetGeometryType() == ogr.wkbPoint:  
                 net.add_node((g.GetPoint_2D(0)), attributes)
-            if g.GetGeometryType() == 2:  # linestring
-                if simplify:
-                    last = g.GetPointCount() - 1
-                    attributes["Wkb"] = g.ExportToWkb()
-                    attributes["Wkt"] = g.ExportToWkt()
-                    attributes["Json"] = g.ExportToJson()
-                    net.add_edge(g.GetPoint_2D(0), g.GetPoint_2D(last),
-                                 attributes)
-                else:
-                    # NOTE: we do NOT add the geometry attributes (WKB...) here
-                    # since they are not necessarily 1-1 with edges (and
-                    # therefore can easily get out of sync on graph
-                    # manipulation)
-                    for i in range(0, g.GetPointCount() - 1):
-                        net.add_edge(g.GetPoint_2D(i), g.GetPoint_2D(i+1),
-                                     attributes)
+            elif g.GetGeometryType() in (ogr.wkbLineString, ogr.wkbMultiLineString):
+                for edge in _edges_from_line(g, attributes, simplify):
+                    net.add_edge(*edge)
+            else:
+                raise ImportError("GeometryType {} not supported".
+                                  format(g.GetGeometryType()))
+
     return net
+
+
+def _edges_from_line(geom, attrs, simplify=True):
+    """
+    Generate edges for each line in geom
+
+    Args:
+        geom:  The line geometry
+        attrs:  attributes to be associated with all geoms
+        simplify:  Whether to simplify the line
+    """
+    if geom.GetGeometryType() == ogr.wkbLineString:
+        if simplify:
+            edge_attrs = attrs.copy()
+            last = geom.GetPointCount() - 1
+            edge_attrs["Wkb"] = geom.ExportToWkb()
+            edge_attrs["Wkt"] = geom.ExportToWkt()
+            edge_attrs["Json"] = geom.ExportToJson()
+            yield (geom.GetPoint_2D(0), geom.GetPoint_2D(last), edge_attrs)
+        else:
+            # NOTE: we do NOT add the geometry attributes (WKB...) here
+            # since they are not necessarily 1-1 with edges (and
+            # therefore can easily get out of sync on graph
+            # manipulation)
+            for i in range(0, geom.GetPointCount() - 1):
+                yield (geom.GetPoint_2D(i), geom.GetPoint_2D(i+1), 
+                       attrs.copy())
+
+    elif geom.GetGeometryType() == ogr.wkbMultiLineString:
+        for i in range(geom.GetGeometryCount()):
+            geom_i = geom.GetGeometryRef(i)
+            for edge in _edges_from_line(geom_i, attrs, simplify):
+                yield edge
 
 
 def load_shp(shp_path, simplify=True):

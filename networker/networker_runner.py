@@ -61,6 +61,9 @@ class NetworkerRunner(object):
             existing_networks = load_existing_networks(
                 prefix="grid-",
                 **self.config['existing_networks'])
+            if len(existing_networks.edges()) < 0:
+                log.warn("existing network has no edges")
+                existing_networks = None
 
         network_algorithm = self.config['network_algorithm']
 
