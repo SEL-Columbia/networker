@@ -162,7 +162,7 @@ class GeoGraph(GeoObject, nx.Graph):
         node_pairs = set([frozenset(pair) for pair in node_pairs])
 
         dist_fun = gm.spherical_distance if self.is_geographic()\
-                                         else gm.euclidean_distance
+            else gm.euclidean_distance
 
         pairs_weights = [(pair[0], pair[1],
                          dist_fun([self.coords[pair[0]],
@@ -188,6 +188,8 @@ class GeoGraph(GeoObject, nx.Graph):
             coords:  coordinates of nearest point on edge
 
         """
+        assert len(self.edges()) > 0, "GeoGraph must have edges"
+
         if rtree_index:
             nearest_segment = rtree_index.nearest(np.ravel((coord, coord)),
                                                   objects=True).next()
@@ -289,7 +291,7 @@ class GeoGraph(GeoObject, nx.Graph):
             "coordinate space of nodes and coord must match"
 
         proj_fun = {2: gm.project_geopoint_on_arc if self.is_geographic()
-                                              else gm.project_point_on_segment,
+                       else gm.project_point_on_segment,
                     3: gm.project_point_on_arc}
 
         proj_coord = proj_fun[space](coord, c0, c1)
@@ -311,7 +313,8 @@ class GeoGraph(GeoObject, nx.Graph):
             for edge, box in edges_bounds:
                 # Object is in form of (u.label, v.label), (u.coord, v.coord)
                 yield (hash(edge), box, (edge,
-                            map(lambda ep: np.array(self.coords[ep]), edge)))
+                                         map(lambda ep:
+                                             np.array(self.coords[ep]), edge)))
 
         # something's not working right with latest version of rtree/spatialib
         # index where we need to insert the objects in a loop rather than

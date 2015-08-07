@@ -31,9 +31,6 @@ parser.add_argument("--y_column", "-y", \
 parser.add_argument("--rtree", "-r", \
         dest="rtree", action="store_true",
         help="use rtree for segment lookup")
-parser.add_argument("--no-rtree", "-n", \
-        dest="rtree", action="store_false",
-        help="do not use rtree for segment lookup")
 parser.add_argument("--output_directory", "-o", \
         default=".", \
         help="directory where all output files will be written")

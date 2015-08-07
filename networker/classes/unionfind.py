@@ -165,7 +165,8 @@ class UnionFind:
         """
         if component_subset:
             return set([self[r] for r in self if
-                   any(c in component_subset for c in self.children[self[r]])])
+                       any(c in component_subset
+                           for c in self.children[self[r]])])
         else:
             return set([self[r] for r in self])
 
