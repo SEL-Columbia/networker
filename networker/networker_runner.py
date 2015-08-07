@@ -289,11 +289,12 @@ def merge_network_and_nodes(network, demand_nodes, single_network=True):
 
         for sub in subnets:
             # union all nodes to parent of subnet
-            parent = sub[0]
+            sub_list = list(sub)
+            parent = sub_list[0]
             subgraphs.add_component(parent,
                                     budget=network.node[parent]['budget'])
             # Merge remaining nodes with component
-            for node in sub[1:]:
+            for node in sub_list[1:]:
                 subgraphs.add_component(node,
                                         budget=network.node[node]['budget'])
                 # The existing grid nodes are on the grid (so distance is 0)
