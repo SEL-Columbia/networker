@@ -1,3 +1,11 @@
+## 0.2.4
+
+- Now handles MultiLineString geometry from shapefile
+- Adds some more error handling/reporting when network is not as expected
+- pep8 compliance changes (better)
+- Issues addressed:
+    #71, 72
+
 ## 0.2.3
 
 - Handle network inputs that have self-referencing (i.e. zero-length) edges
