@@ -217,7 +217,7 @@ class NetworkPlannerRunner(object):
                                   header_type)
         # underlying library can't handle unicode strings so cast via str
         self.store.saveSegmentsSHP(os.path.join(str(output_directory),
-                                                    'networks-proposed'),
+                                                'networks-proposed'),
                                    is_existing=False)
 
     def validate(self):

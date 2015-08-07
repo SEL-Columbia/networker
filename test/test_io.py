@@ -9,7 +9,7 @@ def test_edges_from_line():
 
     multiline = ogr.Geometry(ogr.wkbMultiLineString)
     lines = [
-             ((0.0, 1.0), (1.0, 1.0)), 
+             ((0.0, 1.0), (1.0, 1.0)),
              ((2.0, 2.0), (3.0, 2.0))
             ]
 
@@ -23,13 +23,16 @@ def test_edges_from_line():
     attrs = {'name': 'MultiLine'}
 
     g = nx.Graph()
-    for edge in nio._edges_from_line(multiline, attrs, simplify=False):
+    for edge in nio.edges_from_line(multiline,
+                                    attrs,
+                                    simplify=False,
+                                    geom_attrs=False):
         g.add_edge(*edge)
 
     g_expected = nx.Graph()
     g_expected.add_edges_from(lines, name='MultiLine')
 
-    assert nx.is_isomorphic(g, g_expected, 
+    assert nx.is_isomorphic(g, g_expected,
                             node_match=operator.eq,
                             edge_match=operator.eq),\
            "expected graphs to be equal"
