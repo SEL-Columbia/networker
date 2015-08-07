@@ -1,3 +1,6 @@
+## 0.2.5
+- support networkx 1.10 connected_components function change that now returns sets
+
 ## 0.2.4
 
 - Now handles MultiLineString geometry from shapefile
