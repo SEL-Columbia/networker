@@ -109,9 +109,9 @@ def mod_kruskal(G, subgraphs=None, rtree=None):
                 # For all intersected subgraphs update the mv to that
                 # created by the edge intersecting them
                 map(lambda (n, _): subgraphs.union(u, n, 0),
-                                   filter(lambda (n, i): i == 1 and
-                                          subgraphs[n] != subgraphs[u],
-                                          intersections.iteritems()))
+                    filter(lambda (n, i): i == 1 and
+                    subgraphs[n] != subgraphs[u],
+                    intersections.iteritems()))
 
                 # index the newly added edge
                 box = make_bounding_box(coords[u], coords[v])

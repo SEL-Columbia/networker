@@ -129,8 +129,11 @@ def spherical_distance_haversine(coord_pairs, radius=MEAN_EARTH_RADIUS_M):
     delta_lat = lat0 - lat1
 
     # use haversine formula (more numerically stable than cos based)
-    haversine = lambda theta: np.sin(theta/2.0)**2
-    inv_haversine = lambda dist: np.arcsin(np.sqrt(dist))
+    def haversine(theta):
+        return np.sin(theta/2.0)**2
+
+    def inv_haversine(dist):
+        return np.arcsin(np.sqrt(dist))
 
     hav_of_dist = haversine(delta_lat) + np.cos(lat0) * np.cos(lat1) * \
         haversine(delta_lon)
@@ -734,7 +737,7 @@ def all_pair_dists(a, b, spherical=True):
     dists = np.sqrt(sq_dist(a_, b_))
     if spherical:
         coord_pairs = np.concatenate((a_[:,np.newaxis], b_[:,np.newaxis]),
-                                        axis=1)
+                                     axis=1)
         dists = spherical_distance_haversine(coord_pairs)
 
     return np.reshape(dists, (len(a), len(b)))

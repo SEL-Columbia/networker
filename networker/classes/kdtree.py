@@ -61,7 +61,7 @@ class KDTree(object):
             # and the midpoint in which to partition
             idx_data = np.column_stack((data[index], index))
             sort_ax = idx_data[np.argsort(idx_data[:, self.axis]), -1].\
-                      astype(int)
+                astype(int)
             partition = sort_ax.size / 2
 
             # Node index and data

@@ -99,7 +99,7 @@ def mod_boruvka(G, subgraphs=None, rtree=None):
 
     def is_fake(node):
         """
-        Tests whether the node is a projection on the existing grid, using its MV
+        Tests whether the node is a projection on the existing grid
         """
         return subgraphs.budget[node] == np.inf
 
@@ -226,9 +226,9 @@ def mod_boruvka(G, subgraphs=None, rtree=None):
                     # created by the edge intersecting them,
                     # TODO: This should be updated in not such a naive method
                     map(lambda (n, _): subgraphs.union(um, n, 0),
-                                       filter(lambda (n, i): i == 1 and
-                                              subgraphs[n] != subgraphs[um],
-                                              intersections.iteritems()))
+                        filter(lambda (n, i): i == 1 and
+                        subgraphs[n] != subgraphs[um],
+                        intersections.iteritems()))
 
                     # index the newly added edge
                     box = make_bounding_box(coords[um], coords[vm])
