@@ -21,7 +21,7 @@ install:
   - conda install --yes -n networker coveralls
 before_script:
   # cache the lib dir and activate the conda environment
-  - ldconfig "$HOME/miniconda/envs/networker/lib"
+  # - ldconfig "$HOME/miniconda/envs/networker/lib"
   - source activate networker
   - find -name '*.py' | xargs sed -i 's/@jit/# @jit/'
 script:
