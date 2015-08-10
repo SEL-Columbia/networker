@@ -1,8 +1,7 @@
 language: python
+sudo: false
 python:
   - "2.7"
-before_install:
-  - sudo apt-get update
 install:
   - wget https://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh
   - bash miniconda.sh -b -p $HOME/miniconda
@@ -22,7 +21,7 @@ install:
   - conda install --yes -n networker coveralls
 before_script:
   # cache the lib dir and activate the conda environment
-  - sudo ldconfig "$HOME/miniconda/envs/networker/lib"
+  - ldconfig "$HOME/miniconda/envs/networker/lib"
   - source activate networker
   - find -name '*.py' | xargs sed -i 's/@jit/# @jit/'
 script:
