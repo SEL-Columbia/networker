@@ -4,7 +4,7 @@ import numpy as np
 import osr
 
 from collections import defaultdict
-from numba import jit
+# from numba import jit
 
 """
 Module for geometric/geographic utility functions
@@ -264,7 +264,7 @@ def make_bounding_box_array(coords):
         coord_array[x_sort[-1]][0], coord_array[y_sort[-1]][1]
 
 
-@jit
+# @jit
 def make_bounding_box(coord1, coord2):
     """
     Return a bbox for the pair of coordinates
@@ -462,7 +462,7 @@ def segments_intersect(p1, p2, p3, p4):
     return intersecting
 
 
-@jit
+# @jit
 def line_subgraph_intersection(subgraphs, rtree, p1, p2):
     """
     test for line segment intersection

@@ -4,8 +4,8 @@ networkx
 decorator
 cython
 nose
-numba
-llvmlite
+# numba
+# llvmlite
 funcsigs
 pandas
 enum34
