@@ -87,6 +87,7 @@ class NetworkerRunner(object):
             os.makedirs(self.output_directory)
 
         nio.write_shp(msf, self.output_directory)
+        return msf
 
     def validate(self):
         """
