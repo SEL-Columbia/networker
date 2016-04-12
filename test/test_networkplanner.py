@@ -5,6 +5,7 @@ import json
 import networker.io as nio
 from np.lib import dataset_store
 from networker import networkplanner_runner
+from networker.utils import get_rounded_edge_sets
 
 def get_config(config_file):
     """ return cfg as dict from json cfg_file """
@@ -23,10 +24,10 @@ def networkplanner_run_compare(cfg, known_results_file, output_dir):
                             "networks-proposed.shp"),
                             simplify=False)
     known_geo = nio.load_shp(known_results_file, simplify=False)
-    # compare sets of edges
 
-    test_edges = test_geo.get_coord_edge_set()
-    known_edges = known_geo.get_coord_edge_set()
+    # compare sets of edges
+    test_edges = get_rounded_edge_sets(test_geo, round_precision=8)
+    known_edges = get_rounded_edge_sets(known_geo, round_precision=8)
 
     assert test_edges == known_edges, \
         "edges in test do not match known results"

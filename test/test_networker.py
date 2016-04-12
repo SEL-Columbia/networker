@@ -11,6 +11,7 @@ from networker import geomath as gm
 from networker.algorithms import mod_boruvka
 from networker.algorithms import mod_kruskal
 from networker.classes.geograph import GeoGraph
+from networker.utils import get_rounded_edge_sets
 
 from nose.tools import eq_
 
@@ -19,18 +20,6 @@ def get_config(config_file):
     cfg_path = os.path.join(os.path.dirname(
         os.path.abspath(__file__)), config_file)
     return json.load(open(cfg_path))
-
-def get_rounded_edge_sets(geograph, round_precision=8):
-    """
-    Get set of edges with coordinates rounded to a certain precision
-    """
-    tup_map = {i: 
-               tuple(map(lambda c: round(c, round_precision), coords))
-               for i, coords in geograph.coords.items()}
-
-    edge_sets = map(lambda e: frozenset([tup_map[e[0]], tup_map[e[1]]]),
-                    geograph.edges())
-    return set(edge_sets)
 
 
 def networker_run_compare(cfg, known_results_file, output_dir):
