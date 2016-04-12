@@ -20,6 +20,18 @@ def get_config(config_file):
         os.path.abspath(__file__)), config_file)
     return json.load(open(cfg_path))
 
+def get_rounded_edge_sets(geograph, round_precision=8):
+    """
+    Get set of edges with coordinates rounded to a certain precision
+    """
+    tup_map = {i: 
+               tuple(map(lambda c: round(c, round_precision), coords))
+               for i, coords in geograph.coords.items()}
+
+    edge_sets = map(lambda e: frozenset([tup_map[e[0]], tup_map[e[1]]]),
+                    geograph.edges())
+    return set(edge_sets)
+
 
 def networker_run_compare(cfg, known_results_file, output_dir):
     nwk = networker_runner.NetworkerRunner(cfg, output_dir)
@@ -30,10 +42,10 @@ def networker_run_compare(cfg, known_results_file, output_dir):
     test_geo = nio.load_shp(os.path.join(output_dir,
                             "edges.shp"), simplify=False)
     known_geo = nio.load_shp(known_results_file, simplify=False)
-    # compare sets of edges
 
-    test_edges = test_geo.get_coord_edge_set()
-    known_edges = known_geo.get_coord_edge_set()
+    # compare sets of edges
+    test_edges = get_rounded_edge_sets(test_geo, round_precision=8)
+    known_edges = get_rounded_edge_sets(known_geo, round_precision=8)
 
     assert test_edges == known_edges, \
         "edges in test do not match known results"
