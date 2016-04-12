@@ -105,7 +105,7 @@ Now install the networker library
 
 ```
 # on OSX do this (asmeurer is owner for osx version of pyproj)
-conda install -c asmeurer -c ioos -c sel networker
+conda install -c ioos -c sel networker
 # on Linux do this
 conda install -c ioos -c sel networker
 ```
