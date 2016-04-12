@@ -11,6 +11,7 @@ from networker import geomath as gm
 from networker.algorithms import mod_boruvka
 from networker.algorithms import mod_kruskal
 from networker.classes.geograph import GeoGraph
+from networker.utils import get_rounded_edge_sets
 
 from nose.tools import eq_
 
@@ -30,10 +31,10 @@ def networker_run_compare(cfg, known_results_file, output_dir):
     test_geo = nio.load_shp(os.path.join(output_dir,
                             "edges.shp"), simplify=False)
     known_geo = nio.load_shp(known_results_file, simplify=False)
-    # compare sets of edges
 
-    test_edges = test_geo.get_coord_edge_set()
-    known_edges = known_geo.get_coord_edge_set()
+    # compare sets of edges
+    test_edges = get_rounded_edge_sets(test_geo, round_precision=8)
+    known_edges = get_rounded_edge_sets(known_geo, round_precision=8)
 
     assert test_edges == known_edges, \
         "edges in test do not match known results"
