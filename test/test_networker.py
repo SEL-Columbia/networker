@@ -69,6 +69,21 @@ def test_networker_leona_run():
     networker_run_compare(cfg, results_file, output_dir)
 
 
+def test_srs_mismatch():
+    """ ensure that mismatched demand/network srs fails"""
+    run_config = "networker_config_leona_mixed_srs.json"
+    cfg = get_config(run_config)
+    output_dir = "data/tmp"
+    nwk = networker_runner.NetworkerRunner(cfg, output_dir)
+    try:
+        nwk.run()
+    except Exception as e:
+        assert isinstance(e, networker_runner.SRSMismatchException),\
+               "Exception was {}, should be SRSMismatchException".format(e)
+    else:
+        assert False, "SRSMismatchException expected"
+
+
 def random_settlements(n):
 
     coords = np.random.uniform(size=(n, 2))
