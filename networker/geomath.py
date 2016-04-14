@@ -106,6 +106,8 @@ def vec_to_ang_coords(coords):
 
     assert np.shape(coords)[-1] == 3, "coords last dim must be 3 (x, y, z)"
 
+    dimensions = np.ndim(coords)
+
     # transpose to operate on easily and xform to degrees
     x, y, z = np.transpose(coords)
 
@@ -115,7 +117,11 @@ def vec_to_ang_coords(coords):
 
     # since arccos's range is (0, pi), we need to 
     # convert the angle to negative if y < 0
-    lon_rad[y < 0] = -1*lon_rad[y < 0]
+    if dimensions > 1:
+        lon_rad[y < 0] = -1*lon_rad[y < 0]
+    else:
+        if y < 0:
+            lon_rad = -1*lon_rad
 
     lat_rad = np.arctan(z / h)
 
