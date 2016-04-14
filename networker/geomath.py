@@ -87,8 +87,21 @@ def vec_to_ang_coords(coords):
      -----+-------
          /|\ |  (y)
         / | \|
-    (x)/  |  (h)
+       /  |  (h)
+      (x)
+    
+    
+    Looked at from the top (only x, y plane)
 
+                    (-x <-> ±180°)
+                         |
+                         |
+                         |
+    (-y <-> -90°)--------+--------(y <-> 90°)
+                         |
+                         |
+                         |
+              (x <-> 0° <-> greenwich meridian)
     """
 
     assert np.shape(coords)[-1] == 3, "coords last dim must be 3 (x, y, z)"
@@ -97,7 +110,13 @@ def vec_to_ang_coords(coords):
     x, y, z = np.transpose(coords)
 
     h = np.sqrt(x**2 + y**2)
-    lon_rad = np.arcsin(y / h)
+    
+    lon_rad = np.arccos(x / h)
+
+    # since arccos's range is (0, pi), we need to 
+    # convert the angle to negative if y < 0
+    lon_rad[y < 0] = -1*lon_rad[y < 0]
+
     lat_rad = np.arctan(z / h)
 
     # transpose to nx2 and convert back to degrees
