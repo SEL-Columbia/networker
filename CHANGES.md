@@ -1,9 +1,9 @@
 ## 0.2.7
-- Fixes issue #80, where lon/lat to x/y/z conversions were incorrect
-- Added SpatialRef checks (issue #81)
+- Fixes issue [#80](https://github.com/SEL-Columbia/networker/issues/80), where lon/lat to x/y/z conversions were incorrect
+- Added SpatialRef checks, issue [#81](https://github.com/SEL-Columbia/networker/issues/81)
 
 ## 0.2.6
-- updated library versions and handle osx install
+- updated library versions (issue [#76](https://github.com/SEL-Columbia/networker/issues/76)) and handle osx install (issue [#78](https://github.com/SEL-Columbia/networker/issues/78))
 
 ## 0.2.5
 - support networkx 1.10 connected_components function change that now returns sets
