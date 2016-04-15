@@ -5,6 +5,7 @@ import osr
 
 from collections import defaultdict
 from numba import jit
+import math
 
 """
 Module for geometric/geographic utility functions
@@ -69,6 +70,25 @@ def ang_to_vec_coords(coords, radius=MEAN_EARTH_RADIUS_M):
     # transpose to nx3 and project from unit circle to sphere via radius
     return np.array([x, y, z]).T * radius
 
+def _math_vec_to_ang_coords(x, y, z):
+    """ 
+    math functions are faster than numpy for scalars 
+    http://stackoverflow.com/questions/35183787/in-python-is-math-acos-faster-than-numpy-arccos-for-scalars
+
+    Plus, this might be clearer than thinking in vectors
+    """
+
+    h = math.sqrt(x**2 + y**2)
+    
+    lon_rad = math.acos(x / h)
+
+    if y < 0:
+        lon_rad = -1*lon_rad
+
+    lat_rad = math.atan(z / h)
+
+    # transpose to nx2 and convert back to degrees
+    return (lon_rad * (180.0 / math.pi), lat_rad * (180.0 / math.pi))
 
 def vec_to_ang_coords(coords):
     """
@@ -110,6 +130,10 @@ def vec_to_ang_coords(coords):
 
     # transpose to operate on easily and xform to degrees
     x, y, z = np.transpose(coords)
+
+    # we get a pretty good speedup from this
+    if dimensions < 2:
+        return np.array(_math_vec_to_ang_coords(x, y, z))
 
     h = np.sqrt(x**2 + y**2)
     
