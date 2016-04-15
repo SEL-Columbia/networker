@@ -16,6 +16,9 @@ import networker.algorithms as algo
 
 log = logging.getLogger('networker')
 
+class SRSMismatchException(Exception):
+    """ Spatial Reference System mismatch """
+    pass
 
 class NetworkerRunner(object):
 
@@ -64,6 +67,13 @@ class NetworkerRunner(object):
             if len(existing_networks.edges()) < 0:
                 log.warn("existing network has no edges")
                 existing_networks = None
+            if not demand_nodes.is_same_srs(existing_networks):
+                message = "SpatialReference mismatch:  "\
+                          "demand node srs ({}) and existing network srs ({}) "\
+                          "do not match".format(demand_nodes.srs, 
+                                                existing_networks.srs)
+                log.error(message)
+                raise SRSMismatchException(message)
 
         network_algorithm = self.config['network_algorithm']
 

@@ -38,6 +38,16 @@ class GeoObject(object):
         sr.ImportFromProj4(self.srs)
         return bool(sr.IsGeographic())
 
+    def is_same_srs(self, other):
+        """ Returns whether the SRS are the same """
+
+        sr = osr.SpatialReference()
+        sr.ImportFromProj4(self.srs)
+        sr_other = osr.SpatialReference()
+        sr_other.ImportFromProj4(other.srs)
+
+        return bool(sr.IsSame(sr_other))
+
     def transform_coords(self, to_srs):
         """ use pyproj to transform coordinates to the srs projection """
 
@@ -119,6 +129,9 @@ class GeoGraph(GeoObject, nx.Graph):
         """
         assert len(set(self.nodes()).intersection(set(other.nodes()))) == 0, \
             "the intersection of self and other graphs should be empty"
+
+        assert self.is_same_srs(other), \
+            "Spatial Reference Systems need to match in order to project onto"
 
         projections = {}
         for node in other.nodes():
