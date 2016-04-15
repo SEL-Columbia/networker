@@ -1,3 +1,10 @@
+## 0.2.7
+- Fixes issue #80, where lon/lat to x/y/z conversions were incorrect
+- Added SpatialRef checks (issue #81)
+
+## 0.2.6
+- updated library versions and handle osx install
+
 ## 0.2.5
 - support networkx 1.10 connected_components function change that now returns sets
 
