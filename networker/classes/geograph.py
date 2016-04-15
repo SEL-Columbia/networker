@@ -3,10 +3,11 @@
 import osr
 import networkx as nx
 import copy
-import networker.geomath as gm
 import pyproj as prj
 import numpy as np
 from rtree import Rtree
+import networker.geomath as gm
+import networker.utils as utils
 
 """
 Module for GeoGraph extension to networkx Graph class
@@ -38,6 +39,16 @@ class GeoObject(object):
         sr.ImportFromProj4(self.srs)
         return bool(sr.IsGeographic())
 
+    def is_same_srs(self, other):
+        """ Returns whether the SRS are the same """
+
+        sr = osr.SpatialReference()
+        sr.ImportFromProj4(self.srs)
+        sr_other = osr.SpatialReference()
+        sr_other.ImportFromProj4(other.srs)
+
+        return bool(sr.IsSame(sr_other))
+
     def transform_coords(self, to_srs):
         """ use pyproj to transform coordinates to the srs projection """
 
@@ -47,6 +58,42 @@ class GeoObject(object):
                                     self.coords[nd][0], self.coords[nd][1])
                   for nd in self.coords}
         return coords
+
+
+    def lon_lat_to_cartesian_coords(self):
+        """
+        convert lon/lat coordinates into x,y,z
+        """
+        assert self.is_geographic(),\
+            "GeoObject must be in Geographic coordinates to convert to x,y,z"
+
+        assert len(self.coords.values()[0]) == 2,\
+            "GeoObject must have long, lat coordinates to convert to x,y,z"
+
+
+        coords_array2d, index_map = utils.coords_dict_to_array2d(self.coords)
+        coords_array_xyz = gm.ang_to_vec_coords(coords_array2d)
+        coords_xyz_dict = utils.array2d_to_coords_dict(coords_array_xyz, index_map)
+        
+        return coords_xyz_dict
+
+
+    def cartesian_to_lon_lat(self):
+        """
+        convert x, y, z coordinates into lon/lat
+        """
+
+        assert self.is_geographic(),\
+            "GeoObject must be in Geographic coordinates to convert to long, lat"
+
+        assert len(self.coords.values()[0]) == 3,\
+            "GeoObject must have x, y, z coordinates to convert to long, lat"
+
+        coords_array2d, index_map = utils.coords_dict_to_array2d(self.coords)
+        coords_array_ll = gm.vec_to_ang_coords(coords_array2d)
+        coords_ll_dict = utils.array2d_to_coords_dict(coords_array_ll, index_map)
+        
+        return coords_ll_dict
 
 
 class GeoGraph(GeoObject, nx.Graph):
@@ -98,7 +145,8 @@ class GeoGraph(GeoObject, nx.Graph):
 
     def project_onto(self, other, rtree_index=None):
         """
-        project other GeoGraph nodes onto their nearest point on this GeoGraph
+        project other GeoGraph nodes onto their nearest point (edge) in this 
+        GeoGraph
 
         Assumes there is no node label overlap between self and other
 
@@ -111,14 +159,12 @@ class GeoGraph(GeoObject, nx.Graph):
             GeoGraph:  With nearest edges from self to nodes in other
                 and additional nodes (and coords) for projected points on those
                 edges (aka 'fake' nodes).  fake nodes will split these edges?
-            OR
-            dict:  other_node_id -> ((edge), coords) where
-                edge:  (node1, node2) tuple of edge in self other node is
-                    nearest to
-                coords:  point on edge other node projects to
         """
         assert len(set(self.nodes()).intersection(set(other.nodes()))) == 0, \
             "the intersection of self and other graphs should be empty"
+
+        assert self.is_same_srs(other), \
+            "Spatial Reference Systems need to match in order to project onto"
 
         projections = {}
         for node in other.nodes():

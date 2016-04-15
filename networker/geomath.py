@@ -656,6 +656,13 @@ def project_point_on_arc(p, v1, v2, radius=MEAN_EARTH_RADIUS_M):
 
     """
 
+    # ensure numpy arrays
+    if not isinstance(v1, np.ndarray):
+        v1 = np.array(v1)
+
+    if not isinstance(v2, np.ndarray):
+        v2 = np.array(v2)
+
     # check if arc is 0 length (i.e. it's a point)
     # if so, then we're just projecting a point onto another point
     # which IS that other point

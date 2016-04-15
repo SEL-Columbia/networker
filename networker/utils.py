@@ -1,6 +1,7 @@
 # -*- coding: utf8 -*-
 
 import networker.geomath as gm
+import numpy as np
 from networkx.readwrite import json_graph
 
 
@@ -35,6 +36,45 @@ def geograph_to_json(g):
 
     js_g = json_graph.node_link_data(g2)
     return js_g
+
+
+def coords_dict_to_array2d(coords):
+    """
+    coords:  dict of coordinates
+
+    returns 
+    - numpy array of [num_coordsxcoord_dimension] 
+    - index_node_id_map:  array of index->original_node_id
+    """
+    # create matrix placeholder
+    num_rows = len(coords)
+    num_cols = len(coords.values()[0])
+
+    result_array = np.empty((num_rows, num_cols))
+    index_node_id_map = []
+    index = 0
+    for key in coords.keys():
+        index_node_id_map.append(key)
+        result_array[index] = coords[key]
+        index = index + 1
+    
+    return result_array, index_node_id_map
+
+
+def array2d_to_coords_dict(array2d, index_node_id_map):
+    """
+    - array2d:  numpy array of [num_coordsxcoord_dimension] 
+    - index_node_id_map:  array of index->original_node_id
+
+    returns 
+    coords:  dict of coordinate tuples with their original_node_id's
+    """
+    coords = dict()
+    for i in range(array2d.shape[0]):
+        key = index_node_id_map[i]
+        coords[key] = tuple(array2d[i])
+
+    return coords
 
 
 def get_rounded_edge_sets(geograph, round_precision=8):
