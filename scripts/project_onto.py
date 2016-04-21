@@ -21,28 +21,36 @@ parser = argparse.ArgumentParser(description="Project nodes to nearest point on 
 parser.add_argument("node_filename",
                     help="csv of nodes to be joined to network")
 parser.add_argument("network_filename",
-                    help="network nodes will be joined to")
+                    help="network nodes will be joined to (.shp OR .json)")
 parser.add_argument("--x_column", "-x", \
         default="x", \
         help="column name for x value in node csv")
 parser.add_argument("--y_column", "-y", \
         default="y", \
         help="column name for x value in node csv")
+parser.add_argument("--json", "-j", \
+        dest="write_json", action="store_true",
+        help="write json to projected.json")
 parser.add_argument("--rtree", "-r", \
         dest="rtree", action="store_true",
         help="use rtree for segment lookup")
 parser.add_argument("--output_directory", "-o", \
         default=".", \
         help="directory where all output files will be written")
-parser.set_defaults(rtree=True)
+parser.set_defaults(rtree=False)
+parser.set_defaults(write_json=False)
 
 args = parser.parse_args()
 
 nodes = nio.load_nodes(args.node_filename,
-                                    args.x_column,
-                                    args.y_column)
+                       args.x_column,
+                       args.y_column)
 
-net = nio.load_shp(args.network_filename, simplify=False)
+net = None
+if len(args.network_filename) > 5 and args.network_filename[-5:] == '.json':
+    net = nio.load_json(open(args.network_filename, 'r'))
+else:
+    net = nio.load_shp(args.network_filename, simplify=False)
 
 # relabel nodes/coords so that merge can work
 prefix = "net-"
@@ -71,5 +79,8 @@ for node in nodes:
     projected_edges.coords[edge[0]] = projected.coords[edge[0]]
     projected_edges.coords[edge[1]] = projected.coords[edge[1]]
 
-nio.write_shp(projected_edges, args.output_directory)
-
+if(args.write_json):
+    nio.write_json(projected_edges, 
+                   open(os.path.join(args.output_directory, 'projected.json'), 'w'))
+else:
+    nio.write_shp(projected_edges, args.output_directory)

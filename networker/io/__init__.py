@@ -282,15 +282,15 @@ def write_shp(geograph, shp_dir):
         write_prj(node_prj_filename)
 
 
-def load_js(js_file_name, simplify=True):
+def load_json(stream):
     """
     Args:
-        js_file: Path to js file
+        stream: Open stream containing js
 
-    Assumes the js file is in networkx link-node format
+    Assumes the js is in networkx link-node format
     """
     
-    js = json.load(open(js_file_name, 'r'))
+    js = json.load(stream)
     g = json_graph.node_link_graph(js)
 
     assert all([nd.has_key('coords') for nd in g.node.values()]),\
@@ -315,7 +315,7 @@ def load_js(js_file_name, simplify=True):
     return geo_nodes
 
 
-def write_js(geograph, js_file_name):
+def write_json(geograph, stream):
     """
     Args:
         geograph:  A GeoGraph object
@@ -329,6 +329,4 @@ def write_js(geograph, js_file_name):
             g2.node[nd]['coords'] = geograph.coords[nd]
 
     js_g = json_graph.node_link_data(g2)
-    out = open(js_file_name, 'w')
-    out.write(json.dumps(js_g))
-    out.close()
+    stream.write(json.dumps(js_g))

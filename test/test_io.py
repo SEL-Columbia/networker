@@ -40,7 +40,7 @@ def test_edges_from_line():
                             edge_match=operator.eq),\
            "expected graphs to be equal"
 
-def test_read_write_js():
+def test_load_write_json():
     """
     ensure that reading/writing js 'node-link' format works
     """
@@ -49,9 +49,9 @@ def test_read_write_js():
     node_dict = {0: [0,0], 1: [0,1], 2: [1,0], 3: [1,1]}
     g = GeoGraph(gm.PROJ4_LATLONG, node_dict)
     g.add_edges_from([(0,1),(1,2),(2,3)])
-    nio.write_js(g, 'test/tmp/g.js')
+    nio.write_json(g, open('test/tmp/g.js', 'w'))
 
-    g2 = nio.load_js('test/tmp/g.js')
+    g2 = nio.load_json(open('test/tmp/g.js', 'r'))
     os.remove('test/tmp/g.js')
     os.rmdir('test/tmp')
     assert nx.is_isomorphic(g, g2,
