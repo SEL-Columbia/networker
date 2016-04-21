@@ -2,10 +2,12 @@
 
 import ogr
 import osr
+import json
 import numpy as np
 import pandas as pd
 import networkx as nx
 import networker.geomath as gm
+from networkx.readwrite import json_graph
 from networker.utils import csv_projection
 from networker.classes.geograph import GeoGraph
 import warnings
@@ -278,3 +280,55 @@ def write_shp(geograph, shp_dir):
         write_prj(main_prj_filename)
         write_prj(edge_prj_filename)
         write_prj(node_prj_filename)
+
+
+def load_js(js_file_name, simplify=True):
+    """
+    Args:
+        js_file: Path to js file
+
+    Assumes the js file is in networkx link-node format
+    """
+    
+    js = json.load(open(js_file_name, 'r'))
+    g = json_graph.node_link_graph(js)
+
+    assert all([nd.has_key('coords') for nd in g.node.values()]),\
+           "json node-link graph must have nodes with coords for GeoGraph"
+
+    # get coords
+    coords = [v['coords'] for v in g.node.values()]
+
+    # set default projection
+    input_proj = ""
+    if gm.is_in_lon_lat(coords):
+        input_proj = gm.PROJ4_LATLONG
+    else:
+        input_proj = gm.PROJ4_FLAT_EARTH
+
+    coords_dict = {k: v['coords'] for k, v in g.node.items()}
+    # now get rid of 'coords' key,val for each node
+    for node in g.node.values():
+        node.pop('coords', None)
+
+    geo_nodes = GeoGraph(srs=input_proj, coords=coords_dict, data=g)
+    return geo_nodes
+
+
+def write_js(geograph, js_file_name):
+    """
+    Args:
+        geograph:  A GeoGraph object
+        js_file_name:  file to output networkx link-node format json rep
+    """
+    g2 = geograph.copy()
+    for nd in geograph.nodes():
+        if isinstance(geograph.coords[nd], np.ndarray):
+            g2.node[nd]['coords'] = geograph.coords[nd].tolist()
+        else:
+            g2.node[nd]['coords'] = geograph.coords[nd]
+
+    js_g = json_graph.node_link_data(g2)
+    out = open(js_file_name, 'w')
+    out.write(json.dumps(js_g))
+    out.close()
