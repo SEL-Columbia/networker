@@ -113,6 +113,43 @@ def test_project_point_3D():
         "projected point not on arc does not match expected"
 
 
+def test_ang_to_vec_inverse():
+    """
+    ensure that projecting any angular coordinates into
+    3-space can be converted back without error
+    """
+    num_coords = 200
+    coords = np.random.rand(num_coords, 2)
+
+    # make 1st half of the lons/lats negative
+    # long
+    coords[0:num_coords/2, 0] = -coords[0:num_coords/2, 0]
+    # lat
+    coords[0:num_coords/2, 1] = -coords[0:num_coords/2, 1]
+
+    # set -180 < long < 180
+    coords[0:num_coords, 0] = 180 * coords[0:num_coords, 0]
+    # set -90 < lat < 90
+    coords[0:num_coords, 1] = 90 * coords[0:num_coords, 1]
+
+    # now convert to cartersian
+    cart_coords = gm.ang_to_vec_coords(coords)
+    
+    # and back to angular
+    ang_coords = gm.vec_to_ang_coords(cart_coords) 
+
+    # equivalence tolerance in distance squared
+    SQ_TOLERANCE = 1e-10
+
+    # make sure converted coords are within SQ_TOLERANCE 
+    # of the original
+    diff_coords = gm.square_distance(coords, ang_coords)
+
+    assert np.any(diff_coords < SQ_TOLERANCE), \
+    "conversion from angular to cartesian back to angular coords \
+     is incorrect"
+
+   
 def test_spherical_dists():
     """
     compare dot vs haversine methods for spherical dist
