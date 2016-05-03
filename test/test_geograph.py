@@ -63,7 +63,7 @@ def test_project_xyz_vs_geo():
     g_net = GeoGraph(gm.PROJ4_LATLONG, net_coords, data=net_edges)
     g_nodes = GeoGraph(gm.PROJ4_LATLONG, node_coords)
     
-    g_project = g_net.project_onto(g_nodes)
+    g_project = g_net.project_onto(g_nodes, spherical_accuracy=True)
 
     g_net_xyz = GeoGraph(gm.PROJ4_LATLONG, 
                          g_net.lon_lat_to_cartesian_coords(),
@@ -72,7 +72,7 @@ def test_project_xyz_vs_geo():
     g_nodes_xyz = GeoGraph(gm.PROJ4_LATLONG, 
                            g_nodes.lon_lat_to_cartesian_coords())
 
-    g_project_xyz = g_net_xyz.project_onto(g_nodes_xyz)
+    g_project_xyz = g_net_xyz.project_onto(g_nodes_xyz, spherical_accuracy=True)
 
     g_project_coords_ll = g_project_xyz.cartesian_to_lon_lat()
 

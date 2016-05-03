@@ -26,6 +26,8 @@ class GeoObject(object):
             This may be a vector or a collection of vectors depending
             on the object type
 
+    NOTE:  Because coordinates can be set independent of the srs, the client
+    must ensure these stay sane in case of any changes to one or the other. 
     """
 
     def __init__(self, srs, coords):
@@ -143,7 +145,7 @@ class GeoGraph(GeoObject, nx.Graph):
 
         return True
 
-    def project_onto(self, other, rtree_index=None):
+    def project_onto(self, other, rtree_index=None, spherical_accuracy=False):
         """
         project other GeoGraph nodes onto their nearest point (edge) in this 
         GeoGraph
@@ -154,6 +156,9 @@ class GeoGraph(GeoObject, nx.Graph):
             other:  GeoGraph with nodes to be projected onto this GeoGraph
             rtree_index:  rtree of edges within self to be used for speeding
                 up matching of self edges to other nodes
+            spherical_accuracy:  if True, will try to use spherical
+                calculations for more accurate results (only if 
+                is_geographic() is True.  Falls back to euclidean)
 
         Returns:
             GeoGraph:  With nearest edges from self to nodes in other
@@ -169,7 +174,8 @@ class GeoGraph(GeoObject, nx.Graph):
         projections = {}
         for node in other.nodes():
             edge, coords = self.find_nearest_edge(other.coords[node],
-                                                  rtree_index=rtree_index)
+                                rtree_index=rtree_index, 
+                                spherical_accuracy=spherical_accuracy)
             projections[node] = (edge, coords)
 
         # create new GeoGraph with others coords
@@ -207,12 +213,12 @@ class GeoGraph(GeoObject, nx.Graph):
         # order does NOT matter here
         node_pairs = set([frozenset(pair) for pair in node_pairs])
 
-        dist_fun = gm.spherical_distance if self.is_geographic()\
-            else gm.euclidean_distance
+        dist_fun = (gm.spherical_distance if self.is_geographic()
+                                          else gm.euclidean_distance)
 
         pairs_weights = [(pair[0], pair[1],
-                         dist_fun([self.coords[pair[0]],
-                                   self.coords[pair[1]]]))
+                         dist_fun((self.coords[pair[0]],
+                                   self.coords[pair[1]])))
                          for pair in [tuple(pair_set)
                                       for pair_set in node_pairs]]
 
@@ -221,13 +227,16 @@ class GeoGraph(GeoObject, nx.Graph):
 
         return geo
 
-    def find_nearest_edge(self, coord, rtree_index=None):
+    def find_nearest_edge(self, coord, rtree_index=None, spherical_accuracy=False):
         """
         Find the nearest edge to the coordinate in space
 
         Args:
             coord:  coordinate to lookup nearest edge to
             rtree_index:  rtree of edges within self
+            spherical_accuracy:  if True, will try to use spherical
+                calculations for more accurate results (only if 
+                is_geographic() is True.  Falls back to euclidean)
 
         Returns:
             edge:  a tuple of nodes
@@ -236,13 +245,22 @@ class GeoGraph(GeoObject, nx.Graph):
         """
         assert len(self.edges()) > 0, "GeoGraph must have edges"
 
+        project_on_edge_fun = (self._project_onto_edge_spherical 
+                               if spherical_accuracy and self.is_geographic()
+                               else self._project_onto_edge)
+
+        dist_fun = (gm.spherical_distance_any 
+                    if spherical_accuracy and self.is_geographic()
+                    else gm.euclidean_distance)
+               
         if rtree_index:
             nearest_segment = rtree_index.nearest(np.ravel((coord, coord)),
                                                   objects=True).next()
             near_edge, coords = nearest_segment.object
-            cur_sq_dist, near_coords = self._sq_dist_to_edge(near_edge, coord)
-            cur_dist = np.sqrt(cur_sq_dist)
 
+            near_coords = project_on_edge_fun(near_edge, coord)
+            cur_dist = dist_fun((coord, near_coords))
+            
             """
             Because the rtree's nearest function searches based on bounding
             boxes we need to continue looking through tree for closer segments.
@@ -282,9 +300,10 @@ class GeoGraph(GeoObject, nx.Graph):
             candidates = rtree_index.intersection(new_bbox, objects=True)
             for candidate in candidates:
                 c_edge, c_coords = candidate.object
-                c_sq_dist, p_coords = self._sq_dist_to_edge(c_edge, coord)
-                if c_sq_dist < cur_sq_dist:
-                    cur_sq_dist = c_sq_dist
+                p_coords = project_on_edge_fun(c_edge, coord)
+                candidate_dist = dist_fun((coord, p_coords))
+                if candidate_dist < cur_dist:
+                    cur_dist = candidate_dist
                     near_edge = c_edge
                     near_coords = p_coords
 
@@ -297,11 +316,12 @@ class GeoGraph(GeoObject, nx.Graph):
             near_coords = None
 
             for edge in self.edges():
-                sq_dist, coords = self._sq_dist_to_edge(edge, coord)
-                if sq_dist < min_dist:
+                p_coords = project_on_edge_fun(edge, coord)
+                dist = dist_fun((coord, p_coords))
+                if dist < min_dist:
                     near_edge = edge
-                    min_dist = sq_dist
-                    near_coords = coords
+                    min_dist = dist
+                    near_coords = p_coords
 
             return near_edge, near_coords
 
@@ -315,34 +335,72 @@ class GeoGraph(GeoObject, nx.Graph):
                         self.edges())
         return set(edge_sets)
 
-    def _sq_dist_to_edge(self, edge, coord):
+    def _project_onto_edge(self, edge, coord):
+    
         """
-        helper to calculate the square distance from coord to
-        the edge and the nearest coord on that edge
+        helper to determine the orthogonal projection of a point onto an 
+        edge (segment). The projection is the nearest point to the 
+        given point on the segment.
+
+        NOTE:  This method simplifies the computation by assuming 
+        coordinates on a 2d plane 
 
         Args:
             edge:  tuple of nodes representing edge
-            coord:  coordinates of point to take distance to
+            coord:  coordinates of point to find projection of
 
         Returns:
-            square_distance:  from coord to nearest point on edge
-            coords:  coordinates of nearest point on edge
+            proj_coord:  coordinates of nearest point on edge
         """
 
         c0 = self.coords[edge[0]]
         c1 = self.coords[edge[1]]
 
-        space = np.shape(coord)[0]
-        assert np.shape(c0)[0] == np.shape(c1)[0] == space, \
-            "coordinate space of nodes and coord must match"
+        proj_coord = gm.project_point_on_segment(coord, c0, c1)
+        return proj_coord
 
-        proj_fun = {2: gm.project_geopoint_on_arc if self.is_geographic()
-                       else gm.project_point_on_segment,
-                    3: gm.project_point_on_arc}
+    def _project_onto_edge_spherical(self, edge, coord):
+        """
+        *Experimental*:  This may be slow...it computes the distance and 
+        point on the sphere if the coordinates are spherical
 
-        proj_coord = proj_fun[space](coord, c0, c1)
+        More useful as a test for now (to see how far off spherical vs 
+        cartesian treatment is)
 
-        return np.sum((proj_coord - np.array(coord)) ** 2), proj_coord
+        Helper to determine the orthogonal projection of a point onto an 
+        edge (segment). The projection is the nearest point to the 
+        given point on the segment.
+
+        Args:
+            edge:  tuple of nodes representing edge
+            coord:  coordinates of point to find projection of
+
+        Returns:
+            proj_coord:  coordinates of nearest point on edge
+        """
+
+        c0 = self.coords[edge[0]]
+        c1 = self.coords[edge[1]]
+
+        dimensions = np.shape(coord)[0]
+        assert np.shape(c0)[0] == np.shape(c1)[0] == dimensions, \
+               "coordinate space of nodes and coord must match"
+
+        assert self.is_geographic(), ("only geographic coordinates are "
+               "supported for spherical treatment")
+
+        def get_proj_fun():
+            if dimensions == 2:
+                return gm.project_geopoint_on_arc
+            else:
+                assert dimensions == 3,\
+                "coords with {} dimensions are not supported".format(dimensions)
+                return gm.project_point_on_arc
+
+        proj_fun = get_proj_fun()
+        proj_coord = proj_fun(coord, c0, c1)
+
+        return proj_coord
 
     def get_rtree_index(self):
         """
