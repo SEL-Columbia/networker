@@ -235,7 +235,7 @@ class GeoGraph(GeoObject, nx.Graph):
             coord:  coordinate to lookup nearest edge to
             rtree_index:  rtree of edges within self
             spherical_accuracy:  if True, will try to use spherical
-                calculations for more accurate results (only if 
+                calculations for more accurate projections (only if 
                 is_geographic() is True.  Falls back to euclidean)
 
         Returns:
@@ -249,8 +249,10 @@ class GeoGraph(GeoObject, nx.Graph):
                                if spherical_accuracy and self.is_geographic()
                                else self._project_onto_edge)
 
+        # Note:  We always use spherical_distance if the coordinates are geographic
+        #        (regardless of spherical_accuracy param)
         dist_fun = (gm.spherical_distance_any 
-                    if spherical_accuracy and self.is_geographic()
+                    if self.is_geographic()
                     else gm.euclidean_distance)
                
         if rtree_index:
