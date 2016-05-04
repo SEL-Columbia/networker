@@ -11,7 +11,7 @@ def generate_nodes(n, x_range, y_range):
                           axis=1)
 
 parser = argparse.ArgumentParser(description=\
-        "Generate a set of X, Y pairs uniformly distributed within"\
+        "Generate a set of X, Y pairs uniformly distributed within "\
         "x_range and y_range")
 parser.add_argument("num_nodes", type=int, help="number of nodes to generate")
 parser.add_argument("--x_range", "-x", type=float, nargs=2, \

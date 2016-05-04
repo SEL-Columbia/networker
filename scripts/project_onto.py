@@ -34,10 +34,14 @@ parser.add_argument("--json", "-j", \
 parser.add_argument("--rtree", "-r", \
         dest="rtree", action="store_true",
         help="use rtree for segment lookup")
+parser.add_argument("--spherical_accuracy", "-s", \
+        dest="spherical_accuracy", action="store_true",
+        help="connect nodes to edges as though on a sphere (ignored unprojected inputs)")
 parser.add_argument("--output_directory", "-o", \
         default=".", \
         help="directory where all output files will be written")
 parser.set_defaults(rtree=False)
+parser.set_defaults(spherical_accuracy=False)
 parser.set_defaults(write_json=False)
 
 args = parser.parse_args()
@@ -59,16 +63,17 @@ nx.relabel_nodes(net,
 net.coords = {prefix + str(n): c for n, c in
     net.coords.items()}
 
-def project_helper(use_rtree):
+def project_helper(use_rtree, spherical_accuracy):
     if use_rtree:
         rtree = net.get_rtree_index()
-        return net.project_onto(nodes, rtree_index=rtree)
+        return net.project_onto(nodes, rtree_index=rtree, 
+                                spherical_accuracy=spherical_accuracy)
     else:
-        return net.project_onto(nodes)
+        return net.project_onto(nodes, spherical_accuracy=spherical_accuracy)
 
 # project_onto returns geograph with projected nodes PLUS
 # the network edges they were projected onto
-projected = project_helper(args.rtree)
+projected = project_helper(args.rtree, args.spherical_accuracy)
 
 # get only the projected edges
 # construct geograph of only projected edges

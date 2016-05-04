@@ -153,7 +153,8 @@ def edges_from_line(geom, attrs, simplify=True, geom_attrs=True):
 
 
 def load_shp(shp_path, simplify=True):
-    """ loads a shapefile into a networkx based GeoGraph object
+    """ 
+    loads a shapefile into a networkx based GeoGraph object
 
     Args:
         shp_path:  string path to a line or point shapefile
