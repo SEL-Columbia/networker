@@ -65,10 +65,13 @@ net.coords = {prefix + str(n): c for n, c in
 
 def project_helper(use_rtree, spherical_accuracy):
     if use_rtree:
+        logger.info("building rtree...")
         rtree = net.get_rtree_index()
+        logger.info("projecting nodes...")
         return net.project_onto(nodes, rtree_index=rtree, 
                                 spherical_accuracy=spherical_accuracy)
     else:
+        logger.info("projecting nodes...")
         return net.project_onto(nodes, spherical_accuracy=spherical_accuracy)
 
 # project_onto returns geograph with projected nodes PLUS

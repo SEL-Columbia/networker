@@ -248,20 +248,22 @@ class GeoGraph(GeoObject, nx.Graph):
         project_on_edge_fun = (self._project_onto_edge_spherical 
                                if spherical_accuracy and self.is_geographic()
                                else self._project_onto_edge)
-
-        # Note:  We always use spherical_distance if the coordinates are geographic
-        #        (regardless of spherical_accuracy param)
-        dist_fun = (gm.spherical_distance_any 
-                    if self.is_geographic()
-                    else gm.euclidean_distance)
-               
+              
         if rtree_index:
             nearest_segment = rtree_index.nearest(np.ravel((coord, coord)),
                                                   objects=True).next()
             near_edge, coords = nearest_segment.object
 
             near_coords = project_on_edge_fun(near_edge, coord)
-            cur_dist = dist_fun((coord, near_coords))
+            
+            # Note:  We always use euclidean_distance to compare segment
+            # distances (even though it's not entirely accurate when dealing
+            # with angular coordinates).  
+            # 2 Reasons:  
+            # 1. Rtree uses euclidean space (via bbox comparisons)
+            # 2. It ensures that the bbox for the refinement step below is
+            #    in the same units as the coords, keeping things simple
+            cur_dist = gm.euclidean_distance((coord, near_coords))
             
             """
             Because the rtree's nearest function searches based on bounding
@@ -303,7 +305,8 @@ class GeoGraph(GeoObject, nx.Graph):
             for candidate in candidates:
                 c_edge, c_coords = candidate.object
                 p_coords = project_on_edge_fun(c_edge, coord)
-                candidate_dist = dist_fun((coord, p_coords))
+
+                candidate_dist = gm.euclidean_distance((coord, p_coords))
                 if candidate_dist < cur_dist:
                     cur_dist = candidate_dist
                     near_edge = c_edge
@@ -319,7 +322,7 @@ class GeoGraph(GeoObject, nx.Graph):
 
             for edge in self.edges():
                 p_coords = project_on_edge_fun(edge, coord)
-                dist = dist_fun((coord, p_coords))
+                dist = gm.euclidean_distance((coord, p_coords))
                 if dist < min_dist:
                     near_edge = edge
                     min_dist = dist
