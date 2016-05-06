@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import argparse
-import json
 import sys
 import os
 import logging
@@ -29,21 +28,17 @@ parser.add_argument("--y_column", "-y", \
         default="y", \
         help="column name for x value in node csv")
 parser.add_argument("--json", "-j", \
-        dest="write_json", action="store_true",
+        dest="write_json", action="store_true", default=False,
         help="write json to projected.json")
 parser.add_argument("--rtree", "-r", \
-        dest="rtree", action="store_true",
+        dest="rtree", action="store_true", default=False,
         help="use rtree for segment lookup")
 parser.add_argument("--spherical_accuracy", "-s", \
-        dest="spherical_accuracy", action="store_true",
+        dest="spherical_accuracy", action="store_true", default=False,
         help="connect nodes to edges as though on a sphere (ignored unprojected inputs)")
 parser.add_argument("--output_directory", "-o", \
         default=".", \
         help="directory where all output files will be written")
-parser.set_defaults(rtree=False)
-parser.set_defaults(spherical_accuracy=False)
-parser.set_defaults(write_json=False)
-
 args = parser.parse_args()
 
 nodes = nio.load_nodes(args.node_filename,

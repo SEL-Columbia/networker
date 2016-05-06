@@ -2,6 +2,7 @@
 
 import networker.geomath as gm
 import numpy as np
+import networkx as nx
 from networkx.readwrite import json_graph
 
 
@@ -90,11 +91,12 @@ def get_rounded_edge_sets(geograph, round_precision=8):
     return set(edge_sets)
 
 
-"""
-# spherical drawing helpers
-# plot maps
 def draw_geograph(g, node_color='r', edge_color='b', node_label_field=None,
                     edge_label_field=None, node_size=200):
+    """
+    Simple function to draw a geograph via matplotlib/networkx
+    Uses geograph coords (projects if needed) as node positions
+    """
 
     # transform to projected if not done so
     flat_coords = g.transform_coords(gm.PROJ4_FLAT_EARTH)
@@ -124,7 +126,8 @@ def draw_geograph(g, node_color='r', edge_color='b', node_label_field=None,
         edge_labels = nx.get_edge_attributes(g, edge_label_field)
         nx.draw_networkx_edge_labels(g, pos=node_pos, edge_labels=edge_labels)
 
-
+"""
+# spherical drawing helpers
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 # globals for testing
