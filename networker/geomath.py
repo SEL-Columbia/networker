@@ -193,12 +193,63 @@ def spherical_distance_haversine(coord_pairs, radius=MEAN_EARTH_RADIUS_M):
     return radius * central_angle
 
 
+def spherical_distance_any(coord_pair, radius=MEAN_EARTH_RADIUS_M):
+    """
+    Calculate distance on sphere between pairs of coordinates
+    
+    Determines method to use based on number of coordinates
+    """
+    
+    assert np.shape(coord_pair[0])[0] == np.shape(coord_pair[1])[0], \
+           "Coordinate shape must match"
+    dimensions = np.shape(coord_pair[0])[0]
+
+    if dimensions == 2:
+        return spherical_distance(coord_pair, radius)
+    else:
+        assert dimensions == 3,\
+               "coords with {} dimensions are not supported".format(dimensions)
+        return spherical_distance_xyz(coord_pair, radius)
+
+
+def spherical_distance_xyz(coord_pair, radius=MEAN_EARTH_RADIUS_M):
+    """
+    Calculate distance on sphere between pairs of coordinates in r^3
+    via linear algebra
+
+    Based on:
+    v1, v2 are vectors in r^3
+    theta:  angle between v1, v2
+    | v1 x v2 | = |v1||v2|cos(theta)
+    v1 dot v2 = |v1||v2|sin(theta)
+
+    theta = atan(|v1 x v2|/(v1 dot v2))
+    
+    (we use atan2 to handle special cases)
+
+    Args:
+        coord_pair:  2x3 array of cartesian x, y, z's
+        radius:  the radius of the sphere on which to project
+
+    Returns:
+        distance betwteen vectors on surface of sphere in same units as radius
+
+    """
+
+    v1 = coord_pair[0]
+    v2 = coord_pair[1]
+    angle_in_rad = np.math.atan2(np.linalg.norm(np.cross(v1, v2)),
+                                 np.dot(v1, v2))
+
+    return radius * angle_in_rad
+
+
 def spherical_distance(coord_pair, radius=MEAN_EARTH_RADIUS_M):
     """
     Wrapper for spherical_distance which takes a single set of pairs
 
     Args:
-        coord_pair:  1x2 array of lon, lat pairs (e.g. [[30, 30], [31, 31]])
+        coord_pair:  2x2 array of lon, lat pairs (e.g. [[30, 30], [31, 31]])
         radius:  radius of sphere on which to project
 
     Returns:
@@ -599,6 +650,10 @@ def project_point_on_segment(p, v1, v2):
 
     """
 
+    space = np.shape(p)[0]
+    assert np.shape(v1)[0] == np.shape(v2)[0] == space, \
+        "coordinate space of point and vectors must match"
+
     # make 2 vectors with origin at point v1
     u = np.array([v2[0] - v1[0], v2[1] - v1[1]])
     v = np.array([p[0] - v1[0], p[1] - v1[1]])
@@ -704,6 +759,13 @@ def project_point_on_arc(p, v1, v2, radius=MEAN_EARTH_RADIUS_M):
     Uses arc_intersection
 
     """
+
+    # ensure numpy arrays
+    if not isinstance(v1, np.ndarray):
+        v1 = np.array(v1)
+
+    if not isinstance(v2, np.ndarray):
+        v2 = np.array(v2)
 
     # check if arc is 0 length (i.e. it's a point)
     # if so, then we're just projecting a point onto another point

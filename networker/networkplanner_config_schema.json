@@ -34,7 +34,7 @@
             "properties": {
                 "minimum_node_count": {
                     "type": "number", 
-                    "description": "minimum number of nodes in a non-grid connected subnetwork",
+                    "description": "Minimum number of nodes in a non-grid connected subnetwork",
                     "minimum": 0,
                     "default": 0
                 },
@@ -42,6 +42,11 @@
                     "type": "boolean", 
                     "description": "Treat subgraphs of network as a single network",
                     "default": true
+                },
+                "spherical_accuracy": {
+                    "type": "boolean",
+                    "description": "Treat geographic coordinates as spherical when connecting to existing grid (ignored if coordinates are projected)",
+                    "default": false
                 }
             }
         },

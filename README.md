@@ -21,7 +21,10 @@ Included are wrapper scripts for leveraging these classes from the command line.
 
 ## Examples
 
-Once installed with source, navigate to the top level source directory and run:
+Once installed with source, navigate to the top level source directory and activate
+your environment via `source activate networker`.
+
+### Networker
 
 ```
 > python scripts/run_networker.py test/networker_config_max100.json -o output
@@ -53,6 +56,8 @@ plt.show()
 
 ![geograph image](http://i.imgur.com/r7ei1VR.png)
 
+### NetworkPlanner
+
 If you want to leverage the econometric models from networkplanner to compute 
 the budget (aka mvMax) values for nodes, use the NetworkPlannerRunner class.  
 This will also generate outputs that are consistent with networkplanner.  
@@ -64,6 +69,33 @@ A script to run this is included.  Here's a sample run:
 
 Once complete, the output directory should contain a dataset.db and networks-proposed 
 shapefiles (along with addtional networkplanner outputs).  
+
+### Other tools
+
+The scripts directory contains various other useful tools for working with geographic nodes and networks.  Below is a sample script demonstrating these tools.  Change the number of nodes to test performance at scale.  
+
+Pass --help to any tool to get detailed help on its parameters.  
+
+```
+# generate random demand nodes within bounds [-1, -1], [1, 1] into a csv
+cat <(echo "x,y") <(python scripts/generate_random_nodes.py -x -1 1 -y -1 1 5) > demand_nodes.csv
+
+# generate a random minimum spanning tree within the same bounds into a networkx json file
+python scripts/generate_random_nodes.py -x -1 1 -y -1 1 30 | python scripts/generate_mst.py > mst.json
+
+# project the nodes onto the nearest segment in the mst 
+# (network goes into output/projected.json)
+python scripts/project_onto.py -x x -y y -r -j -o output demand_nodes.csv mst.json
+
+# render the network and projections to a png
+python scripts/draw_geograph.py -n 50 -o mst.png mst.json output/projected.json
+```
+
+Minimum Spanning Tree from above
+![geograph image](http://i.imgur.com/eM0HY6w.png)
+
+5 random nodes and shortest edges to the MST as plotted via `draw_geograph.py` above
+![geograph image](http://i.imgur.com/LvnWcsx.png)
 
 ## Configuration
 

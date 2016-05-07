@@ -57,7 +57,7 @@ def test_networker_run():
 
 
 def test_networker_leona_run():
-    """ test on randomly generated set of nodes (demand only) """
+    """ test previously generated results match """
 
     run_config = "networker_config_leona_net.json"
     # TODO:  Determine why this fails with networkplanner_results_file
@@ -67,6 +67,19 @@ def test_networker_leona_run():
 
     cfg = get_config(run_config)
     networker_run_compare(cfg, results_file, output_dir)
+
+def test_networker_leona_spherical_run():
+    """ test previously generated results match for spherical treatment """
+
+    run_config = "networker_config_leona_net_spherical.json"
+    # TODO:  Determine why this fails with networkplanner_results_file
+    # results_file = "data/leona/expected/networks-proposed.shp"
+    results_file = "data/leona/expected_spherical/edges.shp"
+    output_dir = "data/tmp"
+
+    cfg = get_config(run_config)
+    networker_run_compare(cfg, results_file, output_dir)
+
 
 
 def test_srs_mismatch():
