@@ -159,7 +159,7 @@ def build_network(demand_nodes,
         id = int(i+1) if one_based else int(i)
         return id
 
-    msf = None
+    msf = GeoGraph(result_geo_graph.srs)
     if filtered_graph:
         coords = {id_label(i): result_geo_graph.coords[i]
                   for i in filtered_graph}
