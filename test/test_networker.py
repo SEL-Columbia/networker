@@ -6,6 +6,7 @@ import json
 import numpy as np
 import networkx as nx
 import networker.io as nio
+from networker.exception import SpatialReferenceMismatchException
 from networker import networker_runner
 from networker import geomath as gm
 from networker.algorithms import mod_boruvka
@@ -91,10 +92,10 @@ def test_srs_mismatch():
     try:
         nwk.run()
     except Exception as e:
-        assert isinstance(e, networker_runner.SRSMismatchException),\
-               "Exception was {}, should be SRSMismatchException".format(e)
+        assert isinstance(e, SpatialReferenceMismatchException),\
+               "Exception was {}, should be SpatialReferenceMismatchException".format(e)
     else:
-        assert False, "SRSMismatchException expected"
+        assert False, "SpatialReferenceMismatchException expected"
 
 
 def random_settlements(n):

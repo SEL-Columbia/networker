@@ -9,6 +9,7 @@ import networkx as nx
 import networker.geomath as gm
 from networkx.readwrite import json_graph
 from networker.utils import csv_projection
+from networker.utils import nested_dict_getter
 from networker.classes.geograph import GeoGraph
 import warnings
 import os
@@ -245,7 +246,8 @@ def load_nodes(filename="metrics.csv", x_column="X", y_column="Y"):
 
 
 def write_shp(geograph, shp_dir):
-    """ writes a shapefile from a networkx based GeoGraph object
+    """ 
+    writes a shapefile from a networkx based GeoGraph object
 
     Args:
         geograph: GeoGraph object
@@ -331,3 +333,113 @@ def write_json(geograph, stream):
 
     js_g = json_graph.node_link_data(g2)
     stream.write(json.dumps(js_g))
+
+
+def geojson_get_nodes(features):
+    """
+    Get all features that comply with GeoGraph node format within GeoJSON
+    features collection
+
+    Returns:
+        nodes:  list of (node_id, node_attr_dict) tuples
+        coords:  coordinates dict indexed by node_id
+    """
+    dict_getter = nested_dict_getter()
+    nodes = []
+    coords = {}
+    for feature in features:
+        # Only allow Point type as nodes for now
+        if dict_getter(feature, ['geometry', 'type']) != 'Point':
+            continue
+
+        node_id = dict_getter(feature, ['properties', 'node_id'])
+        # Nodes are only valid with a node_id property
+        if node_id is None:
+            continue
+
+        node_attrs = feature['properties']
+        node_attrs.pop('node_id')
+        nodes.append((node_id, node_attrs))
+        # At this point, we assume we have coordinates
+        coords[node_id] = feature['geometry']['coordinates']
+
+    return nodes, coords
+
+
+def geojson_get_edges(features):
+    """
+    Get all features that comply with GeoGraph edge format within GeoJSON
+    features collection
+
+    Returns:
+        edges:  list of (from_node_id, to_node_id, edge_attr_dict) tuples
+    """
+    dict_getter = nested_dict_getter()
+    edges = []
+    for feature in features:
+        # Only allow LineString type as edges for now
+        if dict_getter(feature, ['geometry', 'type']) != 'LineString':
+            continue
+
+        node_from_id = dict_getter(feature, ['properties', 'node_from_id'])
+        node_to_id = dict_getter(feature, ['properties', 'node_to_id'])
+        # Edges are only valid with node_from_id and node_to_id properties
+        if node_from_id is None or node_to_id is None:
+            continue
+
+        edge_attrs = feature['properties']
+        edge_attrs.pop('node_from_id')
+        edge_attrs.pop('node_to_id')
+        edges.append((node_from_id, node_to_id, edge_attrs))
+
+    return edges
+
+def load_geojson(geojson_path):
+    """
+    Load GeoGraph from geojson
+
+    See:  docs/geograph_geojson.md for format details
+
+    Args:
+        geojson_path:  Path to geojson
+
+    Returns:
+        geograph:  GeoGraph object
+    """
+
+    geojson = json.load(open(geojson_path, 'r'))
+    dict_getter = nested_dict_getter()
+
+    # build GeoGraph from a plain-old networkx graph
+    g = nx.Graph()
+
+    # Only add crs if it's explicitly set in crs.properties.name
+    crs = dict_getter(geojson, ['crs', 'properties', 'name'])
+    if crs:
+        try:
+            prj.Proj(crs)
+        except Exception as e:
+            raise SpatialReferenceInvalidException(
+                "Spatial reference must comply with proj4, got {}" % crs)
+
+    # TODO:  Apply geojson schema validation
+    features = geojson['features']
+
+    # Currently this separates nodes and coordinates due to structure of
+    # GeoGraph.  This may change to allow Nodes and Edges to have distinct 
+    # Geometry.
+    nodes, coords = geojson_get_nodes(features)
+    g.add_nodes_from(nodes)
+    
+    edges = geojson_get_edges(features)
+    g.add_edges_from(edges)
+
+    if crs is None and gm.is_in_lon_lat(coords):
+        crs = gm.PROJ4_LATLONG
+    
+    if crs is None:
+        warnings.warn("Spatial Reference could not be set for {}".
+                          format(geojson_path))
+
+    # TODO:  More srs/projection validation?
+    return GeoGraph(srs=crs, coords=coords, data=g)

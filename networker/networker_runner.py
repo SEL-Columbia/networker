@@ -10,15 +10,12 @@ import numpy as np
 
 from networker.classes.unionfind import UnionFind
 from networker.classes.geograph import GeoGraph
+from networker.exception import SpatialReferenceMismatchException
 import networker.io as nio
 import networker.geomath as gm
 import networker.algorithms as algo
 
 log = logging.getLogger('networker')
-
-class SRSMismatchException(Exception):
-    """ Spatial Reference System mismatch """
-    pass
 
 class NetworkerRunner(object):
 
@@ -61,7 +58,7 @@ class NetworkerRunner(object):
                           "do not match".format(demand_nodes.srs, 
                                                 existing_networks.srs)
                 log.error(message)
-                raise SRSMismatchException(message)
+                raise SpatialReferenceMismatchException(message)
 
         network_algorithm = self.config['network_algorithm']
 
