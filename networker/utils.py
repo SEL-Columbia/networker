@@ -20,7 +20,7 @@ class nested_dict_getter():
         """
         self.default_value = default_value
 
-    def get(self, d, list_of_paths):
+    def __call__(self, d, list_of_paths):
         """
         get value or the default by repeated unnesting of
         dict d through the list_of_paths
