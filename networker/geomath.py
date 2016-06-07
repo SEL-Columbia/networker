@@ -12,6 +12,8 @@ Module for geometric/geographic utility functions
 """
 
 MEAN_EARTH_RADIUS_M = 6371010
+
+# Note:  this says nothing about the order in the coordinates themselves
 PROJ4_LATLONG = "+proj=latlong +datum=WGS84"
 
 # aka EPSG:3587 or 'tiling' projection
@@ -800,7 +802,8 @@ def is_in_lon_lat(coords):
     bounds = make_bounding_box_array(coords)
     xbounds = np.array([bounds[0], bounds[2]])
     ybounds = np.array([bounds[1], bounds[3]])
-    return np.all(xbounds) < 180.0 and np.all(xbounds > -180.0) and \
+    # note some systems handle "wrapping" longitudes by going beyond 360
+    return np.all(xbounds) < 360.0 and np.all(xbounds > -180.0) and \
         np.all(ybounds) < 90.0 and np.all(ybounds > -90)
 
 
