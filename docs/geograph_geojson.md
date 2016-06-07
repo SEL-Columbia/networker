@@ -16,13 +16,6 @@ facilitate transfer between tools.  In choosing a format, the following were pri
 
 With a minor extension to support priority 2, GeoJSON fits the bill.  Regarding point 2, [MapBox](https://github.com/mapbox) has many tools to support GeoJSON (see [geojson.io](http://geojson.io)).  GeoJSON can also be rendered natively by github.  
 
-The following are some downsides to the chosen representation:
-
-1.  Verbose, making it expensive to transfer/store (Compression or [geobuf](https://github.com/mapbox/geobuf) may help)
-
-2.  Streaming may be difficult since the edges depend on the existence of
-    the nodes (If required, bundling nodes with their edges may help)
-
 ## Approach
 
 We extend GeoJSON to support the notion of a graph by adding attributes to
@@ -93,8 +86,18 @@ The above represents a GeoGraph with a single edge (named 'edge-0') whose
 
 Note that the geometry of an edge is distinct from the nodes it connects.  
 
-Issue:  Should we add a unique namespace to distinguish 
-node_id, node_from and node_to? 
+## Issues
+
+The following are some potential downsides to the chosen representation:
+
+1.  GeoJSON is verbose, making it expensive to transfer/store (Compression or [geobuf](https://github.com/mapbox/geobuf) may help)
+
+2.  Streaming large GeoGraphs may be difficult since the edges depend on the existence of the nodes (If required, bundling nodes with their edges may help)
+
+3.  "Directedness" of graph is left up to the client
+
+4.  The `node_id`, `node_from` and `node_to` properties may clash with other data provider properties (Should a namespace qualifier be prepended?)
+
 
 ## Future
 

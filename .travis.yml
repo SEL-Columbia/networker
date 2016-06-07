@@ -15,7 +15,7 @@ install:
   - conda create -n networker python=2.7
   # setup coverage tools
   - conda install --yes -n networker coverage
-  - conda install --yes -n networker coveralls
+  - conda install --yes -n networker -c conda-forge coveralls
 before_script:
   # cache the lib dir and activate the conda environment
   # - ldconfig "$HOME/miniconda/envs/networker/lib"
