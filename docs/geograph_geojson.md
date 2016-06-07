@@ -44,7 +44,7 @@ This can be best seen with an example:
             },
             "properties": 
             {
-                "node_id": "0",
+                "node_id": 0,
                 "name": "node-0"
             }
         },
@@ -57,7 +57,7 @@ This can be best seen with an example:
             },
             "properties": 
             {
-                "node_id": "1",
+                "node_id": 1,
                 "name": "node-1"
             }
         },
@@ -71,8 +71,8 @@ This can be best seen with an example:
             },
             "properties": {
                 "name": "edge-0"
-                "node_from": "0",
-                "node_to": "1"
+                "node_from": 0,
+                "node_to": 1
             }
         }
     ]

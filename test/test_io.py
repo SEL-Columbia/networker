@@ -45,16 +45,27 @@ def test_load_write_json():
     ensure that reading/writing js 'node-link' format works
     """
 
-    os.mkdir('test/tmp')
+    os.mkdir(os.path.join('test', 'tmp'))
     node_dict = {0: [0,0], 1: [0,1], 2: [1,0], 3: [1,1]}
     g = GeoGraph(gm.PROJ4_LATLONG, node_dict)
     g.add_edges_from([(0,1),(1,2),(2,3)])
-    nio.write_json(g, open('test/tmp/g.js', 'w'))
+    json_file_path = os.path.join('test', 'tmp', 'g.js')
+    nio.write_json(g, open(json_file_path, 'w'))
 
-    g2 = nio.load_json(open('test/tmp/g.js', 'r'))
-    os.remove('test/tmp/g.js')
-    os.rmdir('test/tmp')
+    g2 = nio.load_json(open(json_file_path, 'r'))
+    os.remove(json_file_path)
+    os.rmdir(os.path.join('test', 'tmp'))
     assert nx.is_isomorphic(g, g2,
                             node_match=operator.eq,
                             edge_match=operator.eq),\
            "expected written and read graphs to match"
+
+def test_load_write_geojson():
+    """
+    ensure that reading geojson works
+    """
+    g = nio.load_geojson(os.path.join('data', 'geojson_sample.json'))
+    print(g.edge)
+    assert g.edge[0][1] == {'name': 'edge-0'}
+    assert len(g.coords) == 2
+

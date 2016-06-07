@@ -322,7 +322,7 @@ def write_json(geograph, stream):
     """
     Args:
         geograph:  A GeoGraph object
-        js_file_name:  file to output networkx link-node format json rep
+        stream:  stream to output networkx link-node format json rep
     """
     g2 = geograph.copy()
     for nd in geograph.nodes():
@@ -381,20 +381,20 @@ def geojson_get_edges(features):
         if dict_getter(feature, ['geometry', 'type']) != 'LineString':
             continue
 
-        node_from_id = dict_getter(feature, ['properties', 'node_from_id'])
-        node_to_id = dict_getter(feature, ['properties', 'node_to_id'])
+        node_from_id = dict_getter(feature, ['properties', 'node_from'])
+        node_to_id = dict_getter(feature, ['properties', 'node_to'])
         # Edges are only valid with node_from_id and node_to_id properties
         if node_from_id is None or node_to_id is None:
             continue
 
         edge_attrs = feature['properties']
-        edge_attrs.pop('node_from_id')
-        edge_attrs.pop('node_to_id')
+        edge_attrs.pop('node_from')
+        edge_attrs.pop('node_to')
         edges.append((node_from_id, node_to_id, edge_attrs))
 
     return edges
 
-def load_geojson(geojson_path):
+def load_geojson(geojson_path, directed=False):
     """
     Load GeoGraph from geojson
 
@@ -434,7 +434,7 @@ def load_geojson(geojson_path):
     edges = geojson_get_edges(features)
     g.add_edges_from(edges)
 
-    if crs is None and gm.is_in_lon_lat(coords):
+    if crs is None and gm.is_in_lon_lat(coords.values()):
         crs = gm.PROJ4_LATLONG
     
     if crs is None:
@@ -443,3 +443,75 @@ def load_geojson(geojson_path):
 
     # TODO:  More srs/projection validation?
     return GeoGraph(srs=crs, coords=coords, data=g)
+
+
+def node_geojson():
+    return  {
+                "type": "Feature",
+                "geometry": 
+                {
+                    "type": "Point"
+                    "coordinates": []
+                },
+                "properties":
+                {
+                    "node_id": None
+                }
+            }
+
+def edge_geojson():
+    return  {
+                "type": "Feature",
+                "geometry": 
+                {
+                    "type": "LineString"
+                    "coordinates": []
+                },
+                "properties":
+                {
+                    "node_from": None
+                    "node_to": None
+                }
+            }
+
+def geojson_instance():
+    return {
+                "type": "FeatureCollection",
+                "features": []
+            }
+
+def write_geojson(geograph, geojson_path):
+    """
+    Args:
+        geograph:  A GeoGraph object
+        geojson_path:  file to output GeoGraph GeoJSON format rep
+    """
+ 
+    def node_to_geojson(node_id):
+        node_geo_dict = node_geojson()
+        node_geo_dict["properties"]["node_id"] = node_id
+        node_geo_dict["properties"].update(geograph.node[node_id])
+        node_geo_dict["geometry"]["coordinates"] = geograph.coords[node_id]
+
+    def edge_to_geojson(node_from, node_to):
+        edge_geo_dict = edge_geojson()
+        edge_geo_dict["properties"]["node_from"] = node_from
+        edge_geo_dict["properties"]["node_to"] = node_to
+        edge_dict = geograph.edge[node_from][node_to]
+        coordinates = [geograph.coords[node_from], geograph.coords[node_to]]
+        # TODO:  is there a better way to handle custom coordinates than 
+        # looking for "coordinates" attribute?
+        if edge_dict.has_key("coordinates"):    
+            coordinates = edge_dict.pop("coordinates")
+        edge_geo_dict["properties"].update(edge_dict)
+        edge_geo_dict["geometry"]["coordinates"] = coordinates
+
+
+    node_list = [node_to_geojson(node) for node in geograph.nodes()]
+    edge_list = [edge_to_geojson(node_from, node_to) for 
+                 node_from, node_to in geograph.edges()]
+    geojson = geojson_instance()
+    geojson["features"] = node_list + edge_list
+
+    with open(geojson_path, 'w') as geojson_stream:
+        geojson_stream.write(json.dumps(geojson))
