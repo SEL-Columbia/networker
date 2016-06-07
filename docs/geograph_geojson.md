@@ -27,6 +27,7 @@ The following are some downsides to the chosen representation:
 
 We extend GeoJSON to support the notion of a graph by adding attributes to
 a feature that allows them to be interpreted as a `node` or an `edge`.  
+
 At this point, only `Point` features can be considered nodes and only 
 `LineString` features can be considered edges.  
 
