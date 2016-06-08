@@ -89,7 +89,7 @@ def read_shp(path, simplify=True, geom_attrs=True):
                                             geom_attrs):
                     net.add_edge(*edge)
             else:
-                raise ImportError("GeometryType {} not supported".
+                raise TypeError("GeometryType {} not supported".
                                   format(g.GetGeometryType()))
 
     return net
