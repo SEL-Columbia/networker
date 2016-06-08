@@ -34,13 +34,13 @@ class nested_dict_getter():
         current_dict = d
         for i in range(len(list_of_paths) - 1):
             path = list_of_paths[i]
-            if current_dict.has_key(path):
+            if current_dict is not None and current_dict.has_key(path):
                 current_dict = current_dict[path]
             else:
                 return self.default_value
 
         last_path = list_of_paths[len(list_of_paths) - 1]
-        if current_dict.has_key(last_path):
+        if current_dict is not None and current_dict.has_key(last_path):
             return current_dict[last_path]
         else:
             return self.default_value

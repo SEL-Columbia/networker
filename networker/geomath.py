@@ -802,7 +802,7 @@ def is_in_lon_lat(coords):
     bounds = make_bounding_box_array(coords)
     xbounds = np.array([bounds[0], bounds[2]])
     ybounds = np.array([bounds[1], bounds[3]])
-    # note some systems handle "wrapping" longitudes by going beyond 360
+    # NOTE:  some systems handle "wrapping" longitudes by going beyond 360
     return np.all(xbounds) < 360.0 and np.all(xbounds > -180.0) and \
         np.all(ybounds) < 90.0 and np.all(ybounds > -90)
 

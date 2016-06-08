@@ -49,7 +49,7 @@ def test_load_write_json():
     node_dict = {0: [0,0], 1: [0,1], 2: [1,0], 3: [1,1]}
     g = GeoGraph(gm.PROJ4_LATLONG, node_dict)
     g.add_edges_from([(0,1),(1,2),(2,3)])
-    json_file_path = os.path.join('test', 'tmp', 'g.js')
+    json_file_path = os.path.join('test', 'tmp', 'g.json')
     nio.write_json(g, open(json_file_path, 'w'))
 
     g2 = nio.load_json(open(json_file_path, 'r'))
@@ -64,8 +64,17 @@ def test_load_write_geojson():
     """
     ensure that reading geojson works
     """
-    g = nio.load_geojson(os.path.join('data', 'geojson_sample.json'))
-    print(g.edge)
-    assert g.edge[0][1] == {'name': 'edge-0'}
-    assert len(g.coords) == 2
+    g = nio.load_geojson(os.path.join('data', 'sample.geojson'))
+    assert g.edge[0][1] == {'name': 'edge-0'} and len(g.coords) == 2,\
+           "load_geojson result unexpected"
 
+    # write it to temp and make sure it's identical
+    tmp_dir = os.path.join('test', 'tmp')
+    os.mkdir(tmp_dir)
+    json_file_path = os.path.join('test', 'tmp', 'g.geojson')
+    nio.write_geojson(g, json_file_path)
+    g2 = nio.load_geojson(json_file_path)
+    os.remove(json_file_path)
+    os.rmdir(tmp_dir)
+
+    assert nio.to_geojson(g) == nio.to_geojson(g2), "geojson load and write don't match"

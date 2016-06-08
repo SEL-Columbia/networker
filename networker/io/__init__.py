@@ -450,7 +450,7 @@ def node_geojson():
                 "type": "Feature",
                 "geometry": 
                 {
-                    "type": "Point"
+                    "type": "Point",
                     "coordinates": []
                 },
                 "properties":
@@ -464,12 +464,12 @@ def edge_geojson():
                 "type": "Feature",
                 "geometry": 
                 {
-                    "type": "LineString"
+                    "type": "LineString",
                     "coordinates": []
                 },
                 "properties":
                 {
-                    "node_from": None
+                    "node_from": None,
                     "node_to": None
                 }
             }
@@ -480,18 +480,20 @@ def geojson_instance():
                 "features": []
             }
 
-def write_geojson(geograph, geojson_path):
+def to_geojson(geograph):
     """
     Args:
         geograph:  A GeoGraph object
-        geojson_path:  file to output GeoGraph GeoJSON format rep
+
+    Returns:
+        geojson:  dict representing GeoGraph as dictionary
     """
- 
     def node_to_geojson(node_id):
         node_geo_dict = node_geojson()
         node_geo_dict["properties"]["node_id"] = node_id
         node_geo_dict["properties"].update(geograph.node[node_id])
         node_geo_dict["geometry"]["coordinates"] = geograph.coords[node_id]
+        return node_geo_dict
 
     def edge_to_geojson(node_from, node_to):
         edge_geo_dict = edge_geojson()
@@ -505,6 +507,7 @@ def write_geojson(geograph, geojson_path):
             coordinates = edge_dict.pop("coordinates")
         edge_geo_dict["properties"].update(edge_dict)
         edge_geo_dict["geometry"]["coordinates"] = coordinates
+        return edge_geo_dict
 
 
     node_list = [node_to_geojson(node) for node in geograph.nodes()]
@@ -512,6 +515,16 @@ def write_geojson(geograph, geojson_path):
                  node_from, node_to in geograph.edges()]
     geojson = geojson_instance()
     geojson["features"] = node_list + edge_list
+    return geojson
 
+
+def write_geojson(geograph, geojson_path):
+    """
+    Args:
+        geograph:  A GeoGraph object
+        geojson_path:  file to output GeoGraph GeoJSON format rep
+    """
+ 
+    geojson = to_geojson(geograph) 
     with open(geojson_path, 'w') as geojson_stream:
         geojson_stream.write(json.dumps(geojson))
