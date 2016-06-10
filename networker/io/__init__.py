@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from decorator import decorator
 import ogr
 import osr
 import json
@@ -7,8 +8,9 @@ import numpy as np
 import pandas as pd
 import networkx as nx
 import networker.geomath as gm
+from networker.exception import NetworkerException, SpatialReferenceInvalidException
 from networkx.readwrite import json_graph
-from networker.utils import csv_projection
+from networkx.utils.decorators import open_file
 from networker.utils import nested_dict_getter
 from networker.classes.geograph import GeoGraph
 import warnings
@@ -20,79 +22,42 @@ Note:  these wrap existing networkx functions for custom behavior
 """
 
 
-def read_shp(path, simplify=True, geom_attrs=True):
-    """Generates a networkx.DiGraph from shapefiles. Point geometries are
-    translated into nodes, lines into edges. Coordinate tuples are used as
-    keys. Attributes are preserved, line geometries are simplified into start
-    and end coordinates. Accepts a single shapefile or directory of many
-    shapefiles.
-
-    "The Esri Shapefile or simply a shapefile is a popular geospatial vector
-    data format for geographic information systems software [1]_."
-
-    Parameters
-    ----------
-    path : file or string
-       File, directory, or filename to read.
-
-    simplify:  bool
-        If ``True``, simplify line geometries to start and end coordinates.
-        If ``False``, and line feature geometry has multiple segments, the
-        non-geometric attributes for that feature will be repeated for each
-        edge comprising that feature.
-
-    geom_attrs: bool
-        If ``True``, include the Wkb, Wkt and Json geometry attributes with
-        each edge.
-
-        NOTE:  if these attributes are available, write_shp will use them
-        to write the geometry.  If nodes store the underlying coordinates for
-        the edge geometry as well (as they do when they are read via
-        this method) and they change, your geomety will be out of sync.
-
-
-    Returns
-    -------
-    G : NetworkX graph
-
-    Examples
-    --------
-    >>> G=nx.read_shp('test.shp') # doctest: +SKIP
-
-    References
-    ----------
-    .. [1] http://en.wikipedia.org/wiki/Shapefile
+def open_shp_read(path_arg):
     """
-    try:
-        from osgeo import ogr
-    except ImportError:
-        raise ImportError("read_shp requires OGR: http://www.gdal.org/")
+    read decorator specific to shapefiles
 
-    if not isinstance(path, str):
-        return
+    for some consistency with networkx.utils.decorators.open_file
+    (see that implementation for well-documented explanations)
 
-    net = nx.DiGraph()
-    shp = ogr.Open(path)
-    for lyr in shp:
-        fields = [x.GetName() for x in lyr.schema]
-        for f in lyr:
-            flddata = [f.GetField(f.GetFieldIndex(x)) for x in fields]
-            g = f.geometry()
-            attributes = dict(zip(fields, flddata))
-            attributes["ShpName"] = lyr.GetName()
-            # Note:  Using layer level geometry type
-            if g.GetGeometryType() == ogr.wkbPoint:
-                net.add_node((g.GetPoint_2D(0)), attributes)
-            elif g.GetGeometryType() in (ogr.wkbLineString,
-                                         ogr.wkbMultiLineString):
-                for edge in edges_from_line(g, attributes, simplify,
-                                            geom_attrs):
-                    net.add_edge(*edge)
-            else:
-                raise TypeError("GeometryType {} not supported".
-                                  format(g.GetGeometryType()))
+    Example:
+    @open_read_shp(0)
+    read_proj(shp_file):
+        lyr = shp_file.GetLayer(0)
+        return lyr.GetSpatialRef().ExportToProj4()
+        
+    """
+    @decorator
+    def _open_shp_read(func, *args, **kwargs):
+        try:
+            from osgeo import ogr
+        except ImportError:
+            raise ImportError("reading shapefiles requires ogr: http://www.gdal.org/")
+     
+        # path_arg must be a positional argument
+        path = args[path_arg]
+        if isinstance(path, basestring):
+            # NOTE:  if path is unicode ogr io doesn't work for some reason
+            path = path.encode('ascii', 'ignore')
+            shp = ogr.Open(path)
+            # replace path_arg with shp
+            args = args[:path_arg] + (shp,) + args[path_arg + 1:]
+        elif not isinstance(path, ogr.DataSource):
+            msg = "path argument {} must be string or ogr.DataSource"
+            raise NetworkerException(msg.format(path_arg))            
 
-    return net
+        return func(*args, **kwargs)
+        
+    return _open_shp_read
 
 
 def edges_from_line(geom, attrs, simplify=True, geom_attrs=True):
@@ -153,12 +118,82 @@ def edges_from_line(geom, attrs, simplify=True, geom_attrs=True):
                 yield edge
 
 
-def load_shp(shp_path, simplify=True):
+@open_shp_read(0)
+def read_shp_networkx_graph(shp, simplify=True, geom_attrs=True):
+    """Generates a networkx.DiGraph from shapefiles. Point geometries are
+    translated into nodes, lines into edges. Coordinate tuples are used as
+    keys. Attributes are preserved, line geometries are simplified into start
+    and end coordinates. Accepts a single shapefile or directory of many
+    shapefiles.
+
+    "The Esri Shapefile or simply a shapefile is a popular geospatial vector
+    data format for geographic information systems software [1]_."
+
+    Parameters
+    ----------
+    shp: string or ogr.DataSource
+        string path name to shapefile or pre-opened ogr.DataSource 
+
+    simplify:  bool
+        If ``True``, simplify line geometries to start and end coordinates.
+        If ``False``, and line feature geometry has multiple segments, the
+        non-geometric attributes for that feature will be repeated for each
+        edge comprising that feature.
+
+    geom_attrs: bool
+        If ``True``, include the Wkb, Wkt and Json geometry attributes with
+        each edge.
+
+        NOTE:  if these attributes are available, write_shp will use them
+        to write the geometry.  If nodes store the underlying coordinates for
+        the edge geometry as well (as they do when they are read via
+        this method) and they change, your geomety will be out of sync.
+
+
+    Returns
+    -------
+    G : NetworkX graph
+
+    Examples
+    --------
+    >>> G=nx.read_shp_networkx_graph('test.shp') # doctest: +SKIP
+
+    References
+    ----------
+    .. [1] http://en.wikipedia.org/wiki/Shapefile
+    """
+
+    net = nx.DiGraph()
+    for lyr in shp:
+        fields = [x.GetName() for x in lyr.schema]
+        for f in lyr:
+            flddata = [f.GetField(f.GetFieldIndex(x)) for x in fields]
+            g = f.geometry()
+            attributes = dict(zip(fields, flddata))
+            attributes["ShpName"] = lyr.GetName()
+            # Note:  Using layer level geometry type
+            if g.GetGeometryType() == ogr.wkbPoint:
+                net.add_node((g.GetPoint_2D(0)), attributes)
+            elif g.GetGeometryType() in (ogr.wkbLineString,
+                                         ogr.wkbMultiLineString):
+                for edge in edges_from_line(g, attributes, simplify,
+                                            geom_attrs):
+                    net.add_edge(*edge)
+            else:
+                raise TypeError("GeometryType {} not supported".
+                                  format(g.GetGeometryType()))
+
+    return net
+
+@open_shp_read(0)
+def read_shp_geograph(shp, simplify=True):
     """ 
     loads a shapefile into a networkx based GeoGraph object
 
     Args:
-        shp_path:  string path to a line or point shapefile
+        shp: string or ogr.DataSource
+            string path name to shapefile or pre-opened ogr.DataSource 
+
 
         simplify:  Only retain start/end nodes of multi-segment lines
 
@@ -167,18 +202,13 @@ def load_shp(shp_path, simplify=True):
 
     """
 
-    # NOTE:  if shp_path is unicode io doesn't work for some reason
-    shp_path = shp_path.encode('ascii', 'ignore')
-    # TODO:  Call from networkx lib once PR has been
-    # accepted and released
-    # g = nx.read_shp(shp_path, simplify=simplify)
-    g = read_shp(shp_path, simplify=simplify, geom_attrs=False)
+    # Note:  There's already a nx.read_shp which we've contributed to and
+    #        may want to just adopt over our own read_shp_networkx_graph
+    g = read_shp_networkx_graph(shp, simplify=simplify, geom_attrs=False)
     coords = dict(enumerate(g.nodes()))
 
-    driver = ogr.GetDriverByName('ESRI Shapefile')
-    shp = driver.Open(shp_path)
+    # needed for SRS
     layer = shp.GetLayer()
-
     spatial_ref = layer.GetSpatialRef()
     proj4 = None
     if not spatial_ref:
@@ -186,7 +216,7 @@ def load_shp(shp_path, simplify=True):
             proj4 = gm.PROJ4_LATLONG
         else:
             warnings.warn("Spatial Reference could not be set for {}".
-                          format(shp_path))
+                          format(shp.GetName()))
 
     else:
         proj4 = spatial_ref.ExportToProj4()
@@ -195,25 +225,44 @@ def load_shp(shp_path, simplify=True):
 
     return GeoGraph(srs=proj4, coords=coords, data=g)
 
-
-def load_nodes(filename="metrics.csv", x_column="X", y_column="Y"):
+@open_file(0, 'r')
+def read_csv_projection(path):
     """
-    load nodes csv into GeoGraph (nodes only)
+    Get projection from csv file of geo data
 
     Args:
-        filename:  nodal metrics csv file
+        path: path to the csv as string or file
+
+    Returns:
+        Proj4 projection string if included in header else None
+    """
+
+    header = path.readline()
+    if 'PROJ.4' in header:
+        return header
+
+
+@open_file(0, 'r')
+def read_csv_geograph(csv_file, x_column="X", y_column="Y"):
+    """
+    load nodes csv into GeoGraph (nodes only for now)
+
+    Args:
+        csv_file:  nodal metrics csv file as string or file
         x_column, y_column:  col names to take x, y from
 
     Returns:
         GeoGraph of nodes including all attributes from input csv
     """
 
-    input_proj = csv_projection(filename)
+    input_proj = read_csv_projection(csv_file)
     header_row = 1 if input_proj else 0
 
     # read in the csv
     # NOTE:  Convert x,y via float cast to preserve precision of input
-    metrics = pd.read_csv(filename, header=header_row,
+    # go back to beginning 1st
+    csv_file.seek(0)
+    metrics = pd.read_csv(csv_file, header=header_row,
                           converters={x_column: float, y_column: float})
 
     coord_cols = [x_column, y_column]
@@ -285,15 +334,16 @@ def write_shp(geograph, shp_dir):
         write_prj(node_prj_filename)
 
 
-def load_json(stream):
+@open_file(0, 'r')
+def read_json_geograph(json_file):
     """
     Args:
-        stream: Open stream containing js
+        json_file: path to json file as string or file 
 
-    Assumes the js is in networkx link-node format
+    Assumes the json is in networkx link-node format
     """
     
-    js = json.load(stream)
+    js = json.load(json_file)
     g = json_graph.node_link_graph(js)
 
     assert all([nd.has_key('coords') for nd in g.node.values()]),\
@@ -317,12 +367,12 @@ def load_json(stream):
     geo_nodes = GeoGraph(srs=input_proj, coords=coords_dict, data=g)
     return geo_nodes
 
-
-def write_json(geograph, stream):
+@open_file(1, 'r')
+def write_json(geograph, json_file):
     """
     Args:
         geograph:  A GeoGraph object
-        stream:  stream to output networkx link-node format json rep
+        json_file:  as string path or file to output networkx link-node format json rep
     """
     g2 = geograph.copy()
     for nd in geograph.nodes():
@@ -332,7 +382,7 @@ def write_json(geograph, stream):
             g2.node[nd]['coords'] = geograph.coords[nd]
 
     js_g = json_graph.node_link_data(g2)
-    stream.write(json.dumps(js_g))
+    json_file.write(json.dumps(js_g))
 
 
 def geojson_get_nodes(features):
@@ -394,7 +444,8 @@ def geojson_get_edges(features):
 
     return edges
 
-def load_geojson(geojson_path, directed=False):
+@open_file(0, 'r')
+def read_geojson_geograph(geojson_path, directed=False):
     """
     Load GeoGraph from geojson
 
@@ -407,7 +458,7 @@ def load_geojson(geojson_path, directed=False):
         geograph:  GeoGraph object
     """
 
-    geojson = json.load(open(geojson_path, 'r'))
+    geojson = json.load(geojson_path)
     dict_getter = nested_dict_getter()
 
     # build GeoGraph from a plain-old networkx graph
@@ -518,6 +569,7 @@ def to_geojson(geograph):
     return geojson
 
 
+@open_file(1, 'w')
 def write_geojson(geograph, geojson_path):
     """
     Args:
@@ -526,5 +578,4 @@ def write_geojson(geograph, geojson_path):
     """
  
     geojson = to_geojson(geograph) 
-    with open(geojson_path, 'w') as geojson_stream:
-        geojson_stream.write(json.dumps(geojson))
+    geojson_path.write(json.dumps(geojson))

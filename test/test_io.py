@@ -52,7 +52,7 @@ def test_load_write_json():
     json_file_path = os.path.join('test', 'tmp', 'g.json')
     nio.write_json(g, open(json_file_path, 'w'))
 
-    g2 = nio.load_json(open(json_file_path, 'r'))
+    g2 = nio.read_json_geograph(json_file_path)
     os.remove(json_file_path)
     os.rmdir(os.path.join('test', 'tmp'))
     assert nx.is_isomorphic(g, g2,
@@ -60,11 +60,11 @@ def test_load_write_json():
                             edge_match=operator.eq),\
            "expected written and read graphs to match"
 
-def test_load_write_geojson():
+def test_read_write_geojson():
     """
     ensure that reading geojson works
     """
-    g = nio.load_geojson(os.path.join('data', 'sample.geojson'))
+    g = nio.read_geojson_geograph(os.path.join('data', 'sample.geojson'))
     assert g.edge[0][1] == {'name': 'edge-0'} and len(g.coords) == 2,\
            "load_geojson result unexpected"
 
@@ -73,7 +73,7 @@ def test_load_write_geojson():
     os.mkdir(tmp_dir)
     json_file_path = os.path.join('test', 'tmp', 'g.geojson')
     nio.write_geojson(g, json_file_path)
-    g2 = nio.load_geojson(json_file_path)
+    g2 = nio.read_geojson_geograph(json_file_path)
     os.remove(json_file_path)
     os.rmdir(tmp_dir)
 

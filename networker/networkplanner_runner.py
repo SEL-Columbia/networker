@@ -12,7 +12,7 @@ from np.lib import dataset_store, metric, variable_store as VS
 import networker.geomath as gm
 from networker.classes.geograph import GeoGraph
 from networker import networker_runner
-from networker.utils import csv_projection
+from networker.io import read_csv_projection
 
 log = logging.getLogger('networker')
 
@@ -51,7 +51,7 @@ class NetworkPlannerRunner(object):
         metric_config = json.load(open(
             self.config['metric_model_parameters_file']))
         # read in metrics and setup dataset_store
-        demand_proj = csv_projection(self.config['demand_nodes_file'])
+        demand_proj = read_csv_projection(self.config['demand_nodes_file'])
         target_path = os.path.join(self.output_directory, "dataset.db")
         self.store = dataset_store.create(target_path,
                                           self.config['demand_nodes_file'])

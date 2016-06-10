@@ -44,26 +44,7 @@ class nested_dict_getter():
             return current_dict[last_path]
         else:
             return self.default_value
-            
         
-
-def csv_projection(path):
-    """
-    Get projection from csv file of geo data
-
-    Args:
-        path (str): path to the csv
-
-    Returns:
-        Proj4 projection if included in header else None
-    """
-
-    with open(path) as raw_text:
-        header = raw_text.readline()
-
-    if 'PROJ.4' in header:
-        return header
-
 
 # GeoGraph to js
 def geograph_to_json(g):

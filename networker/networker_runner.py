@@ -355,7 +355,7 @@ def load_existing_networks(filename="existing_networks.shp", budget_value=0,
         GeoGraph of existing networks with budget attribute
     """
 
-    geo_net = nio.load_shp(filename, simplify=False)
+    geo_net = nio.read_shp_geograph(filename, simplify=False)
 
     nx.set_node_attributes(geo_net, 'budget', {n: budget_value
                                                for n in geo_net.nodes()})
@@ -399,7 +399,7 @@ def load_node_metrics(filename="metrics.csv", x_column="X", y_column="Y",
     """
 
     # nodes loaded with all attributes
-    geo_nodes = nio.load_nodes(filename, x_column, y_column)
+    geo_nodes = nio.read_csv_geograph(filename, x_column, y_column)
 
     # ensure nodes only have budget attribute
     for node in geo_nodes.nodes_iter():
