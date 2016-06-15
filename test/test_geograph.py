@@ -137,3 +137,34 @@ def test_connected_graph():
 
     assert weights == g_conn_weights,\
         "fully connected edges/weights are not correct"
+
+def test_merge_nearby_nodes():
+    """
+
+    1    2
+     \  / 
+      \/
+      0-----------6   =>  0------------6
+     / \
+    /   \
+    4    3
+    |
+    5
+
+    """
+
+    coords = [[ 0,  0],
+              [-1,  1],
+              [ 1,  1],
+              [ 1, -1],
+              [-1, -1],
+              [-1, -2],
+              [ 5,  0]]
+
+    edges = [(0, 1), (0, 2), (0, 3), (0, 4), (4, 5), (0, 6)]
+
+    geo = GeoGraph(coords=dict(enumerate(coords)), data=edges)
+    geo.merge_nearby_nodes(radius=2.0)
+    assert geo.edges() == [(0, 6)],\
+        "nodes were not merged correctly"
+

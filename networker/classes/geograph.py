@@ -6,6 +6,9 @@ import copy
 import pyproj as prj
 import numpy as np
 from rtree import Rtree
+from itertools import chain
+from collections import deque
+from networker.classes.kdtree import KDTree
 import networker.geomath as gm
 import networker.utils as utils
 
@@ -201,6 +204,108 @@ class GeoGraph(GeoObject, nx.Graph):
             geo.coords[edge[1]] = self.coords[edge[1]]
 
         return geo
+
+    def _has_duplicate_coords(self, tolerance=gm.POINT_MATCH_TOLERANCE, 
+                              spatial_index=None):
+
+        if spatial_index is None:
+            spatial_index = KDTree(np.array(self.coords.values()))
+   
+        keys = self.coords.keys()
+
+        for i in range(len(keys)):
+            # Note:  i is the index of the node in the spatial_index
+            coord = self.coords[keys[i]]
+            gen = spatial_index.query_radius(np.array(coord), tolerance)
+            try:
+                for i in range(2):
+                    gen.next()
+
+            except StopIteration:
+                pass
+
+            # if there is more than 1, we have a duplicate
+            if i > 1:
+                return True
+            else:
+                return False
+    
+    def merge_nodes(self, u, v, node_data_map=None, self_loops=False):
+        """
+        merge nodes in-place
+        
+        ``u`` replaces ``v`` with attribute data defined by node_data_map
+        (default v attributes are merged into u)
+
+        would liked to have used [contracted_nodes](http://bit.ly/21n88s8)
+        but, it doesn't do in-place merge.  So this is mainly copied
+        """
+        if self.is_directed():
+            in_edges = ((w, u, d) for w, x, d in self.in_edges(v, data=True)
+                        if self_loops or w != u)
+            out_edges = ((u, w, d) for x, w, d in self.out_edges(v, data=True)
+                         if self_loops or w != u)
+            new_edges = chain(in_edges, out_edges)
+        else:
+            new_edges = ((u, w, d) for x, w, d in self.edges(v, data=True)
+                         if self_loops or w != u)
+        v_data = self.node[v]
+        self.remove_node(v)
+        self.add_edges_from(new_edges)
+
+        if node_data_map is None:
+            def node_data_map(u_data, v_data):
+                result = {}
+                result.update(u_data)
+                result.update(v_data)
+                return result
+
+        self.node[u] = node_data_map(self.node[u], v_data)
+
+
+    def merge_nearby_nodes(self, radius=gm.POINT_MATCH_TOLERANCE, 
+                           node_data_map=None, edge_data_map=None):
+        """
+        merge 'nearby' nodes within radius of eachother
+
+        Note:  'nearby' is not necessarily an equivalence relation in
+        that transitivity does not hold...if a 'near' b and b 'near' c
+        a is NOT necessarily 'near' c, BUT they will be grouped.
+        So, a long chain of near nodes could result in the furthest nodes
+        being really far apart.
+
+        See:  https://en.wikipedia.org/wiki/Equivalence_relation
+
+        TODO:  
+        handle node_data_map, edge_data_map functions to map attributes
+        from original nodes/edges to new nodes/edges
+
+        """
+
+        spatial_index = KDTree(np.array(self.coords.values()))
+        node_ids = self.coords.keys()
+
+        merged = set()
+        for node in self.nodes():
+            if node in merged:
+                continue
+
+            queue = deque()
+            def add_near_nodes_to_queue(node_id):
+                result = spatial_index.query_radius(np.array(self.coords[node_id]),
+                                                    radius)
+                queue.extend(node_ids[idx_node[0]] for idx_node in result)
+
+            add_near_nodes_to_queue(node)
+
+            # keep 'matching' node ids in queue, appending as we find more
+            while len(queue) > 0:
+                other = queue.popleft()
+                if other not in merged:
+                    merged.add(other)
+                    self.merge_nodes(node, other)
+                    add_near_nodes_to_queue(other)
+           
 
     def get_connected_weighted_graph(self):
         """
