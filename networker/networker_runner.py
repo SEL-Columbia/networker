@@ -168,7 +168,8 @@ def build_network(demand_nodes,
                                      copy=True)
         msf = GeoGraph(result_geo_graph.srs, coords=coords, data=relabeled)
 
-    # log.info("filtered result has {} nodes and {} edges".format(len(msf.nodes()), len(msf.edges())))  # noqa
+    log.info("filtered result has {} nodes and {} edges".format(
+        len(msf.nodes()), len(msf.edges())))
     return msf
 
 
