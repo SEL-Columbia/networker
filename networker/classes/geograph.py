@@ -26,8 +26,11 @@ class GeoObject(object):
         srs:  spatial reference system for the coords
             In proj4 string format (http://trac.osgeo.org/proj/)
         coords:  The coordinates of this object
-            This may be a vector or a collection of vectors depending
-            on the object type
+            Abstractly, this may be a vector or a collection of vectors 
+            depending on the object type
+
+            NOTE:  coords are deep copied in attempt to avoid shared
+            mutability issues
 
     NOTE:  Because coordinates can be set independent of the srs, the client
     must ensure these stay sane in case of any changes to one or the other. 
@@ -118,16 +121,21 @@ class GeoGraph(GeoObject, nx.Graph):
 
     """
 
-    def __init__(self, srs=gm.PROJ4_FLAT_EARTH, coords={}, data=None, **attr):
-        """ initialize via both parent classes """
+    def __init__(self, srs=gm.PROJ4_FLAT_EARTH, coords=None, data=None, **attr):
+        """ 
+        Initialize via both parent classes 
+        """
 
         GeoObject.__init__(self, srs, coords)
         nx.Graph.__init__(self, data, **attr)
 
         # handle case where coords have keys not referenced by edges
-        coord_keys = range(len(coords))
-        if isinstance(coords, dict):
-            coord_keys = coords.keys()
+        if self.coords is None:
+            self.coords = dict()
+
+        coord_keys = range(len(self.coords))
+        if isinstance(self.coords, dict):
+            coord_keys = self.coords.keys()
 
         new_nodes = set(coord_keys) - set(self.node.keys())
         self.add_nodes_from(new_nodes)
@@ -147,6 +155,23 @@ class GeoGraph(GeoObject, nx.Graph):
             "GeoGraph nodes and coords not aligned"
 
         return True
+
+    @staticmethod
+    def compose(left, right, force_distinct=False):
+        """
+        'override' of networkx compose to handle GeoGraph (really just coords)
+        """    
+        left_geo = left
+        right_geo = right
+        if force_distinct:
+            left_geo = nx.convert_node_labels_to_integers(left)
+            right_geo = nx.convert_node_labels_to_integers(right, first_label=max(left.nodes()))
+
+        geo = nx.compose(left_geo, right_geo)
+        coords = copy.deepcopy(left_geo.coords)
+        coords.update(right_geo.coords)
+        geo.coords = coords
+        return geo
 
     def project_onto(self, other, rtree_index=None, spherical_accuracy=False):
         """
@@ -249,9 +274,13 @@ class GeoGraph(GeoObject, nx.Graph):
         else:
             new_edges = ((u, w, d) for x, w, d in self.edges(v, data=True)
                          if self_loops or w != u)
+
+        self.add_edges_from(new_edges)
+
+        # Need to do this after edges added (generators above are lazy)
         v_data = self.node[v]
         self.remove_node(v)
-        self.add_edges_from(new_edges)
+        del self.coords[v]
 
         if node_data_map is None:
             def node_data_map(u_data, v_data):
@@ -271,7 +300,7 @@ class GeoGraph(GeoObject, nx.Graph):
         Note:  'nearby' is not necessarily an equivalence relation in
         that transitivity does not hold...if a 'near' b and b 'near' c
         a is NOT necessarily 'near' c, BUT they will be grouped.
-        So, a long chain of near nodes could result in the furthest nodes
+        So, a long chain of 'near' nodes could result in the furthest nodes
         being really far apart.
 
         See:  https://en.wikipedia.org/wiki/Equivalence_relation
@@ -285,27 +314,31 @@ class GeoGraph(GeoObject, nx.Graph):
         spatial_index = KDTree(np.array(self.coords.values()))
         node_ids = self.coords.keys()
 
-        merged = set()
+        visited = set()
         for node in self.nodes():
-            if node in merged:
+            if node in visited:
                 continue
 
             queue = deque()
             def add_near_nodes_to_queue(node_id):
                 result = spatial_index.query_radius(np.array(self.coords[node_id]),
                                                     radius)
-                queue.extend(node_ids[idx_node[0]] for idx_node in result)
+                near_nodes = [node_ids[idx_node[0]] for idx_node in result]
+                # only add non-merged nodes to queue
+                queue.extend(filter(lambda cur_node: cur_node not in visited, 
+                                    near_nodes))
+                # make sure we don't add them again
+                visited.update(near_nodes)
 
+            visited.add(node)
             add_near_nodes_to_queue(node)
 
             # keep 'matching' node ids in queue, appending as we find more
             while len(queue) > 0:
                 other = queue.popleft()
-                if other not in merged:
-                    merged.add(other)
-                    self.merge_nodes(node, other)
-                    add_near_nodes_to_queue(other)
-           
+                add_near_nodes_to_queue(other)
+                self.merge_nodes(node, other)
+       
 
     def get_connected_weighted_graph(self):
         """

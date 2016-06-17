@@ -539,11 +539,17 @@ def to_geojson(geograph):
     Returns:
         geojson:  dict representing GeoGraph as dictionary
     """
+    def get_coords(node_id):
+        if isinstance(geograph.coords[node_id], np.ndarray):
+            return geograph.coords[node_id].tolist()
+        else:
+            return geograph.coords[node_id]
+
     def node_to_geojson(node_id):
         node_geo_dict = node_geojson()
         node_geo_dict["properties"]["node_id"] = node_id
         node_geo_dict["properties"].update(geograph.node[node_id])
-        node_geo_dict["geometry"]["coordinates"] = geograph.coords[node_id]
+        node_geo_dict["geometry"]["coordinates"] = get_coords(node_id)
         return node_geo_dict
 
     def edge_to_geojson(node_from, node_to):
@@ -551,7 +557,7 @@ def to_geojson(geograph):
         edge_geo_dict["properties"]["node_from"] = node_from
         edge_geo_dict["properties"]["node_to"] = node_to
         edge_dict = geograph.edge[node_from][node_to]
-        coordinates = [geograph.coords[node_from], geograph.coords[node_to]]
+        coordinates = [get_coords(node_from), get_coords(node_to)]
         # TODO:  is there a better way to handle custom coordinates than 
         # looking for "coordinates" attribute?
         if edge_dict.has_key("coordinates"):    

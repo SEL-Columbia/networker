@@ -14,6 +14,8 @@ Module for geometric/geographic utility functions
 MEAN_EARTH_RADIUS_M = 6371010
 
 # Note:  this says nothing about the order in the coordinates themselves
+#        coordinates in this library are assumed to be in the order x, y, [z]
+#        or longitude, latitude, [altitude]
 PROJ4_LATLONG = "+proj=latlong +datum=WGS84"
 
 # aka EPSG:3587 or 'tiling' projection
