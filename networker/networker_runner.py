@@ -16,6 +16,9 @@ import networker.algorithms as algo
 
 log = logging.getLogger('networker')
 
+class SRSMismatchException(Exception):
+    """ Spatial Reference System mismatch """
+    pass
 
 class NetworkerRunner(object):
 
@@ -24,20 +27,8 @@ class NetworkerRunner(object):
     spatially referenced nodes
 
     Attributes:
-        config:  nested dict of configuration params
-
-            existing_networks:
-                filename:  shapefile
-                budget_value:  { 0 }
-            demand_nodes:
-                filename:
-                x_column: column for x or longitude values { 'X' }
-                y_column: column for y or latitude values { 'Y' }
-                budget_column:  column for nodal budget { 'metric' }
-            network_algorithm: mod_boruvka, mod_kruskal
-            network_parameters:
-                minimum_node_count:  min number of nodes in non-grid
-                                     sub-network { 2 }
+        config:  dict (potentially nested) of configuration params
+            params are documented in networker_config_schema.json
     """
 
     ALGOS = {'mod_boruvka': algo.mod_boruvka,
@@ -64,6 +55,13 @@ class NetworkerRunner(object):
             if len(existing_networks.edges()) < 0:
                 log.warn("existing network has no edges")
                 existing_networks = None
+            if not demand_nodes.is_same_srs(existing_networks):
+                message = "SpatialReference mismatch:  "\
+                          "demand node srs ({}) and existing network srs ({}) "\
+                          "do not match".format(demand_nodes.srs, 
+                                                existing_networks.srs)
+                log.error(message)
+                raise SRSMismatchException(message)
 
         network_algorithm = self.config['network_algorithm']
 
@@ -73,13 +71,15 @@ class NetworkerRunner(object):
             network_params = self.config['network_parameters']
             min_node_count = network_params.get('minimum_node_count', 0)
             single_network = network_params.get('single_network', True)
+            spherical_accuracy = network_params.get('spherical_accuracy', False)
 
         log.info("building network")
         msf = build_network(demand_nodes,
                             existing=existing_networks,
                             min_node_count=min_node_count,
                             single_network=single_network,
-                            network_algorithm=network_algorithm)
+                            network_algorithm=network_algorithm,
+                            spherical_accuracy=spherical_accuracy)
 
         log.info("writing output")
         # now save it
@@ -107,6 +107,7 @@ def build_network(demand_nodes,
                   min_node_count=2,
                   single_network=True,
                   network_algorithm='mod_boruvka',
+                  spherical_accuracy=False,
                   one_based=False):
     """
     project demand nodes onto optional existing supply network and
@@ -119,6 +120,7 @@ def build_network(demand_nodes,
         min_node_count:  minimum number of nodes allowed in a subgraph
             of the result
         network_algorithm:  Algorithm from ALGOS to run
+        spherical_accuracy:  Whether to connect nodes to network on a sphere
         one_based:  Whether result GeoGraph's nodes should be one_based
             (if not, they are 0 based)
 
@@ -134,7 +136,8 @@ def build_network(demand_nodes,
         log.info("merging network and nodes")
         geo_graph, subgraphs, rtree = \
             merge_network_and_nodes(existing, demand_nodes,
-                                    single_network=single_network)
+                                    single_network=single_network,
+                                    spherical_accuracy=spherical_accuracy)
     else:
         geo_graph = demand_nodes
 
@@ -226,7 +229,8 @@ def filter_min_node_subnetworks(g, min_node_count):
     return filtered_graph
 
 
-def merge_network_and_nodes(network, demand_nodes, single_network=True):
+def merge_network_and_nodes(network, demand_nodes,
+                            single_network=True, spherical_accuracy=False):
     """
     merge the network and nodes GeoGraphs to set up the Graph, UnionFind
     (DisjoinSet), and RTree datastructures for use in network algorithms
@@ -237,6 +241,7 @@ def merge_network_and_nodes(network, demand_nodes, single_network=True):
         demand_nodes:  graph of nodes representing demand
         single_network:  whether subgraphs of network are unioned into
             a single network
+        spherical_accuracy:  Whether to connect nodes to network on a sphere
 
     Returns:
         graph:  graph with demand nodes and their nearest nodes to the
@@ -250,7 +255,8 @@ def merge_network_and_nodes(network, demand_nodes, single_network=True):
 
     # project demand nodes onto network
     rtree = network.get_rtree_index()
-    grid_with_fakes = network.project_onto(demand_nodes, rtree_index=rtree)
+    grid_with_fakes = network.project_onto(demand_nodes, rtree_index=rtree,
+                                           spherical_accuracy=spherical_accuracy)
 
     # get only the fake nodes and the associated network edges
     demand_node_set = set(demand_nodes.nodes())

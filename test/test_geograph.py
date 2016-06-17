@@ -5,6 +5,7 @@ import numpy as np
 
 from networker.classes.geograph import GeoGraph
 import networker.geomath as gm
+import networker.utils as utils
 
 
 # fixtures
@@ -46,6 +47,40 @@ def network_nodes_projections():
     g_nodes = GeoGraph(gm.PROJ4_FLAT_EARTH, node_coords)
 
     return g_net, g_nodes, projected_coords
+
+
+def test_project_xyz_vs_geo():
+    """
+    ensure that project_onto works the same with xyz vs lat_lon points
+    """
+    net_coords = {'grid-1': [0.0, 0.0], 
+                  'grid-2': [10.0, 10.0]}
+
+    net_edges = [('grid-1', 'grid-2')]
+    
+    node_coords = {0: [5.0, 5.0]}
+
+    g_net = GeoGraph(gm.PROJ4_LATLONG, net_coords, data=net_edges)
+    g_nodes = GeoGraph(gm.PROJ4_LATLONG, node_coords)
+    
+    g_project = g_net.project_onto(g_nodes, spherical_accuracy=True)
+
+    g_net_xyz = GeoGraph(gm.PROJ4_LATLONG, 
+                         g_net.lon_lat_to_cartesian_coords(),
+                         data=net_edges)
+
+    g_nodes_xyz = GeoGraph(gm.PROJ4_LATLONG, 
+                           g_nodes.lon_lat_to_cartesian_coords())
+
+    g_project_xyz = g_net_xyz.project_onto(g_nodes_xyz, spherical_accuracy=True)
+
+    g_project_coords_ll = g_project_xyz.cartesian_to_lon_lat()
+
+    def round_coords(coords, round_precision=8):
+        return {i: tuple(map(lambda c: round(c, round_precision), coord))
+               for i, coord in coords.items()}
+
+    assert(round_coords(g_project_coords_ll) == round_coords(g_project.coords))
 
 
 def test_project_onto():

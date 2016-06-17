@@ -57,6 +57,11 @@
                     "type": "boolean", 
                     "description": "Treat subgraphs of network as a single network",
                     "default": true
+                },
+                "spherical_accuracy": {
+                    "type": "boolean",
+                    "description": "Treat geographic coordinates as spherical when connecting to existing grid (ignored if coordinates are projected)",
+                    "default": false
                 }
             }
         },

@@ -1,3 +1,15 @@
+## 0.3.0
+- Added spherical_accuracy to network input configuration (defaults to false). 
+  This addresses [#82](https://github.com/SEL-Columbia/networker/issues/82)
+- Added more tools in scripts plus [documentation](https://github.com/SEL-Columbia/networker/tree/9e10ac319ef2d8531d951ad9eb9f3cbb524758da#other-tools) on them in README
+
+## 0.2.7
+- Fixes issue [#80](https://github.com/SEL-Columbia/networker/issues/80), where lon/lat to x/y/z conversions were incorrect
+- Added SpatialRef checks, issue [#81](https://github.com/SEL-Columbia/networker/issues/81)
+
+## 0.2.6
+- updated library versions (issue [#76](https://github.com/SEL-Columbia/networker/issues/76)) and handle osx install (issue [#78](https://github.com/SEL-Columbia/networker/issues/78))
+
 ## 0.2.5
 - support networkx 1.10 connected_components function change that now returns sets
 

@@ -11,6 +11,7 @@ from networker import geomath as gm
 from networker.algorithms import mod_boruvka
 from networker.algorithms import mod_kruskal
 from networker.classes.geograph import GeoGraph
+from networker.utils import get_rounded_edge_sets
 
 from nose.tools import eq_
 
@@ -30,10 +31,10 @@ def networker_run_compare(cfg, known_results_file, output_dir):
     test_geo = nio.load_shp(os.path.join(output_dir,
                             "edges.shp"), simplify=False)
     known_geo = nio.load_shp(known_results_file, simplify=False)
-    # compare sets of edges
 
-    test_edges = test_geo.get_coord_edge_set()
-    known_edges = known_geo.get_coord_edge_set()
+    # compare sets of edges
+    test_edges = get_rounded_edge_sets(test_geo, round_precision=8)
+    known_edges = get_rounded_edge_sets(known_geo, round_precision=8)
 
     assert test_edges == known_edges, \
         "edges in test do not match known results"
@@ -56,7 +57,7 @@ def test_networker_run():
 
 
 def test_networker_leona_run():
-    """ test on randomly generated set of nodes (demand only) """
+    """ test previously generated results match """
 
     run_config = "networker_config_leona_net.json"
     # TODO:  Determine why this fails with networkplanner_results_file
@@ -66,6 +67,34 @@ def test_networker_leona_run():
 
     cfg = get_config(run_config)
     networker_run_compare(cfg, results_file, output_dir)
+
+def test_networker_leona_spherical_run():
+    """ test previously generated results match for spherical treatment """
+
+    run_config = "networker_config_leona_net_spherical.json"
+    # TODO:  Determine why this fails with networkplanner_results_file
+    # results_file = "data/leona/expected/networks-proposed.shp"
+    results_file = "data/leona/expected_spherical/edges.shp"
+    output_dir = "data/tmp"
+
+    cfg = get_config(run_config)
+    networker_run_compare(cfg, results_file, output_dir)
+
+
+
+def test_srs_mismatch():
+    """ ensure that mismatched demand/network srs fails"""
+    run_config = "networker_config_leona_mixed_srs.json"
+    cfg = get_config(run_config)
+    output_dir = "data/tmp"
+    nwk = networker_runner.NetworkerRunner(cfg, output_dir)
+    try:
+        nwk.run()
+    except Exception as e:
+        assert isinstance(e, networker_runner.SRSMismatchException),\
+               "Exception was {}, should be SRSMismatchException".format(e)
+    else:
+        assert False, "SRSMismatchException expected"
 
 
 def random_settlements(n):

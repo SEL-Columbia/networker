@@ -1,6 +1,8 @@
 # -*- coding: utf8 -*-
 
 import networker.geomath as gm
+import numpy as np
+import networkx as nx
 from networkx.readwrite import json_graph
 
 
@@ -37,11 +39,64 @@ def geograph_to_json(g):
     return js_g
 
 
-"""
-# spherical drawing helpers
-# plot maps
+def coords_dict_to_array2d(coords):
+    """
+    coords:  dict of coordinates
+
+    returns 
+    - numpy array of [num_coordsxcoord_dimension] 
+    - index_node_id_map:  array of index->original_node_id
+    """
+    # create matrix placeholder
+    num_rows = len(coords)
+    num_cols = len(coords.values()[0])
+
+    result_array = np.empty((num_rows, num_cols))
+    index_node_id_map = []
+    index = 0
+    for key in coords.keys():
+        index_node_id_map.append(key)
+        result_array[index] = coords[key]
+        index = index + 1
+    
+    return result_array, index_node_id_map
+
+
+def array2d_to_coords_dict(array2d, index_node_id_map):
+    """
+    - array2d:  numpy array of [num_coordsxcoord_dimension] 
+    - index_node_id_map:  array of index->original_node_id
+
+    returns 
+    coords:  dict of coordinate tuples with their original_node_id's
+    """
+    coords = dict()
+    for i in range(array2d.shape[0]):
+        key = index_node_id_map[i]
+        coords[key] = tuple(array2d[i])
+
+    return coords
+
+
+def get_rounded_edge_sets(geograph, round_precision=8):
+    """
+    Get set of edges with coordinates rounded to a certain precision
+    """
+    tup_map = {i: 
+               tuple(map(lambda c: round(c, round_precision), coords))
+               for i, coords in geograph.coords.items()}
+
+    edge_sets = map(lambda e: frozenset([tup_map[e[0]], tup_map[e[1]]]),
+                    geograph.edges())
+    return set(edge_sets)
+
+
 def draw_geograph(g, node_color='r', edge_color='b', node_label_field=None,
                     edge_label_field=None, node_size=200):
+    """
+    Simple function to draw a geograph via matplotlib/networkx
+    Uses geograph coords (projects if needed) as node positions
+    """
 
     # transform to projected if not done so
     flat_coords = g.transform_coords(gm.PROJ4_FLAT_EARTH)
@@ -71,7 +126,8 @@ def draw_geograph(g, node_color='r', edge_color='b', node_label_field=None,
         edge_labels = nx.get_edge_attributes(g, edge_label_field)
         nx.draw_networkx_edge_labels(g, pos=node_pos, edge_labels=edge_labels)
 
-
+"""
+# spherical drawing helpers
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 # globals for testing

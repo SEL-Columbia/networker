@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
-
+"""
+Module for geometric/geographic utility functions
+"""
 import numpy as np
 import osr
 
 from collections import defaultdict
 # from numba import jit
+import math
 
-"""
-Module for geometric/geographic utility functions
-"""
 
 MEAN_EARTH_RADIUS_M = 6371010
 PROJ4_LATLONG = "+proj=latlong +datum=WGS84"
@@ -70,6 +70,26 @@ def ang_to_vec_coords(coords, radius=MEAN_EARTH_RADIUS_M):
     return np.array([x, y, z]).T * radius
 
 
+def _math_vec_to_ang_coords(x, y, z):
+    """ 
+    math functions are faster than numpy for scalars 
+    http://stackoverflow.com/questions/35183787/in-python-is-math-acos-faster-than-numpy-arccos-for-scalars
+
+    Plus, this might be clearer than thinking in vectors
+    """
+
+    h = math.sqrt(x**2 + y**2)
+    
+    lon_rad = math.acos(x / h)
+
+    if y < 0:
+        lon_rad = -1*lon_rad
+
+    lat_rad = math.atan(z / h)
+
+    # transpose to nx2 and convert back to degrees
+    return (lon_rad * (180.0 / math.pi), lat_rad * (180.0 / math.pi))
+
 def vec_to_ang_coords(coords):
     """
     Transform vector (x, y, z) coordinates on a sphere to angular coordinates
@@ -87,17 +107,46 @@ def vec_to_ang_coords(coords):
      -----+-------
          /|\ |  (y)
         / | \|
-    (x)/  |  (h)
+       /  |  (h)
+      (x)
+    
+    
+    Looked at from the top (only x, y plane)
 
+                    (-x <-> ±180°)
+                         |
+                         |
+                         |
+    (-y <-> -90°)--------+--------(y <-> 90°)
+                         |
+                         |
+                         |
+              (x <-> 0° <-> greenwich meridian)
     """
 
     assert np.shape(coords)[-1] == 3, "coords last dim must be 3 (x, y, z)"
 
+    dimensions = np.ndim(coords)
+
     # transpose to operate on easily and xform to degrees
     x, y, z = np.transpose(coords)
 
+    # we get a pretty good speedup from this
+    if dimensions < 2:
+        return np.array(_math_vec_to_ang_coords(x, y, z))
+
     h = np.sqrt(x**2 + y**2)
-    lon_rad = np.arcsin(y / h)
+    
+    lon_rad = np.arccos(x / h)
+
+    # since arccos's range is (0, pi), we need to 
+    # convert the angle to negative if y < 0
+    if dimensions > 1:
+        lon_rad[y < 0] = -1*lon_rad[y < 0]
+    else:
+        if y < 0:
+            lon_rad = -1*lon_rad
+
     lat_rad = np.arctan(z / h)
 
     # transpose to nx2 and convert back to degrees
@@ -144,12 +193,63 @@ def spherical_distance_haversine(coord_pairs, radius=MEAN_EARTH_RADIUS_M):
     return radius * central_angle
 
 
+def spherical_distance_any(coord_pair, radius=MEAN_EARTH_RADIUS_M):
+    """
+    Calculate distance on sphere between pairs of coordinates
+    
+    Determines method to use based on number of coordinates
+    """
+    
+    assert np.shape(coord_pair[0])[0] == np.shape(coord_pair[1])[0], \
+           "Coordinate shape must match"
+    dimensions = np.shape(coord_pair[0])[0]
+
+    if dimensions == 2:
+        return spherical_distance(coord_pair, radius)
+    else:
+        assert dimensions == 3,\
+               "coords with {} dimensions are not supported".format(dimensions)
+        return spherical_distance_xyz(coord_pair, radius)
+
+
+def spherical_distance_xyz(coord_pair, radius=MEAN_EARTH_RADIUS_M):
+    """
+    Calculate distance on sphere between pairs of coordinates in r^3
+    via linear algebra
+
+    Based on:
+    v1, v2 are vectors in r^3
+    theta:  angle between v1, v2
+    | v1 x v2 | = |v1||v2|cos(theta)
+    v1 dot v2 = |v1||v2|sin(theta)
+
+    theta = atan(|v1 x v2|/(v1 dot v2))
+    
+    (we use atan2 to handle special cases)
+
+    Args:
+        coord_pair:  2x3 array of cartesian x, y, z's
+        radius:  the radius of the sphere on which to project
+
+    Returns:
+        distance betwteen vectors on surface of sphere in same units as radius
+
+    """
+
+    v1 = coord_pair[0]
+    v2 = coord_pair[1]
+    angle_in_rad = np.math.atan2(np.linalg.norm(np.cross(v1, v2)),
+                                 np.dot(v1, v2))
+
+    return radius * angle_in_rad
+
+
 def spherical_distance(coord_pair, radius=MEAN_EARTH_RADIUS_M):
     """
     Wrapper for spherical_distance which takes a single set of pairs
 
     Args:
-        coord_pair:  1x2 array of lon, lat pairs (e.g. [[30, 30], [31, 31]])
+        coord_pair:  2x2 array of lon, lat pairs (e.g. [[30, 30], [31, 31]])
         radius:  radius of sphere on which to project
 
     Returns:
@@ -550,6 +650,10 @@ def project_point_on_segment(p, v1, v2):
 
     """
 
+    space = np.shape(p)[0]
+    assert np.shape(v1)[0] == np.shape(v2)[0] == space, \
+        "coordinate space of point and vectors must match"
+
     # make 2 vectors with origin at point v1
     u = np.array([v2[0] - v1[0], v2[1] - v1[1]])
     v = np.array([p[0] - v1[0], p[1] - v1[1]])
@@ -655,6 +759,13 @@ def project_point_on_arc(p, v1, v2, radius=MEAN_EARTH_RADIUS_M):
     Uses arc_intersection
 
     """
+
+    # ensure numpy arrays
+    if not isinstance(v1, np.ndarray):
+        v1 = np.array(v1)
+
+    if not isinstance(v2, np.ndarray):
+        v2 = np.array(v2)
 
     # check if arc is 0 length (i.e. it's a point)
     # if so, then we're just projecting a point onto another point
