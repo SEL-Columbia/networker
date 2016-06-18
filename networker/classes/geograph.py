@@ -163,13 +163,33 @@ class GeoGraph(GeoObject, nx.Graph):
         """    
         left_geo = left
         right_geo = right
+
+        def coord_iter(geo_coords):
+            if isinstance(geo_coords, dict):
+                return geo_coords.iteritems()
+            else:
+                return enumerate(geo_coords)
+
+        def coord_map(old_coords, new_nodes):
+            assert len(old_coords) == len(new_nodes)
+            nodes = iter(new_nodes)
+            d = dict()
+            for k, coord in coord_iter(old_coords):
+                d[nodes.next()] = copy.copy(coord)
+            return d
+
         if force_distinct:
-            left_geo = nx.convert_node_labels_to_integers(left)
-            right_geo = nx.convert_node_labels_to_integers(right, first_label=max(left.nodes()))
+            left_geo = nx.convert_node_labels_to_integers(left_geo)
+            left_geo.coords = coord_map(left.coords, left_geo.nodes())
+            right_geo = nx.convert_node_labels_to_integers(right_geo, first_label=max(left_geo.nodes()))
+
+            right_geo.coords = coord_map(right.coords, right_geo.nodes())
 
         geo = nx.compose(left_geo, right_geo)
-        coords = copy.deepcopy(left_geo.coords)
-        coords.update(right_geo.coords)
+        coord_chain = chain(coord_iter(left_geo.coords), 
+                            coord_iter(right_geo.coords))
+
+        coords = {k: copy.copy(v) for k, v in coord_chain}
         geo.coords = coords
         return geo
 

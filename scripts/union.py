@@ -22,7 +22,7 @@ logger.info("networker %s (Python %s)" % (
 parser = argparse.ArgumentParser(description="Union GeoGraphs")
 parser.add_argument("input_files", nargs="+",
                     help="files representing geographs to be unioned (.shp, .csv, .json, .geojson)")
-parser.add_argument("--output", "-o",
+parser.add_argument("output", 
                     help="resulting union destination (dir for .shp or .geojson)")
 parser.add_argument("--x_column", "-x", \
                     default="X", \
