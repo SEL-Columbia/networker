@@ -36,41 +36,20 @@ parser.add_argument("--match_radius", "-r", type=float,
                     help="if specified, determines radius for merging nodes")
 args = parser.parse_args()
 
-read_map = {
-            '.json': nio.read_json_geograph,
-            '.geojson': nio.read_geojson_geograph,
-            '.shp': nio.read_shp_geograph,
-            '.csv': lambda filename: nio.read_csv_geograph(filename, args.x_column, args.y_column)
-           }
-
-def read_geograph(filename):
-    match = re.search(r'\.[^\.]*$', filename)
-    if match is None or match.group() not in read_map:
-        msg = "input filename {} does not have extension of .shp, .csv, "\
-              ".json or .geojson".format(filename)
-        raise NetworkerException(msg)
-    else:
-        return read_map[match.group()](filename)
-
-def write_geograph(geograph, output_name):
-    match = re.search(r'\.[^\.]*$', output_name)
-    if match is not None and match.group() == '.geojson':
-        nio.write_geojson(geograph, output_name)
-    elif os.path.isdir(output_name):
-        nio.write_shp(geograph, output_name)
-    else:
-        msg = "output filename {} does not have extension of .geojson and is "\
-              "not a dir (for shp)".format(output_name)
-        raise NetworkerException(msg)
-   
-
 def union_reduce(left_geo, right_geo):
     return GeoGraph.compose(left_geo, right_geo, args.force_distinct)
 
-geographs = (read_geograph(filename) for filename in args.input_files)
+def read_wrap(filename):
+    if re.search(r'\.csv$', filename):
+        return nio.read_geograph(filename, args.x_column, args.y_column)
+    else:
+        return nio.read_geograph(filename)
+
+geographs = (read_wrap(filename) for filename in args.input_files)
+
 unioned_geograph = functools.reduce(union_reduce, geographs)
     
 if args.match_radius is not None:
    unioned_geograph.merge_nearby_nodes(args.match_radius)
 
-write_geograph(unioned_geograph, args.output)
+nio.write_geograph(unioned_geograph, args.output)

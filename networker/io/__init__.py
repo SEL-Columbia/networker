@@ -15,6 +15,7 @@ from networker.utils import nested_dict_getter
 from networker.classes.geograph import GeoGraph
 import warnings
 import os
+import re
 
 """
 Package for reading/writing networkx based GeoGraphs
@@ -382,7 +383,7 @@ def write_json(geograph, json_file):
             g2.node[nd]['coords'] = geograph.coords[nd]
 
     js_g = json_graph.node_link_data(g2)
-    json_file.write(json.dumps(js_g))
+    json_file.write(json.dumps(js_g, cls=FloatEncoder))
 
 
 def geojson_get_nodes(features):
@@ -445,9 +446,9 @@ def geojson_get_edges(features):
     return edges
 
 @open_file(0, 'r')
-def read_geojson_geograph(geojson_path, directed=False):
+def read_geojson_geograph(geojson_path):
     """
-    Load GeoGraph from geojson
+    Load GeoGraph from geojson (as undirected)
 
     See:  docs/geograph_geojson.md for format details
 
@@ -584,4 +585,117 @@ def write_geojson(geograph, geojson_path):
     """
  
     geojson = to_geojson(geograph) 
-    geojson_path.write(json.dumps(geojson))
+    geojson_path.write(json.dumps(geojson, cls=FloatEncoder))
+
+
+def read_geograph(filename, *args, **kwargs):
+    """
+    Read a geograph from a file whose format is defined by its extension
+    args, kwargs are used to pass params along to the format 
+    specific read function
+    """
+
+    # throw out arguments if we don't need 'em
+    read_map = {
+        '.json': lambda filename: read_json_geograph(filename),
+        '.geojson': lambda filename: read_geojson_geograph(filename),
+        '.shp': lambda filename: read_shp_geograph(filename, *args, **kwargs),
+        '.csv': lambda filename: read_csv_geograph(filename, *args, **kwargs)
+    }
+
+    match = re.search(r'\.[^\.]*$', filename)
+    if match is None or match.group() not in read_map:
+        msg = "input filename {} does not have extension of .shp, .csv, "\
+              ".json or .geojson".format(filename)
+        raise NetworkerException(msg)
+    else:
+        return read_map[match.group()](filename)
+
+def write_geograph(geograph, output_name):
+    """
+    Write a geograph to a file whose format is defined by its extension
+    """
+    match = re.search(r'\.[^\.]*$', output_name)
+    if match is not None and match.group() == '.geojson':
+        write_geojson(geograph, output_name)
+    elif os.path.isdir(output_name):
+        write_shp(geograph, output_name)
+    else:
+        msg = "output filename {} does not have extension of .geojson and is "\
+              "not a dir (for shp)".format(output_name)
+        raise NetworkerException(msg)
+
+
+class FloatEncoder(json.JSONEncoder):
+    """
+    Hack to override how null, Infinity and -Infinity are
+    json serialized.  Without this class, they are not serialized as
+    strings which is not valid JSON.  
+
+    Discussion here: http://stackoverflow.com/q/17503981
+
+    No great solutions, but this seemed to be the safest and most efficient
+    
+    Mostly based on this:  https://gist.github.com/pauloalem/6244976
+    """
+
+    def __init__(self, nan_str='"null"', 
+                       inf_str='"Infinity"', 
+                       neg_inf_str='"-Infinity"', 
+                       **kwargs):
+        super(FloatEncoder, self).__init__(**kwargs)
+        self.nan_str = nan_str
+        self.inf_str = inf_str
+        self.neg_inf_str = neg_inf_str
+
+    def iterencode(self, o, _one_shot=False):
+        """Encode the given object and yield each string
+        representation as available.
+
+        For example::
+
+            for chunk in JSONEncoder().iterencode(bigobject):
+                mysocket.write(chunk)
+        """
+        if self.check_circular:
+            markers = {}
+        else:
+            markers = None
+        if self.ensure_ascii:
+            _encoder = json.encoder.encode_basestring_ascii
+        else:
+            _encoder = json.encoder.encode_basestring
+        if self.encoding != 'utf-8':
+            def _encoder(o, _orig_encoder=_encoder, _encoding=self.encoding):
+                if isinstance(o, str):
+                    o = o.decode(_encoding)
+                return _orig_encoder(o)
+
+        def floatstr(o, allow_nan=self.allow_nan, _repr=json.encoder.FLOAT_REPR,
+                _inf=json.encoder.INFINITY, _neginf=-json.encoder.INFINITY):
+            # Check for specials.  Note that this type of test is processor
+            # and/or platform-specific, so do tests which don't depend on the
+            # internals.
+
+            if o != o:
+                text = self.nan_str
+            elif o == _inf:
+                text = self.inf_str
+            elif o == _neginf:
+                text = self.neg_inf_str
+            else:
+                return _repr(o)
+
+            if not allow_nan:
+                raise ValueError(
+                    "Out of range float values are not JSON compliant: " +
+                    repr(o))
+
+            return text
+
+        _iterencode = json.encoder._make_iterencode(
+                markers, self.default, _encoder, self.indent, floatstr,
+                self.key_separator, self.item_separator, self.sort_keys,
+                self.skipkeys, _one_shot)
+        return _iterencode(o, 0)
+
