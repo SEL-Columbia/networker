@@ -13,9 +13,8 @@ install:
   - conda info -a
   # setup networker in conda environment 
   - conda create -n networker python=2.7
-  - conda config --add channels 'ioos'
-  - conda install --yes -c sel -n networker networkplanner-metrics
-  - conda install --yes -c sel -n networker networker
+  - conda install --yes -c conda-forge -c sel -n networker networkplanner-metrics
+  - conda install --yes -c conda-forge -n networker --file requirements.txt 
   # setup coverage tools
   - conda install --yes -n networker coverage
   - conda install --yes -n networker coveralls
