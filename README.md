@@ -165,7 +165,7 @@ ldconfig ~/anaconda/envs/networker/lib
 
 ## Development Setup
 
-To setup a development environment, in addition to the above installation steps...
+To setup a development environment
 
 clone this repository or fork to your own repo and then clone:
 ```
@@ -173,14 +173,16 @@ cd <src_dir>
 git clone <repo_name>/networker.git 
 ```
 
-In order to develop/test against the source directory, you'll need to install it's dependencies (and remove networker from the conda environment if it alread exists) and use setup tools to link you source to the conda environment. 
+In order to develop/test against the source directory, you'll need to install it's dependencies (and remove networker from the conda environment if it already exists). 
+
 ``` 
 source activate networker
 cd <src_dir>/networker
 conda remove networker # if already installed
+# networkplanner-metrics is only needed if you reference
+# legacy networkplanner libraries (see networkplanner_runner.py)
+conda install -c conda-forge -c sel networkplanner-metrics
 conda install -c conda-forge --file requirements.txt
-# links local source directory to python path
-python setup.py develop 
 ```
 
 At this point, you should be ready to develop against local source.  
