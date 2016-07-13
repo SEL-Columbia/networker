@@ -12,3 +12,4 @@ rtree>=0.8.2
 jsonschema>=2.4.0
 pyproj>=1.9.5.1
 six>=1.10.0
+gdal>=2.1.0

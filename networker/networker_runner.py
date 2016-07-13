@@ -10,15 +10,12 @@ import numpy as np
 
 from networker.classes.unionfind import UnionFind
 from networker.classes.geograph import GeoGraph
+from networker.exception import SpatialReferenceMismatchException
 import networker.io as nio
 import networker.geomath as gm
 import networker.algorithms as algo
 
 log = logging.getLogger('networker')
-
-class SRSMismatchException(Exception):
-    """ Spatial Reference System mismatch """
-    pass
 
 class NetworkerRunner(object):
 
@@ -44,6 +41,8 @@ class NetworkerRunner(object):
         """
         run a minimum spanning forest algorithm on inputs and write output
         based on configuration
+
+        Returns the GeoGraph representing the MSF
         """
 
         demand_nodes = load_node_metrics(**self.config['demand_nodes'])
@@ -61,7 +60,7 @@ class NetworkerRunner(object):
                           "do not match".format(demand_nodes.srs, 
                                                 existing_networks.srs)
                 log.error(message)
-                raise SRSMismatchException(message)
+                raise SpatialReferenceMismatchException(message)
 
         network_algorithm = self.config['network_algorithm']
 
@@ -87,6 +86,8 @@ class NetworkerRunner(object):
             os.makedirs(self.output_directory)
 
         nio.write_shp(msf, self.output_directory)
+        # write geojson too
+        nio.write_geojson(msf, os.path.join(self.output_directory, "proposed.geojson"))
         return msf
 
     def validate(self):
@@ -344,13 +345,12 @@ def _clean_geograph(network):
         network.remove_edge(node0, node1)
 
 
-def load_existing_networks(filename="existing_networks.shp", budget_value=0,
-                           prefix=None):
+def load_existing_networks(filename, budget_value=0, prefix=None):
     """
     load existing_networks shp into GeoGraph nodes, edges and assign budget
 
     Args:
-        filename:  existing_networks shapefile
+        filename:  existing_networks (geojson or shapefile)
         budget_value:  default budget value for nodes in existing network
         prefix: if not None, relabel node ids with the prefix
 
@@ -358,7 +358,8 @@ def load_existing_networks(filename="existing_networks.shp", budget_value=0,
         GeoGraph of existing networks with budget attribute
     """
 
-    geo_net = nio.load_shp(filename, simplify=False)
+    # simplify is passed in case it's a shapefile
+    geo_net = nio.read_geograph(filename, simplify=False)
 
     nx.set_node_attributes(geo_net, 'budget', {n: budget_value
                                                for n in geo_net.nodes()})
@@ -386,14 +387,14 @@ def load_existing_networks(filename="existing_networks.shp", budget_value=0,
     return geo_net
 
 
-def load_node_metrics(filename="metrics.csv", x_column="X", y_column="Y",
+def load_node_metrics(filename, x_column="X", y_column="Y",
                       budget_column="metric", budget_value=1000):
     """
     load node_metrics csv into GeoGraph (nodes and x,y,budget attributes only)
 
     Args:
-        filename:  nodal metrics csv file
-        x_column, y_column:  col names to take x, y from
+        filename:  nodal metrics file (csv, geojson)
+        x_column, y_column:  col names to take x, y from (if csv)
         budget_column:  col to take budget from
         budget_value: default value for nodal budget
 
@@ -402,7 +403,7 @@ def load_node_metrics(filename="metrics.csv", x_column="X", y_column="Y",
     """
 
     # nodes loaded with all attributes
-    geo_nodes = nio.load_nodes(filename, x_column, y_column)
+    geo_nodes = nio.read_geograph(filename, x_column, y_column)
 
     # ensure nodes only have budget attribute
     for node in geo_nodes.nodes_iter():
