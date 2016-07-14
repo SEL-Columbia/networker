@@ -6,6 +6,7 @@ import numpy as np
 from networker.classes.geograph import GeoGraph
 import networker.geomath as gm
 import networker.utils as utils
+import copy
 
 
 # fixtures
@@ -168,3 +169,55 @@ def test_merge_nearby_nodes():
     assert geo.edges() == [(0, 2), (0, 5)],\
         "nodes were not merged correctly"
 
+def test_compose():
+
+    """
+    Ensure that GeoGraph.compose works correctly
+    
+    geo_left:       geo_right (no edges):
+
+    0---1   2       0   1
+
+    force_disjoint=True:
+
+    0---1   2   3   4 
+
+    force_disjoint=False:
+
+    0---1   2
+    
+    Note that geo_right attributes take precedence over geo_left
+    when merged
+    """
+
+    left_coords = [[0.0, 0.0], [0.1, 0.0], [0.2, 0.0]]
+    left_edges = [(0, 1)]
+    left_attrs = {0: {'name': 'left0'}, 
+                  1: {'name': 'left1'},
+                  2: {'name': 'left2'}}
+
+    right_coords = [[0.0, 0.0], [0.1, 0.0]]
+    right_attrs = {0: {'name': 'right0'}, 
+                   1: {'name': 'right1'}}
+ 
+    geo_left = GeoGraph(coords=dict(enumerate(left_coords)), data=left_edges)
+    geo_left.node = copy.deepcopy(left_attrs)
+
+    geo_right = GeoGraph(coords=dict(enumerate(right_coords)))
+    geo_right.node = copy.deepcopy(right_attrs)
+
+    geo_union = GeoGraph.compose(geo_left, geo_right, force_disjoint=False)
+    union_attrs = copy.deepcopy(left_attrs)
+    union_attrs.update(right_attrs)
+
+    assert geo_union.nodes() == [0, 1, 2] \
+           and geo_union.edges() == [(0, 1)] \
+           and geo_union.node == union_attrs, \
+           "Non-disjoint composition not correct"
+
+    geo_union = GeoGraph.compose(geo_left, geo_right, force_disjoint=True)
+
+    assert geo_union.nodes() == [0, 1, 2, 3, 4] \
+           and geo_union.edges() == [(0, 1)] \
+           and geo_union.coords == dict(enumerate(left_coords + right_coords)), \
+           "Disjoint composition not correct"

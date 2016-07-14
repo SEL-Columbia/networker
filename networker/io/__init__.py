@@ -585,7 +585,7 @@ def write_geojson(geograph, geojson_path):
     """
  
     geojson = to_geojson(geograph) 
-    geojson_path.write(json.dumps(geojson, cls=FloatEncoder))
+    geojson_path.write(json.dumps(geojson, cls=FloatEncoder, indent=1))
 
 
 def read_geograph(filename, *args, **kwargs):

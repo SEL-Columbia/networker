@@ -157,9 +157,19 @@ class GeoGraph(GeoObject, nx.Graph):
         return True
 
     @staticmethod
-    def compose(left, right, force_distinct=False):
+    def compose(left, right, force_disjoint=False):
         """
         'override' of networkx compose to handle GeoGraph (really just coords)
+        Nodes will be merged in case their id's match
+
+        The right geograph's attributes are retained when nodes merge and
+        they have matching attribute names
+        
+        Args:  
+            left, right:  left and right geographs
+            force_disjoint:  assign new integer ids to nodes s.t. they 
+              are disjoint (ensuring that no nodes are merged)
+                          
         """    
         left_geo = left
         right_geo = right
@@ -178,10 +188,10 @@ class GeoGraph(GeoObject, nx.Graph):
                 d[nodes.next()] = copy.copy(coord)
             return d
 
-        if force_distinct:
+        if force_disjoint:
             left_geo = nx.convert_node_labels_to_integers(left_geo)
             left_geo.coords = coord_map(left.coords, left_geo.nodes())
-            right_geo = nx.convert_node_labels_to_integers(right_geo, first_label=max(left_geo.nodes()))
+            right_geo = nx.convert_node_labels_to_integers(right_geo, first_label=(max(left_geo.nodes())+1))
 
             right_geo.coords = coord_map(right.coords, right_geo.nodes())
 
