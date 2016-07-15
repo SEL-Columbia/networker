@@ -19,11 +19,11 @@ logger.info("networker %s (Python %s)" % (
                 networker.__version__,
                 '.'.join(map(str, sys.version_info[:3]))))
 
-parser = argparse.ArgumentParser(description="Union GeoGraphs")
+parser = argparse.ArgumentParser(description="Compose GeoGraphs")
 parser.add_argument("input_files", nargs="+",
-                    help="files representing geographs to be unioned (.shp, .csv, .json, .geojson)")
+                    help="files representing geographs to be composed/unioned (.shp, .csv, .json, .geojson)")
 parser.add_argument("output", 
-                    help="resulting union destination (dir for .shp or .geojson)")
+                    help="resulting compose destination (dir for .shp or .geojson)")
 parser.add_argument("--x_column", "-x", \
                     default="X", \
                     help="column name for x value in node csv")
@@ -33,7 +33,7 @@ parser.add_argument("--y_column", "-y", \
 parser.add_argument("--force_disjoint", "-f", action="store_true", default=False,
                     help="force nodes to be distinct across input files (by assigning new integer node ids) resulting in a disjoint union")
 parser.add_argument("--match_radius", "-r", type=float, 
-                    help="if specified, determines radius for merging nodes once union has been performed (otherwise nodes are not merged based on proximity)")
+                    help="if specified, determines radius for merging nodes once compose has been performed (otherwise nodes are not merged based on proximity)")
 args = parser.parse_args()
 
 def union_reduce(left_geo, right_geo):
