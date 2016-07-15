@@ -1,6 +1,6 @@
 ## 0.4.0
-- Added GeoJSON support (see spec in [docs/geograph_geojson.md](https://github.com/SEL-Columbia/networker/docs/geograph_geojson.md))
-- Added `compose` tool for combining and converting geographs (see demo in [docs/geograph_compose_demo.md](https://github.com/SEL-Columbia/networker/docs/geograph_compose_demo.md))
+- Added GeoJSON support (see spec in [docs/geograph_geojson.md](docs/geograph_geojson.md))
+- Added `compose` tool for combining and converting geographs (see demo in [docs/geograph_compose_demo.md](docs/geograph_compose_demo.md))
 - Included changes from @invisibleroads fork in support of [infrastructure-planning](https://github.com/SEL-Columbia/infrastructure-planning)
 
 ## 0.3.0
