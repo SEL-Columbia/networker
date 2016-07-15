@@ -48,7 +48,7 @@ def read_wrap(filename):
 geographs = []
 for filename in args.input_files:
     geograph = read_wrap(filename)
-    print("filename %s, nodes: %s, edges: %s" % (filename, len(geograph.nodes()), len(geograph.edges())))
+    logger.info("filename %s, nodes: %s, edges: %s" % (filename, len(geograph.nodes()), len(geograph.edges())))
     geographs.append(geograph)
 
 # geographs = (read_wrap(filename) for filename in args.input_files)
@@ -58,5 +58,5 @@ unioned_geograph = functools.reduce(union_reduce, geographs)
 if args.match_radius is not None:
    unioned_geograph.merge_nearby_nodes(args.match_radius)
 
-print("output nodes: %s, edges: %s" % (len(unioned_geograph.nodes()), len(unioned_geograph.edges())))
+logger.info("output nodes: %s, edges: %s" % (len(unioned_geograph.nodes()), len(unioned_geograph.edges())))
 nio.write_geograph(unioned_geograph, args.output)

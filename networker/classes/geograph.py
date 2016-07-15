@@ -159,10 +159,11 @@ class GeoGraph(GeoObject, nx.Graph):
     @staticmethod
     def compose(left, right, force_disjoint=False):
         """
-        'override' of networkx compose to handle GeoGraph (really just coords)
-        Nodes will be merged in case their id's match
+        'override' of networkx compose to handle GeoGraph
+        Nodes will be merged in case their id's match when 
+        force_disjoint is False (the default)
 
-        The right geograph's attributes are retained when nodes merge and
+        The right geograph's attributes take precedence when nodes merge and
         they have matching attribute names
         
         Args:  
