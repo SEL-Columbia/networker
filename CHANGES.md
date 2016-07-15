@@ -1,3 +1,8 @@
+## 0.4.0
+- Added GeoJSON support (see spec in [docs/geograph_geojson.md](https://github.com/SEL-Columbia/networker/docs/geograph_geojson.md))
+- Added `compose` tool for combining and converting geographs (see demo in [docs/geograph_compose_demo.md](https://github.com/SEL-Columbia/networker/docs/geograph_compose_demo.md))
+- Included changes from @invisibleroads fork in support of [infrastructure-planning](https://github.com/SEL-Columbia/infrastructure-planning)
+
 ## 0.3.0
 - Added spherical_accuracy to network input configuration (defaults to false). 
   This addresses [#82](https://github.com/SEL-Columbia/networker/issues/82)
@@ -14,7 +19,6 @@
 - support networkx 1.10 connected_components function change that now returns sets
 
 ## 0.2.4
-
 - Now handles MultiLineString geometry from shapefile
 - Adds some more error handling/reporting when network is not as expected
 - pep8 compliance changes (better)
@@ -22,7 +26,6 @@
     #71, 72
 
 ## 0.2.3
-
 - Handle network inputs that have self-referencing (i.e. zero-length) edges
   (via removal and warning messages)
 - Add clean_network script to remove these edges from any shapefile
