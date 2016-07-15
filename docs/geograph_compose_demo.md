@@ -90,14 +90,14 @@ The `compose` command line tool can be used to compose multiple network datasets
 
 This is demonstrated below as we merge the demand nodes csv and the proposed network shapefile into a geojson file.  
 
-### compose as format converter
+### Compose as format conversion tool
 
 To translate from from csv, shp, geojson to shp or geojson you can use the compose script.  Just specify a single input file and the desired output file with the appropriate extensions.  
 
 Note that there's a really nice geojson viewer+ by mapbox [here](http://geojson.io).
 
 ```bash
-(networker-rel-4.0)[cjn@cjn-debian networker]$ compose.py data/leona/expected/metrics-local-short.csv metrics-local-short.geojson
+(networker-rel-0.4)[cjn@cjn-debian networker]$ compose.py data/leona/expected/metrics-local-short.csv metrics-local-short.geojson
 2016-07-15 15:54:22,469 - networker - INFO - networker 0.3.0 (Python 2.7.12)
 2016-07-15 15:54:22,494 - networker - INFO - filename data/leona/expected/metrics-local-short.csv, nodes: 102, edges: 0
 2016-07-15 15:54:22,494 - networker - INFO - output nodes: 102, edges: 0
@@ -111,7 +111,7 @@ Note that there's a really nice geojson viewer+ by mapbox [here](http://geojson.
 Convert network shapefile to geojson
 
 ```bash
-(networker-rel-4.0)[cjn@cjn-debian networker]$ compose.py data/leona/expected/networks-proposed.shp networks-proposed.geojson
+(networker-rel-0.4)[cjn@cjn-debian networker]$ compose.py data/leona/expected/networks-proposed.shp networks-proposed.geojson
 2016-07-15 16:08:28,157 - networker - INFO - networker 0.3.0 (Python 2.7.12)
 2016-07-15 16:08:28,168 - networker - INFO - filename data/leona/expected/networks-proposed.shp, nodes: 88, edges: 70
 2016-07-15 16:08:28,169 - networker - INFO - output nodes: 88, edges: 70
@@ -119,12 +119,14 @@ Convert network shapefile to geojson
 
 ![png](geograph_compose_demo_files/networks-proposed.png)
 
-Now try merging them.  Note the following command-line args:
+### Compose as Merge tool
+
+Note the following command-line args:
 - --force_disjoint:  Forces the input nodes to be disjoint before merging (ensuring that the resulting composition is disjoint)
 - --match_radius:  Applied after the composition is performed, this merges any nodes within the radius of eachother.  
 
 ```bash
-(networker-rel-4.0)[cjn@cjn-debian-work networker]$ compose.py --force_disjoint --match_radius 0.00001 data/leona/expected/metrics-local-short.csv data/leona/expected/networks-proposed.shp merged.geojson
+(networker-rel-0.4)[cjn@cjn-debian-work networker]$ compose.py --force_disjoint --match_radius 0.00001 data/leona/expected/metrics-local-short.csv data/leona/expected/networks-proposed.shp merged.geojson
 2016-07-15 16:16:40,866 - networker - INFO - networker 0.3.0 (Python 2.7.12)
 2016-07-15 16:16:40,891 - networker - INFO - filename data/leona/expected/metrics-local-short.csv, nodes: 102, edges: 0
 2016-07-15 16:16:40,900 - networker - INFO - filename data/leona/expected/networks-proposed.shp, nodes: 88, edges: 70
