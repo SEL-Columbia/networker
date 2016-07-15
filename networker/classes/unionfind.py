@@ -123,8 +123,8 @@ class UnionFind:
             raise Exception('Path between fakes nodes')
 
         if any(fake):
-            real = graphs[np.array([0, 1])[~fake]]
-            grid = graphs[np.array([0, 1])[fake]]
+            real = graphs[np.array([0, 1])[~fake][0]]
+            grid = graphs[np.array([0, 1])[fake][0]]
 
             heaviest = self[real]
             smallest = self[grid]

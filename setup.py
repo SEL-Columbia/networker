@@ -22,5 +22,5 @@ setup(
     include_package_data=True,
     url='https://github.com/SEL-Columbia/networker',
     install_requires=required,
-    scripts = ['scripts/run_networker.py', 'scripts/run_networkplanner.py']
+    scripts = ['scripts/run_networker.py', 'scripts/run_networkplanner.py', 'scripts/compose.py']
 )

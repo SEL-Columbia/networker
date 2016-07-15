@@ -1,17 +1,20 @@
 # -*- coding: utf-8 -*-
-
+"""
+Module for geometric/geographic utility functions
+"""
 import numpy as np
 import osr
 
 from collections import defaultdict
-from numba import jit
+# from numba import jit
 import math
 
-"""
-Module for geometric/geographic utility functions
-"""
 
 MEAN_EARTH_RADIUS_M = 6371010
+
+# Note:  this says nothing about the order in the coordinates themselves
+#        coordinates in this library are assumed to be in the order x, y, [z]
+#        or longitude, latitude, [altitude]
 PROJ4_LATLONG = "+proj=latlong +datum=WGS84"
 
 # aka EPSG:3587 or 'tiling' projection
@@ -69,6 +72,7 @@ def ang_to_vec_coords(coords, radius=MEAN_EARTH_RADIUS_M):
 
     # transpose to nx3 and project from unit circle to sphere via radius
     return np.array([x, y, z]).T * radius
+
 
 def _math_vec_to_ang_coords(x, y, z):
     """ 
@@ -364,7 +368,7 @@ def make_bounding_box_array(coords):
         coord_array[x_sort[-1]][0], coord_array[y_sort[-1]][1]
 
 
-@jit
+# @jit
 def make_bounding_box(coord1, coord2):
     """
     Return a bbox for the pair of coordinates
@@ -562,7 +566,7 @@ def segments_intersect(p1, p2, p3, p4):
     return intersecting
 
 
-@jit
+# @jit
 def line_subgraph_intersection(subgraphs, rtree, p1, p2):
     """
     test for line segment intersection
@@ -800,7 +804,8 @@ def is_in_lon_lat(coords):
     bounds = make_bounding_box_array(coords)
     xbounds = np.array([bounds[0], bounds[2]])
     ybounds = np.array([bounds[1], bounds[3]])
-    return np.all(xbounds) < 180.0 and np.all(xbounds > -180.0) and \
+    # NOTE:  some systems handle "wrapping" longitudes by going beyond 360
+    return np.all(xbounds) < 360.0 and np.all(xbounds > -180.0) and \
         np.all(ybounds) < 90.0 and np.all(ybounds > -90)
 
 
