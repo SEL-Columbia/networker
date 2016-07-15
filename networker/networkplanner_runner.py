@@ -97,10 +97,11 @@ class NetworkPlannerRunner(object):
         metric_vbobs = self._update_metrics(metric_model, metric_vbobs)
         self._save_output(metric_vbobs, metric_config, metric_model,
                           header_type=header_type)
+        # TODO:  Write GeoJSON?  
         # at this point, dataset_store has all node/network values
         # so get full geograph and write as geojson
-        full_geograph = dataset_store_to_geograph(self.store)
-        nio.write_geojson(full_geograph, os.path.join(self.output_directory, "networks-proposed.geojson"))
+        # full_geograph = dataset_store_to_geograph(self.store)
+        # nio.write_geojson(full_geograph, os.path.join(self.output_directory, "networks-proposed.geojson"))
 
     def _run_metric_model(self, metric_model, metric_config):
 
