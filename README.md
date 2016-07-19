@@ -129,17 +129,13 @@ To use the NetworkPlannerRunner, you will need the networkplanner library
 installed in this environment:
 
 ```
-# the geojson library will be installed from the ioos channel so add it
-conda install -c ioos -c sel networkplanner-metrics
+conda install -c conda-forge -c sel networkplanner-metrics
 ```
 
 Now install the networker library
 
 ```
-# on OSX do this (asmeurer is owner for osx version of pyproj)
-conda install -c ioos -c sel networker
-# on Linux do this
-conda install -c ioos -c sel networker
+conda install -c conda-forge -c sel networker
 ```
 
 On OSX, there appears to be an issue related to [this](https://github.com/conda/conda/issues/308) and [this](https://github.com/ioos/conda-recipes/issues/141) where the libspatialindex library cannot be found.  As a workaround, you can do the following from within your networker environment before running any scripts (this is not ideal...alternative approaches appreciated):  
