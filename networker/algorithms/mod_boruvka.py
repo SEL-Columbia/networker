@@ -48,7 +48,13 @@ def mod_boruvka(G, subgraphs=None, rtree=None):
         return G
 
     V = set(G.nodes())
-    coords = np.row_stack(G.coords.values())
+
+    # GeoGraph coords may be ndarray or dict
+    if isinstance(G.coords, np.ndarray):
+        coords = G.coords
+    else:
+        coords = np.row_stack(G.coords.values())
+
     projcoords = ang_to_vec_coords(coords) if G.is_geographic() else coords
     kdtree = KDTree(projcoords)
 
