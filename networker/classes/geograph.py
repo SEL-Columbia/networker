@@ -64,9 +64,16 @@ class GeoObject(object):
         to_proj = prj.Proj(to_srs)
         coords = {nd: prj.transform(from_proj, to_proj,
                                     self.coords[nd][0], self.coords[nd][1])
-                  for nd in self.coords}
+                  for nd in self.coord_keys()}
         return coords
 
+    def coord_keys(self):
+        """ iterate over keys of coords (depends on type) """
+        if isinstance(self.coords, np.ndarray):
+            return range(len(self.coords))
+        else:
+            assert(isinstance(self.coords, dict))
+            return self.coords.keys()
 
     def lon_lat_to_cartesian_coords(self):
         """
