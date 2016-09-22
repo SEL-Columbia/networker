@@ -1,3 +1,7 @@
+## 0.4.1
+- Address coordinates as ndarray issue (#101)
+- Allow label offset in draw_geograph (#102)
+
 ## 0.4.0
 - Added GeoJSON support (see spec in [docs/geograph_geojson.md](docs/geograph_geojson.md))
 - Added `compose` tool for combining and converting geographs (see demo in [docs/geograph_compose_demo.md](docs/geograph_compose_demo.md))

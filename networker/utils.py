@@ -113,7 +113,9 @@ def get_rounded_edge_sets(geograph, round_precision=8):
 
 
 def draw_geograph(g, node_color='r', edge_color='b', node_label_field=None,
-                    edge_label_field=None, node_size=200):
+                  edge_label_field=None, node_size=200, node_label_x_offset=0, 
+                  node_label_y_offset=0, node_label_font_size=12, 
+                  node_label_font_color='k'):
     """
     Simple function to draw a geograph via matplotlib/networkx
     Uses geograph coords (projects if needed) as node positions
@@ -123,24 +125,23 @@ def draw_geograph(g, node_color='r', edge_color='b', node_label_field=None,
     flat_coords = g.transform_coords(gm.PROJ4_FLAT_EARTH)
 
     node_pos = {nd: flat_coords[nd] for nd in g.nodes()}
+    label_pos = {nd: [flat_coords[nd][0] + node_label_x_offset, 
+                      flat_coords[nd][1] + node_label_y_offset] 
+                      for nd in g.nodes()}
 
-    # handle main graph rendering
+    # Draw nodes
+    nx.draw_networkx(g, pos=node_pos, node_color=node_color,
+        with_labels=False, edge_color=edge_color, node_size=node_size)
+
     if node_label_field:
         if node_label_field != 'ix':
             label_vals = nx.get_node_attributes(g, node_label_field)
-            nx.draw_networkx(g, pos=node_pos, labels=label_vals,
-                            node_color=node_color, edge_color=edge_color,
-                            node_size=node_size)
+            nx.draw_networkx_labels(g, label_pos, labels=label_vals, 
+                font_size=node_label_font_size, font_color=node_label_font_color)
 
         else: # label via ids
-            nx.draw_networkx(g, pos=node_pos, with_labels=True,
-                            node_color=node_color, edge_color=edge_color,
-                            node_size=node_size)
-
-    else:
-        nx.draw_networkx(g, pos=node_pos, with_labels=False,
-                        node_color=node_color, edge_color=edge_color,
-                        node_size=node_size)
+            nx.draw_networkx_labels(g, label_pos, labels=g.nodes(), 
+                font_size=node_label_font_size, font_color=node_label_font_color)
 
     # handle edge labels if needed
     if edge_label_field:
