@@ -1,3 +1,6 @@
+## 0.4.2
+- Remove fixed dependency versions
+
 ## 0.4.1
 - Address coordinates as ndarray issue (#101)
 - Allow label offset in draw_geograph (#102)
